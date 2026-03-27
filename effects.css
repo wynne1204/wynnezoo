@@ -1,0 +1,232 @@
+/* --- Screen Shakes --- */
+@keyframes shake-hard {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    10% { transform: translate(-5px, -5px) rotate(-2deg); }
+    20% { transform: translate(5px, 5px) rotate(2deg); }
+    30% { transform: translate(-5px, 5px) rotate(-2deg); }
+    40% { transform: translate(5px, -5px) rotate(2deg); }
+    50% { transform: translate(-5px, -5px) rotate(-2deg); }
+    60% { transform: translate(5px, 5px) rotate(2deg); }
+    70% { transform: translate(-5px, 5px) rotate(-2deg); }
+    80% { transform: translate(5px, -5px) rotate(2deg); }
+    90% { transform: translate(0, 0) rotate(0); }
+    100% { transform: translate(0, 0) rotate(0); }
+}
+
+@keyframes shake-medium {
+    0% { transform: translate(0, 0); }
+    20% { transform: translate(-3px, 3px); }
+    40% { transform: translate(3px, -3px); }
+    60% { transform: translate(-3px, -3px); }
+    80% { transform: translate(3px, 3px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes shake-soft {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(-1px, 1px); }
+    50% { transform: translate(1px, -1px); }
+    75% { transform: translate(-1px, 1px); }
+    100% { transform: translate(0, 0); }
+}
+
+@keyframes shake-soft-strong {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    15% { transform: translate(-2px, 2px) rotate(-0.4deg); }
+    30% { transform: translate(2px, -2px) rotate(0.4deg); }
+    45% { transform: translate(-2px, -1px) rotate(-0.3deg); }
+    60% { transform: translate(2px, 1px) rotate(0.3deg); }
+    75% { transform: translate(-1px, 2px) rotate(-0.2deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.shake-hard { animation: shake-hard 0.5s ease-in-out; }
+.shake-medium { animation: shake-medium 0.5s ease-in-out; }
+.shake-soft { animation: shake-soft 0.3s ease-in-out; }
+.shake-soft-strong { animation: shake-soft-strong 0.45s ease-out; }
+
+/* --- Flash Overlays --- */
+.flash-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.1s;
+}
+
+.flash-red { background: radial-gradient(circle, rgba(255,0,0,0.4) 0%, rgba(255,0,0,0) 70%); }
+.flash-orange { background: radial-gradient(circle, rgba(255,165,0,0.3) 0%, rgba(255,165,0,0) 70%); }
+.flash-white { background: rgba(255,255,255,0.3); }
+.flash-white-strong { background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.1) 55%, rgba(255,255,255,0) 85%); }
+
+/* --- Particles & Effects --- */
+.particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.safe-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9999;
+    will-change: transform, opacity;
+}
+
+@keyframes safe-particle-anim {
+    0% {
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+        opacity: 1;
+    }
+    15% {
+        transform: translate(calc(var(--tx) * 0.2), calc(var(--ty) * 0.2)) scale(1.2) rotate(90deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0) rotate(720deg);
+        opacity: 0;
+    }
+}
+
+@keyframes particle-explode {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0);
+        opacity: 0;
+    }
+}
+
+.floating-text {
+    position: absolute;
+    font-weight: bold;
+    font-size: 2.25rem;
+    color: #FFD700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    pointer-events: none;
+    z-index: 100;
+    animation: float-up 1s ease-out forwards;
+}
+
+@keyframes float-up {
+    0% {
+        transform: translateY(0) scale(0.5);
+        opacity: 0;
+    }
+    20% {
+        transform: translateY(-10px) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px) scale(1);
+        opacity: 0;
+    }
+}
+
+/* Enhanced Block Animation */
+.block.new-item {
+    animation: block-land 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes block-land {
+    0% { transform: scale(0) translateY(50px); opacity: 0; }
+    60% { transform: scale(1.1) translateY(-10px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); }
+}
+
+/* Flash effect for safe grid cell */
+.grid-cell.safe-flash::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: inherit;
+    animation: flash 0.3s ease-out forwards;
+    pointer-events: none;
+}
+
+@keyframes flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* Pop animation for safe open */
+.safe-pop {
+    animation: safe-pop-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes safe-pop-anim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+/* Shockwave for bomb */
+.shockwave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #ff0000;
+    opacity: 1;
+    pointer-events: none;
+    animation: shockwave-expand 0.5s ease-out forwards;
+    z-index: 50;
+}
+
+@keyframes shockwave-expand {
+    0% { width: 10px; height: 10px; opacity: 1; border-width: 5px; }
+    100% { width: 200px; height: 200px; opacity: 0; border-width: 0; }
+}
+
+/* Shockwave for safe */
+.safe-shockwave {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 3px solid #FFD700;
+    box-shadow: 0 0 15px #FFD700, inset 0 0 15px #FFD700;
+    opacity: 1;
+    pointer-events: none;
+    animation: safe-shockwave-expand 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+    z-index: 50;
+}
+
+@keyframes safe-shockwave-expand {
+    0% { width: 10px; height: 10px; opacity: 1; border-width: 6px; }
+    100% { width: 180px; height: 180px; opacity: 0; border-width: 0; }
+}
+
+.confetti-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9999;
+    will-change: transform, opacity;
+}
+
+@keyframes confetti-anim {
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), calc(var(--ty) + 400px)) rotate(var(--rot)) scale(0.5);
+        opacity: 0;
+    }
+}

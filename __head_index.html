@@ -1,0 +1,499 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wynne's ZOO</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="effects.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Fredoka+One&family=Saira+Stencil+One&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-shell" class="app-shell">
+        <section id="story-screen" class="app-screen story-screen" aria-label="剧情播放界面">
+            <div class="story-scene">
+                <div id="story-scene-background" class="story-scene-background"></div>
+                <div class="story-scene-overlay"></div>
+
+                <div class="story-topbar">
+                    <div class="story-topbar-copy">
+                        <div id="story-title" class="story-title">序章</div>
+                        <div id="story-progress" class="story-progress">1 / 1</div>
+                    </div>
+                    <button id="story-skip-btn" class="story-topbar-btn" type="button" hidden>跳过</button>
+                </div>
+
+                <div id="story-beat-title" class="story-beat-title">第 1 幕</div>
+                <div id="story-actors-layer" class="story-actors-layer"></div>
+
+                <div class="story-dialogue-panel">
+                    <div id="story-speaker" class="story-speaker" data-type="narration">旁白</div>
+                    <p id="story-text" class="story-text">剧情加载中...</p>
+                    <div id="story-choice-list" class="story-choice-list" hidden aria-label="剧情选项"></div>
+                    <div class="story-dialogue-actions">
+                        <span class="story-dialogue-tip">点击空白处也可以继续</span>
+                        <button id="story-next-btn" class="story-next-btn" type="button">继续</button>
+                    </div>
+                </div>
+                <div id="story-item-reward-overlay" class="story-item-reward-overlay" hidden>
+                    <div class="story-item-reward-card" role="dialog" aria-modal="true" aria-labelledby="story-item-reward-title">
+                        <img id="story-item-reward-image" class="story-item-reward-image" alt="" hidden>
+                        <div class="story-item-reward-copy">
+                            <h3 id="story-item-reward-title" class="story-item-reward-title">获得物品</h3>
+                            <p id="story-item-reward-text" class="story-item-reward-text"></p>
+                        </div>
+                        <button id="story-item-reward-btn" class="story-item-reward-btn" type="button">获得</button>
+                    </div>
+                </div>
+                <div id="story-cleaning-overlay" class="story-cleaning-overlay" hidden>
+                    <canvas id="story-cleaning-canvas" class="story-cleaning-canvas"></canvas>
+                    <div id="story-cleaning-celebration" class="story-cleaning-celebration" hidden aria-hidden="true"></div>
+                    <div class="story-cleaning-stagebar">
+                        <div id="story-cleaning-stage-pill" class="story-cleaning-stage-pill">&#28165;&#25195; 1 / 2</div>
+                        <div class="story-cleaning-progress-track">
+                            <div id="story-cleaning-progress-fill" class="story-cleaning-progress-fill"></div>
+                        </div>
+                        <div id="story-cleaning-progress-text" class="story-cleaning-progress-text">0%</div>
+                    </div>
+                    <div class="story-cleaning-panel">
+                        <div id="story-cleaning-title" class="story-cleaning-title">&#28369;&#21160;&#28165;&#25195;</div>
+                        <p id="story-cleaning-hint" class="story-cleaning-hint">&#25353;&#20303;&#24182;&#28369;&#21160;&#23631;&#24149;&#65292;&#25226;&#26126;&#26174;&#30340;&#33039;&#27745;&#20808;&#25830;&#25481;&#12290;</p>
+                        <button id="story-cleaning-continue-btn" class="story-cleaning-continue-btn" type="button" hidden>&#32487;&#32493;&#21095;&#24773;</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section id="zoo-home-screen" class="app-screen zoo-home-screen is-active" aria-label="&#21160;&#29289;&#22253;&#20027;&#30028;&#38754;">
+            <img id="zoo-home-bg" class="zoo-home-bg" src="./Texture/ZOO/UI_Zoo_MainBG.png" alt="&#21160;&#29289;&#22253;&#20027;&#22330;&#26223;&#32972;&#26223;">
+            <div class="zoo-home-topbar">
+                <div class="zoo-resource-chip is-ticket">
+                    <img class="zoo-resource-chip-bg" src="./Texture/UI/Home_ResourceBarBG.png" alt="" aria-hidden="true">
+                    <img class="zoo-resource-icon" src="./Texture/UI/Icon_Ticket.png" alt="" aria-hidden="true">
+                    <div class="zoo-resource-copy">
+                        <span>玩法券</span>
+                        <strong id="zoo-resource-ticket">0</strong>
+                    </div>
+                </div>
+                <div class="zoo-resource-chip is-coin">
+                    <img class="zoo-resource-chip-bg" src="./Texture/UI/Home_ResourceBarBG.png" alt="" aria-hidden="true">
+                    <img class="zoo-resource-icon" src="./Texture/UI/Icon_Gold.png" alt="" aria-hidden="true">
+                    <div class="zoo-resource-copy">
+                        <span>&#37329;&#24065;</span>
+                        <strong id="zoo-resource-coin">0</strong>
+                    </div>
+                </div>
+                <div class="zoo-resource-chip is-diamond">
+                    <img class="zoo-resource-chip-bg" src="./Texture/UI/Home_ResourceBarBG.png" alt="" aria-hidden="true">
+                    <img class="zoo-resource-icon" src="./Texture/UI/Icon_Diamond.png" alt="" aria-hidden="true">
+                    <div class="zoo-resource-copy">
+                        <span>&#38075;&#30707;</span>
+                        <strong id="zoo-resource-diamond">0</strong>
+                    </div>
+                </div>
+            </div>
+            <p id="zoo-home-dev-note" class="zoo-home-dev-note" aria-live="polite"></p>
+            <div class="zoo-home-world">
+                <div id="habitat-stage-list" class="habitat-stage-list" aria-label="&#23567;&#29066;&#29483;&#26646;&#24687;&#22320;"></div>
+            </div>
+            <div class="zoo-home-bottom-ui">
+                <button id="zoo-main-task-btn" class="zoo-main-task-btn" type="button" aria-label="查看当前主线任务">
+                    <img class="zoo-main-task-bg" src="./Texture/UI/Home_TaskPanelBG.png" alt="" aria-hidden="true">
+                    <img class="zoo-main-task-icon" src="./Texture/UI/Icon_System_Task.png" alt="" aria-hidden="true">
+                    <span id="zoo-main-task-text" class="zoo-main-task-text">建造小熊猫栏舍</span>
+                </button>
+
+                <div class="zoo-home-nav">
+                    <button id="zoo-nav-trip" class="zoo-home-nav-btn is-trip" type="button" aria-label="动物远行">
+                        <img class="zoo-home-nav-bg" src="./Texture/UI/Home_NavButtonBG.svg" alt="" aria-hidden="true">
+                        <img class="zoo-home-nav-icon" src="./Texture/UI/Icon_System_Trip.png" alt="" aria-hidden="true">
+                        <span class="zoo-home-nav-label">动物远行</span>
+                    </button>
+                    <button id="zoo-nav-collection" class="zoo-home-nav-btn is-collection" type="button" aria-label="动物图鉴">
+                        <img class="zoo-home-nav-bg" src="./Texture/UI/Home_NavButtonBG.svg" alt="" aria-hidden="true">
+                        <img class="zoo-home-nav-icon" src="./Texture/UI/Icon_System_Collection.png" alt="" aria-hidden="true">
+                        <span class="zoo-home-nav-label">动物图鉴</span>
+                    </button>
+                    <button id="story-preview-trigger" class="zoo-home-nav-btn is-story" type="button" aria-haspopup="dialog" aria-expanded="false" aria-label="剧情">
+                        <img class="zoo-home-nav-bg" src="./Texture/UI/Home_NavButtonBG.svg" alt="" aria-hidden="true">
+                        <img class="zoo-home-nav-icon" src="./Texture/UI/Icon_System_Story.png" alt="" aria-hidden="true">
+                        <span class="zoo-home-nav-label">剧情</span>
+                    </button>
+                </div>
+
+                <div class="zoo-home-slot-entry">
+                    <div id="zoo-home-slot-status" class="zoo-home-slot-status">礼品商店已待命</div>
+                    <div id="zoo-home-slot-hint" class="zoo-home-slot-hint">点击右下角入口，消耗玩法券拆盲盒。</div>
+                    <button id="enter-slot-btn" class="zoo-slot-entry-btn zoo-gift-shop-btn" type="button" aria-label="进入礼品商店">
+                        <img class="zoo-gift-shop-image" src="./Texture/UI/Home_GiftShopEntry.png" alt="" aria-hidden="true">
+                        <span id="enter-slot-btn-text" class="zoo-gift-shop-text">礼品商店</span>
+                    </button>
+                </div>
+            </div>
+            <section id="story-preview-panel" class="story-preview-panel" aria-label="剧情章节预览" aria-hidden="true">
+                <div class="story-preview-panel-head">
+                    <div>
+                        <div class="story-preview-panel-kicker">Story Preview</div>
+                        <h3>选择章节</h3>
+                    </div>
+                    <button id="story-preview-close" class="story-preview-close" type="button" aria-label="关闭剧情预览">×</button>
+                </div>
+                <div id="story-preview-list" class="story-preview-list"></div>
+            </section>
+            <section id="habitat-detail-panel" class="habitat-detail-panel" aria-label="栖息地详情">
+                <div class="habitat-detail-handle"></div>
+                <div class="habitat-detail-head">
+                    <div>
+                        <div class="habitat-detail-kicker">Habitat Detail</div>
+                        <h3 id="habitat-panel-title">栖息地详情</h3>
+                    </div>
+                    <div class="habitat-detail-head-actions">
+                        <div id="habitat-resident-pill" class="habitat-resident-pill">点击上方栖息地查看</div>
+                        <button id="habitat-panel-close" class="habitat-panel-close" type="button" aria-label="关闭栖息地详情">×</button>
+                    </div>
+                </div>
+                <div class="habitat-tab-row" role="tablist" aria-label="栖息地页签">
+                    <button class="habitat-tab-btn is-active" type="button" data-tab="status" role="tab" aria-selected="true">栏舍状态</button>
+                    <button class="habitat-tab-btn" type="button" data-tab="animals" role="tab" aria-selected="false">小动物</button>
+                    <button class="habitat-tab-btn" type="button" data-tab="environment" role="tab" aria-selected="false">环境</button>
+                    <button class="habitat-tab-btn" type="button" data-tab="appearance" role="tab" aria-selected="false">外观</button>
+                </div>
+                <div id="habitat-tab-content" class="habitat-tab-content">
+                    点击上方栖息地查看栏舍详情。
+                </div>
+            </section>
+            <div id="zoo-home-toast" class="zoo-home-toast" aria-live="polite"></div>
+        </section>
+        <section id="slot-game-screen" class="app-screen slot-game-screen" aria-label="&#31036;&#30418;&#26426;&#29609;&#27861;&#30028;&#38754;">
+            <div class="game-container">
+                <button id="slot-back-btn" class="slot-back-btn" type="button" aria-label="&#36820;&#22238;&#21160;&#29289;&#22253;">&#8592;</button>
+
+                <div class="status-bar-top">
+                    <div class="status-info-group slot-resource-group" aria-label="Resources">
+                        <span class="status-label slot-legacy-anchor is-hidden">Match Threshold</span>
+                        <div class="value-box compact slot-resource-box" title="Coin">
+                            <span class="currency-icon">&#128176;</span>
+                            <span id="slot-resource-coin">0</span>
+                        </div>
+                        <div class="value-box compact slot-resource-box" title="Gem">
+                            <span class="currency-icon">&#128142;</span>
+                            <span id="slot-resource-diamond">0</span>
+                        </div>
+                        <div class="value-box compact slot-resource-box" title="Ticket">
+                            <span class="currency-icon">&#127915;</span>
+                            <span id="slot-resource-ticket">0</span>
+                        </div>
+                    </div>
+                    <div class="status-info-group reward-inline">
+                        <span class="status-label slot-legacy-anchor is-hidden">Current Reward</span>
+                        <div class="value-box compact slot-resource-box slot-legacy-anchor is-hidden" aria-hidden="true">
+                            <span id="bomb-count">3+</span>
+                        </div>
+                        <div class="value-box compact slot-resource-box slot-reward-box">
+                            <span class="value-prefix">Win</span>
+                            <span class="currency-icon">&#128176;</span>
+                            <span id="current-reward">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="main-stage">
+                    <div class="multiplier-sidebar" aria-label="Stack Progress">
+                        <div class="stack-progress-ruler" id="stack-progress-ruler"></div>
+                        <div class="multiplier-track">
+                            <div class="multiplier-fill" id="multiplier-fill"></div>
+                        </div>
+                        <div class="current-multiplier-bubble" id="multiplier-bubble">0/30</div>
+                    </div>
+
+                    <div class="tower-section">
+                        <div class="tower-viewport" id="tower-viewport">
+                            <div id="stack-container" class="stack-container"></div>
+                        </div>
+                        <div class="tower-base"></div>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <img src="./Texture/UI/ShopNameBG.png" class="shop-name-bg" alt="ZOO GIFT SHOP">
+
+                    <div class="shelf-container">
+                        <div class="grid-board" id="grid-board"></div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="cashout-btn" class="btn slot-legacy-anchor is-hidden" type="button">Open All</button>
+                        <button id="random-btn" class="btn" type="button">&#38543;&#26426;&#32763;&#24320;</button>
+                        <button id="longpress-btn" class="btn" type="button" style="display:none;">&#38271;&#25353;&#36830;&#24320;</button>
+                    </div>
+                </div>
+
+                <div id="bonus-screen" class="bonus-screen hidden">
+                    <div class="zoo-deco zoo-deco-1">🐾</div>
+                    <div class="zoo-deco zoo-deco-2">🐵</div>
+                    <div class="zoo-deco zoo-deco-3">🦁</div>
+                    <div class="bonus-header">
+                        <div class="bonus-title">🎊 动物园宝藏城</div>
+                        <div class="bonus-hud">
+                            <div class="bonus-hud-item highlight-reward">
+                                <span class="bonus-hud-icon">&#128142;</span>
+                                <span id="bonus-total-reward" class="bonus-hud-value">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bonus-chest-row hidden">
+                        <div class="bonus-chest" data-chest-id="monkey">
+                            <div class="bonus-chest-icon">&#x1F435;</div>
+                            <div class="bonus-chest-name">猴子宝箱</div>
+                            <div class="bonus-chest-value">💰 +12</div>
+                            <div class="bonus-progress">
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                            </div>
+                        </div>
+                        <div class="bonus-chest" data-chest-id="panda">
+                            <div class="bonus-chest-icon">&#x1F43C;</div>
+                            <div class="bonus-chest-name">熊猫宝箱</div>
+                            <div class="bonus-chest-value">💰 +128</div>
+                            <div class="bonus-progress">
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                            </div>
+                        </div>
+                        <div class="bonus-chest" data-chest-id="tiger">
+                            <div class="bonus-chest-icon">&#x1F42F;</div>
+                            <div class="bonus-chest-name">老虎宝箱</div>
+                            <div class="bonus-chest-value">💰 +36</div>
+                            <div class="bonus-progress">
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                                <span class="bonus-dot"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bonus-trigger-stack-row">
+                        <div class="bonus-trigger-stack" data-stack-id="add">
+                            <div class="bonus-trigger-bar-progress" id="progress-add"></div>
+                            <div class="bonus-trigger-bar-bg"></div>
+                            <div class="bonus-trigger-bar-content">
+                                <div class="bar-left">
+                                    <div class="lock-icon">🔒</div>
+                                    <img class="bonus-trigger-gift-img" data-role="gift-img" src="./Texture/Icon/Giftpack1.png" alt="Giftpack1">
+                                </div>
+                                <div class="bar-info">
+                                    <div class="bar-title">神奇加分果</div>
+                                    <div class="bar-desc">解锁第 5 行扩展棋盘！</div>
+                                </div>
+                                <div class="bar-energy-pulse">即将解锁</div>
+                            </div>
+                        </div>
+                        <div class="bonus-trigger-stack" data-stack-id="chest">
+                            <div class="bonus-trigger-bar-progress" id="progress-chest"></div>
+                            <div class="bonus-trigger-bar-bg"></div>
+                            <div class="bonus-trigger-bar-content">
+                                <div class="bar-left">
+                                    <div class="lock-icon">🔒</div>
+                                    <img class="bonus-trigger-gift-img" data-role="gift-img" src="./Texture/Icon/Giftpack2.png" alt="Giftpack2">
+                                </div>
+                                <div class="bar-info">
+                                    <div class="bar-title">万能磁铁星</div>
+                                    <div class="bar-desc">解锁第 6 行扩展棋盘！</div>
+                                </div>
+                                <div class="bar-energy-pulse">即将解锁</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bonus-grid-wrap">
+                        <div class="bonus-grid-board" id="bonus-grid-board"></div>
+                    </div>
+
+                    <div id="bonus-spin-meta" class="bonus-spin-meta">🎯 剩余次数 <span id="bonus-spins-left-inline">3</span></div>
+                    <button id="bonus-spin-btn" class="btn btn-primary bonus-spin-btn" type="button">GO 🎯</button>
+                </div>
+
+                <div id="free-spin-hud" class="free-spin-hud hidden">
+                    <div class="free-spin-hud-title">FREE SPIN</div>
+                    <div class="free-spin-hud-meta">
+                        <span>&#x5269;&#x4F59;&#x6B21;&#x6570; <strong id="free-spin-spins-left">3</strong></span>
+                        <span>&#x672C;&#x8F6E;&#x5956;&#x52B1; <strong id="free-spin-total-reward">0</strong></span>
+                    </div>
+                </div>
+
+                <div id="free-spin-trigger-overlay" class="free-spin-trigger-overlay hidden">
+                    <div class="free-spin-trigger-card">
+                        <div class="free-spin-trigger-badge">FREE SPIN x3</div>
+                        <div class="free-spin-trigger-title">&#x606D;&#x559C;&#x89E6;&#x53D1;</div>
+                        <div class="free-spin-trigger-text">&#x4F60;&#x89E6;&#x53D1;&#x4E86;&#x514D;&#x8D39;&#x6E38;&#x620F;&#xFF01;</div>
+                        <div class="free-spin-trigger-subtext">&#x7ACB;&#x5373;&#x8FDB;&#x5165; 3 &#x6B21;&#x514D;&#x8D39;&#x56DE;&#x5408;&#xFF0C;&#x5F00;&#x542F;&#x66F4;&#x5927;&#x5956;&#x52B1;&#x673A;&#x4F1A;</div>
+                        <button id="free-spin-start-btn" class="btn btn-primary full-width free-spin-start-btn" type="button">&#x7ACB;&#x5373;&#x5F00;&#x59CB;</button>
+                    </div>
+                </div>
+
+                <div id="bonus-trigger-overlay" class="bonus-trigger-overlay hidden">
+                    <div class="bonus-trigger-jackpot-card">
+                        <div class="bonus-trigger-rays" aria-hidden="true"></div>
+                        <div class="bonus-trigger-confetti" aria-hidden="true">
+                            <span></span><span></span><span></span><span></span><span></span>
+                            <span></span><span></span><span></span><span></span><span></span>
+                        </div>
+                        <div class="bonus-trigger-badge">MEGA BONUS</div>
+                        <div class="bonus-trigger-title">JACKPOT!</div>
+                        <div class="bonus-trigger-text">触发动物园派对</div>
+                        <div class="bonus-trigger-subtext">
+                            <p>🎊 欢迎来到动物园的神秘宝藏派对！</p>
+                            <p>🎯 点击 <b>GO</b> 开始欢乐寻宝。</p>
+                            <p>💎 收集发光钻石，累积大奖。</p>
+                            <p>🏆 解锁 <b>神奇道具</b> 和 <b>动物宝箱</b>，赢取超值惊喜！</p>
+                            <p>🔁 每次开出新奖励，寻宝次数都会重置。</p>
+                        </div>
+                        <button id="bonus-trigger-start-btn" class="btn btn-primary full-width bonus-trigger-start-btn" type="button">&#x7ACB;&#x5373;&#x8FDB;&#x5165;</button>
+                    </div>
+                </div>
+
+                <div id="bonus-chest-reward-overlay" class="bonus-chest-reward-overlay hidden">
+                    <div class="bonus-chest-reward-card">
+                        <div class="bonus-chest-reward-rays" aria-hidden="true"></div>
+                        <div class="bonus-chest-reward-title">好运爆棚！</div>
+                        <div class="bonus-chest-reward-subtitle" id="bonus-chest-reward-name">获得宝箱</div>
+                        <div class="bonus-chest-reward-chest-icon" id="bonus-chest-reward-icon">🏆</div>
+                        <div class="bonus-chest-reward-value-box">
+                            <span class="currency-icon">💰</span>
+                            <span class="value" id="bonus-chest-reward-value">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="bonus-result-overlay" class="bonus-result-overlay hidden">
+                    <canvas id="bonus-particles-canvas" class="bonus-particles"></canvas>
+
+                    <div class="bonus-result-card">
+                        <div class="cute-decorator deco-1">🎉</div>
+                        <div class="cute-decorator deco-2">🐾</div>
+                        <div class="cute-decorator deco-3">💎</div>
+                        <div class="cute-decorator deco-4">🎁</div>
+
+                        <div class="result-title-banner">
+                            <h2>🎊 大丰收 🎊</h2>
+                            <div class="subtitle-badge">派对圆满结束</div>
+                        </div>
+
+                        <div class="result-coins-container">
+                            <div class="result-coins-value" id="bonus-result-reward">0</div>
+                        </div>
+
+                        <button id="bonus-result-collect-btn" class="btn btn-primary full-width result-collect-btn" type="button" style="pointer-events: auto; z-index: 100;">开心收下</button>
+                    </div>
+                </div>
+
+                <div id="free-spin-result-overlay" class="free-spin-result-overlay hidden">
+                    <canvas id="free-spin-particles-canvas" class="free-spin-particles"></canvas>
+
+                    <div class="free-spin-result-card">
+                        <div class="cute-decorator deco-1">✨</div>
+                        <div class="cute-decorator deco-2">🦄</div>
+                        <div class="cute-decorator deco-3">🎉</div>
+                        <div class="cute-decorator deco-4">🌟</div>
+
+                        <div class="result-title-banner">
+                            <h2>🎊 WOW! 🎊</h2>
+                            <div class="subtitle-badge">AWESOME WIN</div>
+                        </div>
+
+                        <div class="result-coins-container">
+                            <div class="result-coins-value" id="free-spin-result-reward">0</div>
+                        </div>
+
+                        <button id="free-spin-result-collect-btn" class="btn btn-primary full-width result-collect-btn" type="button" style="pointer-events: auto; z-index: 100;">YAY! COLLECT</button>
+                    </div>
+                </div>
+
+                <div id="modal-overlay" class="modal-overlay hidden">
+                    <div class="modal-card">
+                        <div class="modal-header">
+                            <h2 id="modal-title">&#x6E38;&#x620F;&#x7ED3;&#x675F;</h2>
+                        </div>
+                        <div class="modal-body">
+                            <p id="modal-message">...</p>
+                            <div class="final-score-box">
+                                <span class="label">本局金币</span>
+                                <span class="score" id="final-reward">0</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button id="modal-restart-btn" class="btn btn-primary full-width" type="button">&#x518D;&#x6765;&#x4E00;&#x5C40;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="scene-fade" class="scene-fade"></div>
+                <div id="flash-overlay" class="flash-overlay"></div>
+            </div>
+        </section>
+    </div>
+    <div id="login-overlay" class="login-overlay">
+        <button id="login-debug-toggle" class="login-debug-toggle" type="button" aria-expanded="false">Debug</button>
+        <div class="login-card">
+            <div class="login-card-kicker">Wynne's ZOO</div>
+            <h1 class="login-card-title">登录游戏</h1>
+            <p class="login-card-desc">输入用户 ID 后进入游戏，同一 ID 会自动读取对应存档。</p>
+            <form id="login-form" class="login-form">
+                <label class="login-field">
+                    <span>用户 ID</span>
+                    <input id="login-user-id" type="text" maxlength="32" autocomplete="username" placeholder="请输入用户 ID" required>
+                </label>
+                <button id="login-submit-btn" class="login-submit-btn" type="submit">进入动物园</button>
+            </form>
+            <p id="login-feedback" class="login-feedback" aria-live="polite"></p>
+        </div>
+        <section id="login-debug-panel" class="login-debug-panel hidden" aria-label="Debug 工具">
+            <div class="login-debug-panel-head">
+                <div>
+                    <div class="login-debug-kicker">Debug Tool</div>
+                    <h2>资源调试</h2>
+                </div>
+                <button id="login-debug-close" class="login-debug-close" type="button" aria-label="关闭 Debug">×</button>
+            </div>
+            <div class="login-debug-fields">
+                <label class="login-field">
+                    <span>目标用户 ID</span>
+                    <input id="debug-user-id" type="text" maxlength="32" placeholder="输入要修改的用户 ID">
+                </label>
+                <label class="login-field">
+                    <span>增加金币</span>
+                    <input id="debug-add-coin" type="number" min="0" step="1" value="0">
+                </label>
+                <label class="login-field">
+                    <span>增加钻石</span>
+                    <input id="debug-add-diamond" type="number" min="0" step="1" value="0">
+                </label>
+                <label class="login-field">
+                    <span>增加玩法券</span>
+                    <input id="debug-add-ticket" type="number" min="0" step="1" value="0">
+                </label>
+            </div>
+            <button id="debug-apply-btn" class="login-submit-btn login-debug-apply-btn" type="button">应用到存档</button>
+            <p id="debug-feedback" class="login-feedback" aria-live="polite"></p>
+        </section>
+    </div>
+
+    <script src="config/game-config.js"></script>
+    <script src="js/zoo/zoo-balance.js"></script>
+    <script src="js/zoo/zoo-economy.js"></script>
+    <script src="script.js"></script>
+    <script src="js/story/story-schema.js"></script>
+    <script>
+        (function loadGeneratedStoryData() {
+            document.write('<script src="js/story/story-generated-data.js?v=' + Date.now() + '"><\\/script>');
+        }());
+    </script>
+    <script src="js/story/story-data.js"></script>
+    <script src="js/story/story-player.js"></script>
+    <script src="js/zoo/zoo-home.js"></script>
+    <script src="js/app-shell.js"></script>
+    <script src="js/zoo/zoo-login.js"></script>
+</body>
+</html>
