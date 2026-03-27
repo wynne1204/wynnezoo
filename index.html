@@ -6,11 +6,28 @@
     <title>Wynne's ZOO</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="effects.css">
+    <link rel="stylesheet" href="style.story.css">
+    <script>
+    // Early WebP detection + automatic .png -> .webp swap for <img> tags
+    (function(){
+        var w=new Image();
+        w.onload=function(){if(w.width>0){document.documentElement.classList.add('webp');window.__webp=true}};
+        w.onerror=function(){window.__webp=false};
+        w.src='data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
+    })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&family=Fredoka+One&family=Saira+Stencil+One&display=swap" rel="stylesheet">
 </head>
 <body>
     <div id="app-shell" class="app-shell">
         <section id="story-screen" class="app-screen story-screen" aria-label="剧情播放界面">
+            <div id="story-chapter-loading" class="story-chapter-loading" hidden>
+                <div class="story-chapter-loading-inner">
+                    <div class="login-loading-spinner" aria-hidden="true"></div>
+                    <p class="story-chapter-loading-text">加载下一章…</p>
+                    <div class="login-loading-bar"><div class="login-loading-bar-fill" id="story-chapter-loading-fill"></div></div>
+                </div>
+            </div>
             <div class="story-scene">
                 <div id="story-scene-background" class="story-scene-background"></div>
                 <div class="story-scene-overlay"></div>
@@ -574,6 +591,43 @@
         </section>
     </div>
 
+    <script>
+    // Swap all <img src="...png"> to .webp if browser supports it
+    (function(){
+        function swap(img){
+            var s=img.getAttribute('src');
+            if(s&&/\.png(?:$|\?)/i.test(s)){img.setAttribute('src',s.replace(/\.png(?=$|\?)/i,'.webp'))}
+        }
+        function swapAll(){
+            document.querySelectorAll('img[src$=".png"]').forEach(swap);
+        }
+        function startObserver(){
+            if(typeof MutationObserver==='function'){
+                new MutationObserver(function(muts){
+                    muts.forEach(function(m){
+                        if(m.type==='childList'){
+                            m.addedNodes.forEach(function(n){
+                                if(n.nodeType===1){
+                                    if(n.tagName==='IMG')swap(n);
+                                    else if(n.querySelectorAll){n.querySelectorAll('img[src$=".png"]').forEach(swap)}
+                                }
+                            });
+                        } else if(m.type==='attributes'&&m.target.tagName==='IMG'){
+                            swap(m.target);
+                        }
+                    });
+                }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['src']});
+            }
+        }
+        // Wait for WebP detection to finish, then swap
+        var check=setInterval(function(){
+            if(window.__webp===true){clearInterval(check);swapAll();startObserver()}
+            else if(window.__webp===false){clearInterval(check)}
+        },5);
+        // Safety: stop checking after 500ms
+        setTimeout(function(){clearInterval(check)},500);
+    })();
+    </script>
     <script src="js/module-registry.js"></script>
     <script src="config/game-config.js"></script>
     <script src="js/slot/slot-config.js"></script>

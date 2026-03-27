@@ -313,11 +313,37 @@
                 }
 
                 if (followupStoryId) {
-                    globalScope.requestAnimationFrame(() => {
-                        showStory(followupStoryId, {
-                            returnTo: 'zoo'
+                    var chapterLoadingEl = document.getElementById('story-chapter-loading');
+                    var chapterFill = document.getElementById('story-chapter-loading-fill');
+                    var canPreloadChapter = chapterLoadingEl && storyPlayer
+                        && typeof storyPlayer.preloadStoryAssets === 'function';
+
+                    if (canPreloadChapter) {
+                        chapterLoadingEl.classList.remove('is-fading');
+                        chapterLoadingEl.hidden = false;
+                        if (chapterFill) chapterFill.style.width = '0%';
+
+                        var chapterMinDelay = new Promise(function (r) { globalScope.setTimeout(r, 400); });
+                        var chapterMaxTimeout = new Promise(function (r) { globalScope.setTimeout(r, 8000); });
+                        var chapterPreload = storyPlayer.preloadStoryAssets(followupStoryId, function (loaded, total) {
+                            if (chapterFill) {
+                                chapterFill.style.width = Math.round((loaded / total) * 100) + '%';
+                            }
                         });
-                    });
+
+                        Promise.all([Promise.race([chapterPreload, chapterMaxTimeout]), chapterMinDelay]).then(function () {
+                            chapterLoadingEl.classList.add('is-fading');
+                            globalScope.setTimeout(function () {
+                                chapterLoadingEl.hidden = true;
+                                chapterLoadingEl.classList.remove('is-fading');
+                            }, 340);
+                            showStory(followupStoryId, { returnTo: 'zoo' });
+                        });
+                    } else {
+                        globalScope.requestAnimationFrame(() => {
+                            showStory(followupStoryId, { returnTo: 'zoo' });
+                        });
+                    }
                     return;
                 }
 

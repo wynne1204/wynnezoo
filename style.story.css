@@ -1290,6 +1290,43 @@ body:not(.is-logged-in) .story-preview-panel {
     transition: width 180ms ease;
 }
 
+/* ---- Chapter loading overlay (inside story screen) ---- */
+.story-chapter-loading {
+    position: absolute;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 16, 24, 0.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 1;
+    transition: opacity 320ms ease;
+}
+
+.story-chapter-loading[hidden] {
+    display: none;
+}
+
+.story-chapter-loading.is-fading {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.story-chapter-loading-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.story-chapter-loading-text {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
 .login-card,
 .login-debug-panel {
     width: min(100%, 420px);

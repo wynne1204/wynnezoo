@@ -67,28 +67,16 @@
             if (refs.debugUserIdInput) {
                 refs.debugUserIdInput.value = preferredUserId;
             }
-            setFeedback(refs.feedback, `检测到最近使用的用户 ID：${preferredUserId}`, 'success');
+            setFeedback(refs.feedback, `Recent user ID detected: ${preferredUserId}`, 'success');
         }
     }
 
-    function handleLoginSubmit(event) {
-        event.preventDefault();
-        const userId = String(refs.userIdInput.value || '').trim();
-        const result = typeof economy.login === 'function'
-            ? economy.login(userId)
-            : { ok: false, message: '登录功能不可用。' };
-
-        if (!result || !result.ok) {
-            setFeedback(refs.feedback, result && result.message ? result.message : '登录失败，请重试。', 'error');
-            refs.userIdInput.focus();
-            return;
-        }
-
+    function finalizeLogin(result) {
         if (refs.debugUserIdInput && !refs.debugUserIdInput.value.trim()) {
             refs.debugUserIdInput.value = result.userId;
         }
 
-        setFeedback(refs.feedback, `登录成功，已载入用户 ${result.userId} 的存档。`, 'success');
+        setFeedback(refs.feedback, `Login success. Loaded save for ${result.userId}.`, 'success');
 
         const loadingEl = document.getElementById('login-loading');
         const loadingFill = document.getElementById('login-loading-fill');
@@ -140,6 +128,27 @@
                 }
             }, 220);
         }
+    }
+
+    function tryLogin(userId) {
+        const normalizedUserId = String(userId || '').trim();
+        const result = typeof economy.login === 'function'
+            ? economy.login(normalizedUserId)
+            : { ok: false, message: 'Login is unavailable.' };
+
+        if (!result || !result.ok) {
+            setFeedback(refs.feedback, result && result.message ? result.message : 'Login failed. Please try again.', 'error');
+            refs.userIdInput.focus();
+            return null;
+        }
+
+        finalizeLogin(result);
+        return result;
+    }
+
+    function handleLoginSubmit(event) {
+        event.preventDefault();
+        tryLogin(refs.userIdInput.value);
     }
 
     function readPositiveInt(input) {
@@ -195,5 +204,22 @@
     document.body.classList.add('is-login-open');
     document.body.classList.remove('is-logged-in');
     fillKnownUserIds();
+
+    const autoAssignedUserId = typeof economy.consumeAutoAssignedUserId === 'function'
+        ? String(economy.consumeAutoAssignedUserId() || '').trim()
+        : '';
+
+    if (autoAssignedUserId) {
+        refs.userIdInput.value = autoAssignedUserId;
+        if (refs.debugUserIdInput) {
+            refs.debugUserIdInput.value = autoAssignedUserId;
+        }
+        setFeedback(refs.feedback, `First launch detected. Assigned default user ID: ${autoAssignedUserId}`, 'success');
+        globalScope.requestAnimationFrame(function () {
+            tryLogin(autoAssignedUserId);
+        });
+        return;
+    }
+
     refs.userIdInput.focus();
 }(window));

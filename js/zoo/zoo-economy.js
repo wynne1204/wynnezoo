@@ -9,6 +9,7 @@
     const STORAGE_PREFIX = 'wynnesZoo.zooEconomy.user.';
     const ACTIVE_USER_STORAGE_KEY = 'wynnesZoo.activeUserId';
     const SAVE_VERSION = 6;
+    const DEFAULT_USER_ID_PREFIX = 'guest';
     const ACTIVE_TABS = new Set(['status', 'animals', 'environment', 'appearance']);
     const listeners = new Set();
     let tickTimerId = 0;
@@ -209,6 +210,30 @@
         } catch (error) {
             return;
         }
+    }
+
+    function createDefaultUserId() {
+        const timestamp = Date.now().toString(36).slice(-6);
+        const randomPart = Math.random().toString(36).slice(2, 6);
+        return normalizeUserId(`${DEFAULT_USER_ID_PREFIX}-${timestamp}${randomPart}`);
+    }
+
+    function ensureInitialActiveUserId() {
+        const lastUserId = loadLastActiveUserId();
+        if (lastUserId) {
+            return {
+                userId: lastUserId,
+                autoAssigned: false
+            };
+        }
+
+        const defaultUserId = createDefaultUserId();
+        persistActiveUserId(defaultUserId);
+
+        return {
+            userId: defaultUserId,
+            autoAssigned: true
+        };
     }
 
     function normalizeStoryId(storyId) {
@@ -1259,7 +1284,9 @@
         }
     }
 
-    let activeUserId = loadLastActiveUserId();
+    const initialUserBootstrap = ensureInitialActiveUserId();
+    let autoAssignedUserId = initialUserBootstrap.autoAssigned ? initialUserBootstrap.userId : '';
+    let activeUserId = initialUserBootstrap.userId;
     let runtimeState = loadStateForUser(activeUserId);
     startClock();
 
@@ -1272,6 +1299,11 @@
         },
         getLastUserId() {
             return loadLastActiveUserId();
+        },
+        consumeAutoAssignedUserId() {
+            const userId = autoAssignedUserId;
+            autoAssignedUserId = '';
+            return userId;
         },
         setPanelOpen,
         setActiveTab,

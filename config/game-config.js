@@ -166,7 +166,7 @@ window.APP_CONFIG = {
             '--top-bg-left': '-5px', // 上半区背景 X 偏移
             '--top-bg-top': '0px', // 上半区背景 Y 偏移
             '--tower-offset-y': '-40px', // 上方叠叠乐整体纵向偏移（负值上移）
-            '--story-actor-lift-y': '20px'
+            '--story-actor-lift-y': '15px'
         }
     }
 };
