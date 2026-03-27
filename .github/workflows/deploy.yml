@@ -1,0 +1,45 @@
+name: Deploy to CloudBase Static Hosting
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install CloudBase CLI
+        run: npm install -g @cloudbase/cli
+
+      - name: Login CloudBase CLI
+        run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
+
+      - name: Deploy to CloudBase Static Hosting
+        run: |
+          tcb hosting deploy ./ / -e ${{ secrets.TCB_ENV_ID }} \
+            --ignore ".git/**" \
+            --ignore ".github/**" \
+            --ignore ".agents/**" \
+            --ignore ".claude/**" \
+            --ignore ".kiro/**" \
+            --ignore ".vscode/**" \
+            --ignore "tools/**" \
+            --ignore "Doc/**" \
+            --ignore "*.cmd" \
+            --ignore "*.xlsx" \
+            --ignore "*.py" \
+            --ignore "progress.md" \
+            --ignore "PERFORMANCE_PARTITION.md" \
+            --ignore "README.md" \
+            --ignore "skills-lock.json" \
+            --ignore "__head_index.html"
