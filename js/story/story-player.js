@@ -77,24 +77,59 @@
 
     // --------------- Image Preload System ---------------
     const PRELOAD_CACHE = new Map();
-    const PRELOAD_AHEAD_COUNT = 3;
+    const PRELOAD_AHEAD_COUNT = 5;
     let chapterPreloadIdleId = 0;
+
+    // WebP support detection (resolved once, cached)
+    let _webpSupported = null;
+    function detectWebpSupport() {
+        if (_webpSupported !== null) return Promise.resolve(_webpSupported);
+        return new Promise(function (resolve) {
+            var img = new Image();
+            img.onload = function () { _webpSupported = (img.width > 0 && img.height > 0); resolve(_webpSupported); };
+            img.onerror = function () { _webpSupported = false; resolve(false); };
+            img.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
+        });
+    }
+    // Kick off detection immediately
+    detectWebpSupport();
+
+    function toWebpSrc(src) {
+        if (!_webpSupported) return src;
+        var s = String(src || '');
+        return s.replace(/\.png(?=$|\?)/i, '.webp');
+    }
 
     function preloadImage(src) {
         const normalized = String(src || '').trim();
         if (!normalized) return null;
-        const versioned = withAssetVersion(normalized);
-        if (PRELOAD_CACHE.has(versioned)) return PRELOAD_CACHE.get(versioned);
+        // Cache key is always the original (png) versioned URL
+        const versionedOriginal = withAssetVersion(normalized);
+        if (PRELOAD_CACHE.has(versionedOriginal)) return PRELOAD_CACHE.get(versionedOriginal);
 
-        const entry = { src: versioned, loaded: false, failed: false, img: null, promise: null };
+        const entry = { src: versionedOriginal, loaded: false, failed: false, img: null, promise: null, resolvedSrc: versionedOriginal };
         entry.promise = new Promise(function (resolve) {
-            var img = new Image();
-            entry.img = img;
-            img.onload = function () { entry.loaded = true; resolve(entry); };
-            img.onerror = function () { entry.failed = true; resolve(entry); };
-            img.src = versioned;
+            var webpSrc = withAssetVersion(toWebpSrc(normalized));
+            var tryWebp = _webpSupported && webpSrc !== versionedOriginal;
+
+            function loadFinal(finalSrc) {
+                var img = new Image();
+                entry.img = img;
+                img.onload = function () { entry.loaded = true; entry.resolvedSrc = finalSrc; resolve(entry); };
+                img.onerror = function () { entry.failed = true; resolve(entry); };
+                img.src = finalSrc;
+            }
+
+            if (tryWebp) {
+                var probe = new Image();
+                probe.onload = function () { entry.resolvedSrc = webpSrc; entry.loaded = true; entry.img = probe; resolve(entry); };
+                probe.onerror = function () { loadFinal(versionedOriginal); };
+                probe.src = webpSrc;
+            } else {
+                loadFinal(versionedOriginal);
+            }
         });
-        PRELOAD_CACHE.set(versioned, entry);
+        PRELOAD_CACHE.set(versionedOriginal, entry);
         return entry;
     }
 
@@ -154,17 +189,17 @@
         function loadBatch(deadline) {
             var hasTime = typeof deadline.timeRemaining === 'function';
             while (idx < unique.length) {
-                if (hasTime && deadline.timeRemaining() < 4) break;
+                if (hasTime && deadline.timeRemaining() < 2) break;
                 preloadImage(unique[idx]);
                 idx++;
             }
             if (idx < unique.length) {
-                chapterPreloadIdleId = scheduleIdle(loadBatch, 2500);
+                chapterPreloadIdleId = scheduleIdle(loadBatch, 1500);
             } else {
                 chapterPreloadIdleId = 0;
             }
         }
-        chapterPreloadIdleId = scheduleIdle(loadBatch, 2500);
+        chapterPreloadIdleId = scheduleIdle(loadBatch, 1500);
     }
 
     function scheduleIdle(callback, timeout) {
@@ -517,7 +552,10 @@
 
         const title = String(reward.title || '').trim() || '获得物品';
         const text = String(reward.text || '').trim();
-        const imageSrc = withAssetVersion(reward.imageSrc || '');
+        const rewardEntry = reward.imageSrc ? getPreloadEntry(reward.imageSrc) : null;
+        const imageSrc = (rewardEntry && rewardEntry.loaded && rewardEntry.resolvedSrc)
+            ? rewardEntry.resolvedSrc
+            : withAssetVersion(reward.imageSrc || '');
         const buttonLabel = String(reward.buttonLabel || '获得').trim() || '获得';
 
         itemRewardOpen = true;
@@ -1087,9 +1125,11 @@
 
     function formatBackgroundImage(backgroundSrc) {
         const normalized = String(backgroundSrc || '').trim();
-        return normalized
-            ? `url("${withAssetVersion(normalized).replace(/"/g, '\\"')}")`
-            : '';
+        if (!normalized) return '';
+        // Use resolved WebP src if preloaded, otherwise fall back to versioned original
+        const entry = getPreloadEntry(normalized);
+        const finalSrc = (entry && entry.loaded && entry.resolvedSrc) ? entry.resolvedSrc : withAssetVersion(normalized);
+        return `url("${finalSrc.replace(/"/g, '\\"')}")`;
     }
 
     function applyBackgroundSwitch(normalized, immediate) {
@@ -1204,11 +1244,16 @@
             : (speakingName ? 'is-support' : '');
 
         if (actor.portraitSrc) {
+            const entry = getPreloadEntry(actor.portraitSrc);
+            const resolvedSrc = (entry && entry.loaded && entry.resolvedSrc)
+                ? entry.resolvedSrc
+                : withAssetVersion(actor.portraitSrc);
             return `
                 <img
                     class="story-actor is-${escapeHtml(actor.position)} ${escapeHtml(emphasisClass)}"
-                    src="${escapeHtml(withAssetVersion(actor.portraitSrc))}"
+                    src="${escapeHtml(resolvedSrc)}"
                     alt="${escapeHtml(actor.characterName || '角色立绘')}"
+                    decoding="async"
                 >
             `;
         }
@@ -1706,6 +1751,34 @@
         leaveView,
         skip,
         advance,
+        preloadStoryAssets: function (storyId, onProgress) {
+            var story = resolveStoryById(storyId);
+            if (!story) return Promise.resolve();
+            var normalized = schema.normalizeProject(story);
+            var beats = Array.isArray(normalized.beats) ? normalized.beats : [];
+            var allSrcs = [];
+            beats.forEach(function (beat) {
+                collectBeatImageSrcs(normalized, beat).forEach(function (s) { allSrcs.push(s); });
+            });
+            var seen = new Set();
+            var unique = allSrcs.filter(function (s) {
+                var v = withAssetVersion(s);
+                if (seen.has(v)) return false;
+                seen.add(v);
+                return true;
+            });
+            if (unique.length === 0) return Promise.resolve();
+            var loaded = 0;
+            var total = unique.length;
+            var entries = unique.map(function (src) { return preloadImage(src); });
+            return Promise.all(entries.map(function (entry) {
+                if (!entry || !entry.promise) { loaded++; return Promise.resolve(); }
+                return entry.promise.then(function () {
+                    loaded++;
+                    if (typeof onProgress === 'function') onProgress(loaded, total);
+                });
+            }));
+        },
         getState() {
             return {
                 active: PLAYER_STATE.active,

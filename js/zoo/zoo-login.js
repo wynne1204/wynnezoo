@@ -89,15 +89,57 @@
         }
 
         setFeedback(refs.feedback, `登录成功，已载入用户 ${result.userId} 的存档。`, 'success');
-        globalScope.setTimeout(() => {
-            const appShell = globalScope.WynneZooAppShell;
-            hideOverlay();
-            if (appShell && typeof appShell.enterPostLoginFlow === 'function') {
-                appShell.enterPostLoginFlow();
-            } else if (appShell && typeof appShell.showZooHome === 'function') {
-                appShell.showZooHome();
-            }
-        }, 220);
+
+        const loadingEl = document.getElementById('login-loading');
+        const loadingFill = document.getElementById('login-loading-fill');
+        const loginCard = refs.overlay.querySelector('.login-card');
+        const storyPlayer = globalScope.WynneStoryPlayer;
+        const appShell = globalScope.WynneZooAppShell;
+
+        // Determine which story will play after login
+        const entryStoryId = (appShell && typeof appShell.getEntryStoryId === 'function')
+            ? appShell.getEntryStoryId()
+            : 'prologue';
+
+        const canPreload = loadingEl && entryStoryId && storyPlayer && typeof storyPlayer.preloadStoryAssets === 'function';
+
+        if (canPreload) {
+            // Switch to loading view
+            if (loginCard) loginCard.hidden = true;
+            if (refs.debugToggle) refs.debugToggle.hidden = true;
+            loadingEl.hidden = false;
+
+            var minDelay = new Promise(function (r) { globalScope.setTimeout(r, 600); });
+            var maxTimeout = new Promise(function (r) { globalScope.setTimeout(r, 8000); });
+            var preload = storyPlayer.preloadStoryAssets(entryStoryId, function (loaded, total) {
+                if (loadingFill) {
+                    loadingFill.style.width = Math.round((loaded / total) * 100) + '%';
+                }
+            });
+
+            Promise.all([Promise.race([preload, maxTimeout]), minDelay]).then(function () {
+                hideOverlay();
+                if (appShell && typeof appShell.enterPostLoginFlow === 'function') {
+                    appShell.enterPostLoginFlow();
+                } else if (appShell && typeof appShell.showZooHome === 'function') {
+                    appShell.showZooHome();
+                }
+                // Restore login card for next time
+                if (loginCard) loginCard.hidden = false;
+                if (refs.debugToggle) refs.debugToggle.hidden = false;
+                loadingEl.hidden = true;
+                if (loadingFill) loadingFill.style.width = '0%';
+            });
+        } else {
+            globalScope.setTimeout(function () {
+                hideOverlay();
+                if (appShell && typeof appShell.enterPostLoginFlow === 'function') {
+                    appShell.enterPostLoginFlow();
+                } else if (appShell && typeof appShell.showZooHome === 'function') {
+                    appShell.showZooHome();
+                }
+            }, 220);
+        }
     }
 
     function readPositiveInt(input) {

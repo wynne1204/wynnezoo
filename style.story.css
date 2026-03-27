@@ -405,7 +405,7 @@ body:not(.is-logged-in) .story-preview-panel {
 .story-actor {
     position: absolute;
     z-index: 1;
-    bottom: -150px;
+    bottom: calc(-150px + var(--story-actor-lift-y, 0px));
     width: auto;
     height: auto;
     max-width: min(78vw, 720px);
@@ -1200,7 +1200,7 @@ body:not(.is-logged-in) .story-preview-panel {
     }
 
     .story-actor {
-        bottom: -132px;
+        bottom: calc(-132px + var(--story-actor-lift-y, 0px));
     }
 
     .story-actor.is-left,
@@ -1239,6 +1239,55 @@ body:not(.is-logged-in) .story-preview-panel {
         linear-gradient(180deg, rgba(9, 16, 32, 0.94), rgba(10, 23, 19, 0.92));
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+}
+
+/* ---- Login loading screen ---- */
+.login-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+}
+
+.login-loading[hidden] {
+    display: none;
+}
+
+.login-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    border-top-color: rgba(142, 214, 255, 0.82);
+    border-radius: 50%;
+    animation: login-spin 0.7s linear infinite;
+}
+
+@keyframes login-spin {
+    to { transform: rotate(360deg); }
+}
+
+.login-loading-text {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.92rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.login-loading-bar {
+    width: min(260px, 70vw);
+    height: 4px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+}
+
+.login-loading-bar-fill {
+    height: 100%;
+    width: 0%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(142, 214, 255, 0.72), rgba(100, 200, 255, 0.92));
+    transition: width 180ms ease;
 }
 
 .login-card,

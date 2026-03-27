@@ -478,6 +478,11 @@
         showCollection,
         showSlotGame,
         enterPostLoginFlow,
+        getEntryStoryId() {
+            if (!shouldPlayEntryStory()) return '';
+            var followup = resolveFollowupStoryId(ENTRY_STORY_ID);
+            return followup || ENTRY_STORY_ID;
+        },
         getState() {
             return { ...APP_STATE };
         }
