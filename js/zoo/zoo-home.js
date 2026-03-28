@@ -228,7 +228,9 @@
             ? zooSnapshot.habitats.filter((habitat) => habitat && habitat.unlocked)
             : [];
 
-        if (unlockedHabitats.length <= 0) {
+        if (unlockedHabitats.length <= 0
+            && !hasUnfinishedRound(slotSnapshot)
+            && (!zooSnapshot || !zooSnapshot.resources || zooSnapshot.resources.playTicket <= 0)) {
             return {
                 status: '动物园暂未开放',
                 hint: `首个栖息地暂未开放，当前先保持空园状态，不会产出${ticketName}。`,
