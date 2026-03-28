@@ -17,6 +17,7 @@
     const FIRST_CHAPTER_ID = '第一章';
     const STORY_BACKDROP_MODE_STORY = 'story';
     const STORY_BACKDROP_MODE_ZOO_HOME = 'zoo-home';
+    const DEFAULT_LAUNCH_SCREEN = 'slot';
 
     const APP_STATE = {
         currentScreen: 'zoo',
@@ -36,6 +37,14 @@
         }
 
         zooHome.setSlotSnapshot(getSlotSnapshot());
+    }
+
+    function showDefaultHomeScreen() {
+        if (DEFAULT_LAUNCH_SCREEN === 'slot' && showSlotGame()) {
+            return true;
+        }
+
+        return showZooHome();
     }
 
     function getStoryData() {
@@ -447,11 +456,11 @@
         if (shouldPlayEntryStory()) {
             return showStory(ENTRY_STORY_ID, {
                 markAsPlayed: true,
-                returnTo: 'zoo'
+                returnTo: DEFAULT_LAUNCH_SCREEN === 'slot' ? 'slot' : 'zoo'
             });
         }
 
-        return showZooHome();
+        return showDefaultHomeScreen();
     }
 
     function bindNavigation() {
@@ -492,7 +501,7 @@
 
         bindNavigation();
         updateZooHomeFromSlotSnapshot();
-        showZooHome();
+        showDefaultHomeScreen();
         APP_STATE.initialized = true;
     }
 

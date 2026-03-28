@@ -390,13 +390,14 @@
     function createDefaultState() {
         const now = Date.now();
         const habitats = balance.getAllHabitatDefinitions().map((definition) => createDefaultHabitatState(definition, now));
+        const starterPlayTickets = Math.max(0, Math.floor(Number(balance.STARTER_PLAY_TICKETS) || 0));
 
         return {
             version: SAVE_VERSION,
             resources: {
                 coin: 0,
                 diamond: 0,
-                playTicket: 0
+                playTicket: starterPlayTickets
             },
             ui: {
                 activeHabitatId: habitats[0].id,
@@ -415,6 +416,44 @@
                 storyFlags: {}
             }
         };
+    }
+
+    function shouldGrantStarterPlayTickets(state) {
+        if (!state || typeof state !== 'object') {
+            return false;
+        }
+
+        const starterPlayTickets = Math.max(0, Math.floor(Number(balance.STARTER_PLAY_TICKETS) || 0));
+        if (starterPlayTickets <= 0) {
+            return false;
+        }
+
+        const resources = state.resources || {};
+        const meta = state.meta || {};
+        const collection = state.collection || {};
+        const habitats = Array.isArray(state.habitats) ? state.habitats : [];
+        const unlockedAtBySpeciesId = collection.unlockedAtBySpeciesId && typeof collection.unlockedAtBySpeciesId === 'object'
+            ? collection.unlockedAtBySpeciesId
+            : {};
+        const storyFlags = meta.storyFlags && typeof meta.storyFlags === 'object'
+            ? meta.storyFlags
+            : {};
+        const hasStoredTickets = habitats.some((habitat) => Math.max(0, Math.floor(Number(habitat && habitat.storedTickets) || 0)) > 0);
+        const hasUnlockedHabitat = habitats.some((habitat) => Boolean(habitat && habitat.unlocked));
+        const hasCollectionProgress = Object.keys(unlockedAtBySpeciesId).some((speciesId) => Number(unlockedAtBySpeciesId[speciesId]) > 0);
+        const hasStoryProgress = Object.keys(storyFlags).some((storyId) => Boolean(storyFlags[storyId]));
+
+        return (
+            Math.max(0, Math.floor(Number(resources.coin) || 0)) <= 0
+            && Math.max(0, Math.floor(Number(resources.diamond) || 0)) <= 0
+            && Math.max(0, Math.floor(Number(resources.playTicket) || 0)) <= 0
+            && !meta.lastSettlement
+            && Math.max(0, Math.floor(Number(meta.lastTicketSpendAt) || 0)) <= 0
+            && !hasStoredTickets
+            && !hasUnlockedHabitat
+            && !hasCollectionProgress
+            && !hasStoryProgress
+        );
     }
 
     function safeParse(jsonText) {
@@ -469,7 +508,7 @@
         });
         const activeHabitatId = String((rawState.ui && rawState.ui.activeHabitatId) || defaultState.ui.activeHabitatId);
 
-        return {
+        const normalizedState = {
             version: SAVE_VERSION,
             resources: {
                 coin: Math.max(0, Math.floor(Number(rawState.resources && rawState.resources.coin) || 0)),
@@ -495,6 +534,15 @@
                 storyFlags: normalizeStoryFlags(rawState.meta && rawState.meta.storyFlags)
             }
         };
+
+        if (shouldGrantStarterPlayTickets(normalizedState)) {
+            normalizedState.resources.playTicket = Math.max(
+                normalizedState.resources.playTicket,
+                Math.max(0, Math.floor(Number(balance.STARTER_PLAY_TICKETS) || 0))
+            );
+        }
+
+        return normalizedState;
     }
 
     function loadStateForUser(userId) {

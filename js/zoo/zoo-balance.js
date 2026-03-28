@@ -8,6 +8,8 @@
         ticketHint: '由各栖息地根据小动物心情自动产出，用于拆开一次惊喜盲盒。普通局和 Free Spin 结算金币，Bonus 结算钻石。'
     };
 
+    const STARTER_PLAY_TICKETS = 3;
+
     const HABITAT_TIER_ORDER = ['standard', 'improved', 'deluxe'];
 
     const HABITAT_TIERS = {
@@ -221,6 +223,7 @@
 
     globalScope.WynneZooBalance = {
         SLOT_THEME,
+        STARTER_PLAY_TICKETS,
         HABITAT_TIER_ORDER,
         HABITAT_TIERS,
         HABITAT_DEFINITIONS,
