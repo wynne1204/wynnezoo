@@ -709,15 +709,20 @@
     top: 77.85%;
     width: 63.59%;
     height: 21.94%;
-    background-image: url('./Texture/UI/NewSlot/btn_open.png');
+    background-image: url('./Texture/UI/NewSlot/btn_open.webp');
+    /* Figma 文本样式 */
     color: #FFF3D9;
-    /* Figma text-shadow: 0 7px 4px rgba(0,0,0,0.25) */
+    text-align: center;
     text-shadow: 0 7px 4px rgba(0, 0, 0, 0.25);
-    font-size: 1.5rem;
+    font-family: 'Magic', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    font-size: calc(80 / 1170 * 100cqw);
+    font-style: normal;
     font-weight: 900;
-    letter-spacing: 2px;
+    line-height: normal;
+    letter-spacing: 0;
+    padding-bottom: 3px;
     /* Figma button shadow: 0 13px 6.6px rgba(120,34,16,0.25) */
-    filter: drop-shadow(0 13px 7px rgba(120, 34, 16, 0.25));
+    filter: drop-shadow(0 13px 6.6px rgba(120, 34, 16, 0.25));
 }
 
 .action-buttons .btn:active { transform: scale(0.95); }
