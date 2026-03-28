@@ -31,7 +31,11 @@
         storyPreviewTrigger: null,
         storyPreviewPanel: null,
         storyPreviewClose: null,
-        storyPreviewList: null
+        storyPreviewList: null,
+        unlockPopup: null,
+        unlockPopupIcon: null,
+        unlockPopupTitle: null,
+        unlockPopupBtn: null
     };
 
     const localState = {
@@ -39,7 +43,9 @@
         unsubscribeEconomy: null,
         toastTimerId: 0,
         storyPreviewOpen: false,
-        storyEntryCount: 0
+        storyEntryCount: 0,
+        unlockNotificationQueue: [],
+        unlockPopupActive: false
     };
 
     function cacheDom() {
@@ -70,6 +76,13 @@
         refs.storyPreviewPanel = document.getElementById('story-preview-panel');
         refs.storyPreviewClose = document.getElementById('story-preview-close');
         refs.storyPreviewList = document.getElementById('story-preview-list');
+        refs.unlockPopup = document.getElementById('system-unlock-popup');
+        refs.unlockPopupIcon = document.getElementById('system-unlock-popup-icon');
+        refs.unlockPopupTitle = document.getElementById('system-unlock-popup-title');
+        refs.unlockPopupBtn = document.getElementById('system-unlock-popup-btn');
+        if (refs.navCollection && refs.collectionGuide && refs.collectionGuide.parentNode !== refs.navCollection) {
+            refs.navCollection.appendChild(refs.collectionGuide);
+        }
     }
 
     function escapeHtml(value) {
@@ -975,7 +988,101 @@
         return true;
     }
 
+    function showNextUnlockPopup() {
+        if (localState.unlockPopupActive || localState.unlockNotificationQueue.length <= 0) {
+            return;
+        }
+
+        var notification = localState.unlockNotificationQueue[0];
+        if (!refs.unlockPopup || !notification) {
+            return;
+        }
+
+        try {
+            localState.unlockPopupActive = true;
+
+            if (refs.unlockPopupIcon) {
+                refs.unlockPopupIcon.src = notification.iconSrc || '';
+                refs.unlockPopupIcon.alt = notification.systemName || '';
+            }
+
+            if (refs.unlockPopupTitle) {
+                refs.unlockPopupTitle.textContent = '解锁了' + (notification.systemName || '新系统') + '系统';
+            }
+
+            refs.unlockPopup.hidden = false;
+            refs.unlockPopup.setAttribute('aria-hidden', 'false');
+        } catch (error) {
+            // 静默失败，不阻塞主界面
+            localState.unlockPopupActive = false;
+        }
+    }
+
+    function closeUnlockPopup() {
+        if (!localState.unlockPopupActive) {
+            return;
+        }
+
+        var notification = localState.unlockNotificationQueue.shift();
+        localState.unlockPopupActive = false;
+
+        if (refs.unlockPopup) {
+            refs.unlockPopup.hidden = true;
+            refs.unlockPopup.setAttribute('aria-hidden', 'true');
+        }
+
+        // 标记已展示
+        if (notification && notification.systemId) {
+            var systemUnlock = globalScope.WynneSystemUnlock || null;
+            if (systemUnlock && typeof systemUnlock.markNotificationShown === 'function') {
+                systemUnlock.markNotificationShown(notification.systemId);
+            }
+        }
+
+        // 展示下一个通知
+        if (localState.unlockNotificationQueue.length > 0) {
+            globalScope.setTimeout(showNextUnlockPopup, 300);
+        }
+    }
+
+    function processUnlockNotifications() {
+        try {
+            var systemUnlock = globalScope.WynneSystemUnlock || null;
+            if (!systemUnlock || typeof systemUnlock.getPendingNotifications !== 'function') {
+                return;
+            }
+
+            var pending = systemUnlock.getPendingNotifications();
+            if (!Array.isArray(pending) || pending.length <= 0) {
+                return;
+            }
+
+            localState.unlockNotificationQueue = pending.slice();
+            showNextUnlockPopup();
+        } catch (error) {
+            // 静默失败
+        }
+    }
+
+    function updateNavVisibility() {
+        var systemUnlock = globalScope.WynneSystemUnlock || null;
+        if (!systemUnlock || typeof systemUnlock.getAllStatus !== 'function') {
+            return;
+        }
+
+        var statuses = systemUnlock.getAllStatus();
+        for (var i = 0; i < statuses.length; i++) {
+            var status = statuses[i];
+            var navEl = document.getElementById(status.navElementId);
+            if (navEl) {
+                navEl.hidden = !status.unlocked;
+            }
+        }
+    }
+
     function render(snapshot = economy ? economy.getSnapshot() : null) {
+        updateNavVisibility();
+
         if (!snapshot || !snapshot.selectedHabitat) {
             return;
         }
@@ -1323,6 +1430,16 @@
             }, true);
         }
 
+        if (refs.unlockPopupBtn) {
+            refs.unlockPopupBtn.addEventListener('click', closeUnlockPopup);
+        }
+        if (refs.unlockPopup) {
+            var backdrop = refs.unlockPopup.querySelector('.system-unlock-popup-backdrop');
+            if (backdrop) {
+                backdrop.addEventListener('click', closeUnlockPopup);
+            }
+        }
+
         if (economy && typeof economy.subscribe === 'function') {
             localState.unsubscribeEconomy = economy.subscribe((snapshot) => {
                 render(snapshot);
@@ -1367,6 +1484,7 @@
         closeStoryPreviewPanel();
         setSlotSnapshot(snapshot);
         render();
+        processUnlockNotifications();
     }
 
     function onHide() {

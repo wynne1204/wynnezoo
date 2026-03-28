@@ -294,6 +294,11 @@
                 if (storyData && typeof storyData.markCurrentStoryVersionSeen === 'function') {
                     storyData.markCurrentStoryVersionSeen(targetStoryId);
                 }
+                // 系统解锁检查
+                var systemUnlock = globalScope.WynneSystemUnlock || null;
+                if (systemUnlock && typeof systemUnlock.checkAndUnlock === 'function') {
+                    systemUnlock.checkAndUnlock(targetStoryId);
+                }
                 if (typeof config.onComplete === 'function') {
                     try {
                         config.onComplete(payload);
@@ -492,6 +497,13 @@
 
         bindNavigation();
         updateZooHomeFromSlotSnapshot();
+
+        // 向后兼容：根据已有 storyFlags 补偿解锁系统
+        var systemUnlockMgr = globalScope.WynneSystemUnlock || null;
+        if (systemUnlockMgr && typeof systemUnlockMgr.syncFromStoryFlags === 'function') {
+            systemUnlockMgr.syncFromStoryFlags();
+        }
+
         showZooHome();
         APP_STATE.initialized = true;
     }

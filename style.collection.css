@@ -250,9 +250,8 @@
 }
 
 .collection-card.is-guide-target {
-    outline: 0.18rem solid rgba(255, 221, 122, 0.88);
-    outline-offset: 0.08rem;
-    box-shadow: 0 0 0 0.25rem rgba(255, 198, 85, 0.24), 0 1rem 2rem rgba(0, 0, 0, 0.26);
+    outline: none;
+    box-shadow: none;
 }
 
 .collection-card-guide {
@@ -266,6 +265,15 @@
     justify-content: space-between;
     gap: 0.5rem;
     pointer-events: none;
+}
+
+.collection-card-guide.is-hand-only {
+    left: calc(50% + 40px);
+    right: auto;
+    top: calc(50% + 40px);
+    transform: translate(-50%, -40%);
+    width: auto;
+    justify-content: center;
 }
 
 .collection-card-guide-text {
@@ -286,6 +294,11 @@
     height: 1.9rem;
     object-fit: contain;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
+}
+
+.collection-card-guide.is-hand-only img {
+    width: 2.2rem;
+    height: 2.2rem;
 }
 
 .collection-card.locked {
@@ -1112,9 +1125,8 @@
 }
 
 .collection-card.is-guide-target {
-    outline: 0.18rem solid rgba(255, 221, 122, 0.88);
-    outline-offset: 0.08rem;
-    box-shadow: 0 0 0 0.25rem rgba(255, 198, 85, 0.24), 0 1rem 2rem rgba(0, 0, 0, 0.12);
+    outline: none;
+    box-shadow: none;
 }
 
 .collection-card-guide {
@@ -2022,11 +2034,8 @@
 }
 
 .collection-screen .collection-card.is-guide-target {
-    outline: 1px solid rgba(255, 206, 112, 0.92);
-    outline-offset: 2px;
-    box-shadow:
-        0 0 0 4px rgba(255, 206, 112, 0.14),
-        0 20px 34px rgba(0, 0, 0, 0.22);
+    outline: none;
+    box-shadow: none;
 }
 
 .collection-screen .collection-card-guide {
@@ -2034,6 +2043,15 @@
     right: 8px;
     top: 8px;
     gap: 6px;
+}
+
+.collection-screen .collection-card-guide.is-hand-only {
+    left: calc(50% + 40px);
+    right: auto;
+    top: calc(50% + 40px);
+    transform: translate(-50%, -40%);
+    width: auto;
+    justify-content: center;
 }
 
 .collection-screen .collection-card-guide-text {
@@ -2621,8 +2639,8 @@
 
 .collection-screen .collection-card.locked img,
 .collection-screen .collection-card[data-unlocked="false"] img {
-    filter: none !important;
-    opacity: 1 !important;
+    filter: grayscale(1) brightness(0.82) !important;
+    opacity: 0.75 !important;
 }
 
 .collection-screen .collection-card.unlocked:hover {
@@ -2700,8 +2718,8 @@
 
 .collection-screen .collection-card.locked .collection-card-image,
 .collection-screen .collection-card[data-unlocked="false"] .collection-card-image {
-    filter: none !important;
-    opacity: 1 !important;
+    filter: grayscale(1) brightness(0.82) !important;
+    opacity: 0.75 !important;
 }
 
 .collection-screen .collection-card-tag {
@@ -2768,7 +2786,7 @@
 }
 
 .collection-screen .collection-card.locked .collection-card-title {
-    color: #57331d !important;
+    color: rgba(87, 51, 29, 0.5) !important;
     opacity: 1 !important;
 }
 
@@ -2850,6 +2868,26 @@
 
 .collection-screen .collection-card.locked {
     cursor: pointer;
+}
+
+.collection-screen .collection-card.locked .collection-card-bg,
+.collection-screen .collection-card.locked .collection-card-image,
+.collection-screen .collection-card.locked .collection-card-tag-image {
+    filter: grayscale(1) brightness(0.82) !important;
+    opacity: 0.75 !important;
+}
+
+.collection-screen .collection-card.locked .collection-card-title {
+    color: rgba(87, 51, 29, 0.5) !important;
+}
+
+.collection-screen .collection-card-lock-icon {
+    display: inline-block;
+    width: 0.85em;
+    height: 0.85em;
+    margin-right: calc(4 / 1170 * 100cqw);
+    vertical-align: -0.05em;
+    color: currentColor;
 }
 
 /* ===== NEW Figma Detail (cd-figma-*) ===== */

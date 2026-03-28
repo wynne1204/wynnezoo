@@ -1367,10 +1367,15 @@
 
 .zoo-home-collection-guide {
     position: absolute;
-    left: 47%;
-    top: 78%;
+    left: 50%;
+    bottom: calc(100% - 3.4rem);
+    transform: translateX(-50%);
     z-index: 7;
-    width: 10.5rem;
+    width: max-content;
+    max-width: 10.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     pointer-events: none;
 }
 
@@ -1379,6 +1384,7 @@
 }
 
 .zoo-home-collection-guide-bubble {
+    transform: translateY(-20px);
     padding: 0.7rem 0.8rem;
     border-radius: 1rem;
     background: rgba(41, 24, 9, 0.92);
@@ -1394,7 +1400,7 @@
 .zoo-home-collection-guide-hand {
     display: block;
     width: 2.4rem;
-    margin: -0.2rem 0 0 auto;
+    margin: 0.15rem -20px 0 0;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
 
@@ -2286,7 +2292,8 @@
 .zoo-main-task-btn {
     position: absolute;
     left: 1.453%;
-    top: 79.5814%;
+    /* Figma: y = (1894+72) / 2532 = 77.647% */
+    top: 77.647%;
     width: 43.2479%;
     height: 7.8199%;
     padding: 0;
@@ -2333,19 +2340,22 @@
     line-height: 1;
     text-align: center;
     text-shadow:
-        -0.04rem 0 #a75d30,
-        0.04rem 0 #a75d30,
-        0 -0.04rem #a75d30,
-        0 0.04rem #a75d30,
-        0 0.12rem 0.18rem rgba(130, 65, 31, 0.28);
+        -0.04rem 0 #864123,
+        0.04rem 0 #864123,
+        0 -0.04rem #864123,
+        0 0.04rem #864123,
+        0 0.12rem 0.18rem rgba(134, 65, 35, 0.28);
 }
 
 .zoo-home-nav {
     position: absolute;
-    left: 3.0769%;
-    top: 88.8231%;
-    width: 48.7179%;
-    height: 7.6224%;
+    /* Figma: x = 41/1170 = 3.504%, y = (1894+322)/2532 = 87.520% */
+    left: 3.504%;
+    top: 87.520%;
+    /* Figma: Frame 9 hug width = (152+66+160+66+150)/1170 = 50.769% */
+    width: 50.769%;
+    /* Figma: max child height ~216.5/2532 = 8.550% */
+    height: 8.550%;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -2393,14 +2403,16 @@
 .zoo-home-nav-label {
     position: absolute;
     left: calc(var(--nav-label-left) - (3 / 1170 * 100cqw) - var(--nav-label-extra-left, 0px));
-    top: calc(78.7565% - (3 / 1170 * 100cqw) - var(--nav-label-extra-top, 0px));
+    /* Figma: 文字 y ≈ 170/216.5 = 78.52% */
+    top: calc(78.52% - (3 / 1170 * 100cqw) - var(--nav-label-extra-top, 0px));
     width: calc(var(--nav-label-width) + (6 / 1170 * 100cqw) + var(--nav-label-extra-width, 0px));
     height: calc(21.2435% + (6 / 1170 * 100cqw) + var(--nav-label-extra-height, 0px));
     display: flex;
     align-items: flex-start;
     justify-content: center;
     color: #4f453d;
-    font-size: calc(34 / 1170 * 100cqw);
+    /* Figma: fontSize 38 */
+    font-size: calc(38 / 1170 * 100cqw);
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -2410,33 +2422,58 @@
         0 calc(1 / 1170 * 100cqw) 0 rgba(255, 244, 223, 0.55);
 }
 
-.zoo-home-nav-btn.is-trip,
-.zoo-home-nav-btn.is-collection {
-    --nav-button-width: 25.4386%;
-    --nav-bg-left: -1.3793%;
-    --nav-bg-top: -1.0363%;
-    --nav-bg-width: 97.931%;
-    --nav-bg-height: 71.5026%;
-    --nav-icon-left: 3.4483%;
-    --nav-icon-top: 2.0725%;
-    --nav-icon-width: 88.9655%;
-    --nav-icon-height: 66.8394%;
-    --nav-label-left: 6.2069%;
-    --nav-label-width: 93.7931%;
+.zoo-home-nav-btn.is-trip {
+    /* Figma: 远行 152/594 = 25.589% */
+    --nav-button-width: 25.589%;
+    /* 背景圆含6px外描边: 162×162, 居中于按钮 */
+    --nav-bg-left: -3.289%;
+    --nav-bg-top: -3.5%;
+    --nav-bg-width: 106.579%;
+    --nav-bg-height: 75.548%;
+    /* 图标: x:6/152=3.947%, y:3.23/214.48=1.506%, w:140/152=92.105%, h:140/214.48=65.274% */
+    --nav-icon-left: 3.947%;
+    --nav-icon-top: 1.506%;
+    --nav-icon-width: 92.105%;
+    --nav-icon-height: 65.274%;
+    /* 文字: x:0/152=0%, w:152/152=100% */
+    --nav-label-left: 0%;
+    --nav-label-width: 100%;
 }
 
-.zoo-home-nav-btn.is-story {
-    --nav-button-width: 24.9123%;
-    --nav-bg-left: -1.4085%;
-    --nav-bg-top: -1.0363%;
-    --nav-bg-width: 97.1831%;
-    --nav-bg-height: 71.5026%;
+.zoo-home-nav-btn.is-collection {
+    /* Figma: 图鉴 160/594 = 26.936% */
+    --nav-button-width: 26.936%;
+    /* 背景圆含6px外描边: 162×162, 居中于按钮 */
+    --nav-bg-left: -0.625%;
+    --nav-bg-top: -0.462%;
+    --nav-bg-width: 101.25%;
+    --nav-bg-height: 74.842%;
+    /* 图标: x:0, y:0, w:160/160=100%, h:160/216.5=73.903% */
     --nav-icon-left: 0%;
     --nav-icon-top: 0%;
     --nav-icon-width: 100%;
-    --nav-icon-height: 73.5751%;
-    --nav-label-left: 24.6479%;
-    --nav-label-width: 47.8873%;
+    --nav-icon-height: 73.903%;
+    /* 文字: x:4/160=2.5%, w:152/160=95% */
+    --nav-label-left: 2.5%;
+    --nav-label-width: 95%;
+}
+
+.zoo-home-nav-btn.is-story {
+    /* Figma: 剧情 150/594 = 25.253% */
+    --nav-button-width: 25.253%;
+    /* 背景圆含6px外描边: 162×162, 居中于按钮 */
+    --nav-bg-left: -4%;
+    --nav-bg-top: -2.774%;
+    --nav-bg-width: 108%;
+    --nav-bg-height: 74.853%;
+    /* 图标: x:0, y:0.47/216.47=0.217%, w:150/150=100%, h:150/216.47=69.289% */
+    --nav-icon-left: 0%;
+    --nav-icon-top: 0.217%;
+    --nav-icon-width: 100%;
+    --nav-icon-height: 69.289%;
+    /* 文字: x:37/150=24.667%, w:76/150=50.667% */
+    --nav-label-left: 24.667%;
+    --nav-label-width: 50.667%;
     --nav-label-extra-left: calc(3 / 1170 * 100cqw);
     --nav-label-extra-top: calc(3 / 1170 * 100cqw);
     --nav-label-extra-width: calc(6 / 1170 * 100cqw);
@@ -2518,7 +2555,7 @@
     }
 
     .zoo-home-nav-label {
-        font-size: calc(34 / 1170 * 100cqw);
+        font-size: calc(38 / 1170 * 100cqw);
     }
 
     .story-preview-panel {
@@ -2533,4 +2570,85 @@
     background:
         radial-gradient(circle at 15% 15%, rgba(255, 255, 255, 0.4), transparent 30%),
         linear-gradient(180deg, #e3f2c1 0%, #c4e495 100%) !important;
+}
+
+/* ── 系统解锁弹窗 ─────────────────────────────────────────── */
+.system-unlock-popup {
+    position: absolute;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.system-unlock-popup[hidden] {
+    display: none;
+}
+
+.system-unlock-popup-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+}
+
+.system-unlock-popup-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 36px 32px 28px;
+    min-width: 260px;
+    max-width: 320px;
+    background: linear-gradient(168deg, #fffbe6 0%, #f5ecd0 100%);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(180, 140, 60, 0.35);
+    text-align: center;
+    animation: system-unlock-popup-enter 0.35s ease-out;
+}
+
+.system-unlock-popup-icon {
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18));
+}
+
+.system-unlock-popup-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #3a2e1a;
+    line-height: 1.4;
+}
+
+.system-unlock-popup-btn {
+    margin-top: 4px;
+    padding: 10px 48px;
+    border: none;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #7cb342, #558b2f);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(85, 139, 47, 0.35);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.system-unlock-popup-btn:active {
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px rgba(85, 139, 47, 0.25);
+}
+
+@keyframes system-unlock-popup-enter {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }

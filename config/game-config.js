@@ -166,7 +166,36 @@ window.APP_CONFIG = {
             '--top-bg-left': '-5px', // 上半区背景 X 偏移
             '--top-bg-top': '0px', // 上半区背景 Y 偏移
             '--tower-offset-y': '-40px', // 上方叠叠乐整体纵向偏移（负值上移）
-            '--story-actor-lift-y': '15px'
+            '--story-actor-lift-y': '20px'
         }
     }
 };
+
+// ── 系统解锁表（SystemUnlockTable） ──────────────────────────────
+// 定义各子系统的解锁条件，新增系统只需在数组中追加一条记录即可。
+// 字段说明：
+//   systemId     — 系统唯一标识
+//   systemName   — 系统显示名称
+//   iconSrc      — 系统图标资源路径
+//   chapterId    — 解锁所需章节ID（0=序章，1=第一章…）
+//   beatIndex    — 解锁所需幕索引（从 0 开始）
+//   navElementId — 主界面导航按钮的 DOM 元素 ID
+window.APP_CONFIG.systemUnlockTable = [
+    {
+        systemId: 'collection',
+        systemName: '动物图鉴',
+        iconSrc: './Texture/UI/Icon_System_Collection.png',
+        chapterId: 1,
+        beatIndex: 25,
+        navElementId: 'zoo-nav-collection'
+    }
+    // ── 追加新条目示例 ──
+    // {
+    //     systemId: 'trip',
+    //     systemName: '动物远行',
+    //     iconSrc: './Texture/UI/Icon_System_Trip.png',
+    //     chapterId: 1,
+    //     beatIndex: 0,
+    //     navElementId: 'zoo-nav-trip'
+    // }
+];

@@ -183,7 +183,15 @@
     }
 
     function buildGuideMarkup(species) {
-        return '';
+        if (!species || !species.isPendingGuide || !species.unlocked) {
+            return '';
+        }
+
+        return `
+            <div class="collection-card-guide is-hand-only" aria-hidden="true">
+                <img src="${escapeHtml(GUIDE_HAND_IMAGE_SRC)}" alt="">
+            </div>
+        `;
     }
 
     function getDisplayTagLabel(rarity) {
@@ -230,7 +238,7 @@
                     <span class="collection-card-tag-label${displayTagLabel.indexOf('\n') >= 0 ? ' is-two-line' : ''}">${escapeHtml(displayTagLabel)}</span>
                 </div>
                 <div class="collection-card-content">
-                    <p class="collection-card-title">${escapeHtml(displayName)}</p>
+                    <p class="collection-card-title">${species.unlocked ? '' : '<svg class="collection-card-lock-icon" aria-hidden="true" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="currentColor"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>'}${escapeHtml(displayName)}</p>
                 </div>
             </article>
         `;

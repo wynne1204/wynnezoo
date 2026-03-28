@@ -1,4 +1,4 @@
-(function initZooEconomy(globalScope) {
+﻿(function initZooEconomy(globalScope) {
     'use strict';
 
     const balance = globalScope.WynneZooBalance || null;
@@ -47,7 +47,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '猴子动物详情占位立绘',
             detailDescription: '猴子通常生活在温暖湿润的森林环境中，善于借助树枝快速移动。它们具有较强的学习能力和社群意识，常通过叫声、动作和梳理行为维持群体关系。',
-            iucnText: 'IUCN 红色名录示例：部分猴类处于需持续监测状态',
+            iucnText: '部分猴类处于需持续监测状态',
             populationText: '约20000只',
             temperatureText: '18-32度',
             socialText: '群居',
@@ -65,7 +65,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '羊驼动物详情占位立绘',
             detailDescription: '羊驼原产于南美洲高原地区，拥有厚实的绒毛和耐寒能力，适应昼夜温差较大的环境。它们性情相对温和，通常以小群体活动，并通过姿态和叫声传递信息。',
-            iucnText: 'IUCN 红色名录示例：人工保育稳定，野外种群待持续观察',
+            iucnText: '人工保育稳定，野外种群待持续观察',
             populationText: '约15000只',
             temperatureText: '5-22度',
             socialText: '群居',
@@ -83,7 +83,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '雪豹动物详情占位立绘',
             detailDescription: '雪豹被称为高山生态系统中的隐秘猎手，主要分布在高海拔寒冷山区。它们依靠厚密皮毛和长尾适应低温环境，行动范围广，通常独自巡游领地。',
-            iucnText: 'IUCN 红色名录示例：近危 (NT)，需要长期保护栖息地',
+            iucnText: '近危 (NT)，需要长期保护栖息地',
             populationText: '约4000只',
             temperatureText: '-20-12度',
             socialText: '独居',
@@ -101,7 +101,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '考拉动物详情占位立绘',
             detailDescription: '考拉主要生活在桉树林中，依赖稳定的树冠和充足的叶片资源。它们新陈代谢较慢，大部分时间用于休息和消化，因此对温度和栖息地变化十分敏感。',
-            iucnText: 'IUCN 红色名录示例：近危 (NT)，需控制栖息地破碎化',
+            iucnText: '近危 (NT)，需控制栖息地破碎化',
             populationText: '约8000只',
             temperatureText: '12-30度',
             socialText: '独居',
@@ -119,7 +119,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '帝企鹅动物详情占位立绘',
             detailDescription: '帝企鹅是典型的极地鸟类，擅长在寒冷海域潜游觅食，并依靠群体站位抵御严寒。繁殖季节中，成体会分工协作，确保幼崽在极端气候中存活。',
-            iucnText: 'IUCN 红色名录示例：近危风险上升，受气候变化影响显著',
+            iucnText: '近危风险上升，受气候变化影响显著',
             populationText: '约12000只',
             temperatureText: '-40-5度',
             socialText: '群居',
@@ -137,7 +137,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '环尾狐猴动物详情占位立绘',
             detailDescription: '环尾狐猴拥有辨识度很高的环纹尾巴，常以群体形式活动。它们会通过晒太阳、跳跃和气味标记来适应环境，是岛屿生态中极具代表性的灵长类动物。',
-            iucnText: 'IUCN 红色名录示例：濒危 (EN)，受栖息地缩减影响明显',
+            iucnText: '濒危 (EN)，受栖息地缩减影响明显',
             populationText: '约2500只',
             temperatureText: '16-30度',
             socialText: '群居',
@@ -155,7 +155,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '斑马动物详情占位立绘',
             detailDescription: '斑马广泛分布于草原与稀树草原地带，依赖群体行动提升警戒效率。它们醒目的黑白条纹不仅便于识别个体，也能在群体奔跑时干扰捕食者判断。',
-            iucnText: 'IUCN 红色名录示例：普通种群仍需关注迁徙通道保护',
+            iucnText: '普通种群仍需关注迁徙通道保护',
             populationText: '约30000只',
             temperatureText: '20-35度',
             socialText: '群居',
@@ -173,7 +173,7 @@
             detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
             detailImageAlt: '长颈鹿动物详情占位立绘',
             detailDescription: '长颈鹿以修长的脖颈和开阔视野著称，主要在稀树草原中取食高处树叶。它们行动优雅，需要较大的活动空间，也依赖稳定水源和植被分布。',
-            iucnText: 'IUCN 红色名录示例：部分亚种保育等级较高，需持续恢复种群',
+            iucnText: '部分亚种保育等级较高，需持续恢复种群',
             populationText: '约6800只',
             temperatureText: '18-34度',
             socialText: '松散群居',
@@ -413,7 +413,8 @@
             meta: {
                 lastSettlement: null,
                 lastTicketSpendAt: 0,
-                storyFlags: {}
+                storyFlags: {},
+                unlockedSystems: {}
             }
         };
     }
@@ -495,6 +496,35 @@
         };
     }
 
+    function normalizeUnlockedSystems(rawMap) {
+        if (!rawMap || typeof rawMap !== 'object') {
+            return {};
+        }
+
+        return Object.keys(rawMap).reduce(function (result, key) {
+            var normalizedKey = String(key || '').trim();
+            if (!normalizedKey) {
+                return result;
+            }
+
+            var entry = rawMap[key];
+            if (!entry || typeof entry !== 'object') {
+                return result;
+            }
+
+            var unlockedAt = Number(entry.unlockedAt);
+            if (!Number.isFinite(unlockedAt) || unlockedAt <= 0) {
+                return result;
+            }
+
+            result[normalizedKey] = {
+                unlockedAt: Math.floor(unlockedAt),
+                notificationShown: Boolean(entry.notificationShown)
+            };
+            return result;
+        }, {});
+    }
+
     function normalizeState(rawState) {
         const defaultState = createDefaultState();
         if (!rawState || typeof rawState !== 'object') {
@@ -531,7 +561,8 @@
                     }
                     : null,
                 lastTicketSpendAt: Math.max(0, Math.floor(Number(rawState.meta && rawState.meta.lastTicketSpendAt) || 0)),
-                storyFlags: normalizeStoryFlags(rawState.meta && rawState.meta.storyFlags)
+                storyFlags: normalizeStoryFlags(rawState.meta && rawState.meta.storyFlags),
+                unlockedSystems: normalizeUnlockedSystems(rawState.meta && rawState.meta.unlockedSystems)
             }
         };
 
@@ -856,6 +887,7 @@
             resources: { ...runtimeState.resources },
             ui: { ...runtimeState.ui },
             storyFlags: { ...(runtimeState.meta.storyFlags || {}) },
+            unlockedSystems: JSON.parse(JSON.stringify(runtimeState.meta.unlockedSystems || {})),
             slotTheme: { ...balance.SLOT_THEME },
             collection,
             habitats,
@@ -1342,6 +1374,12 @@
         getSnapshot,
         subscribe,
         login,
+        getRuntimeState: function () {
+            return runtimeState;
+        },
+        emitChange: function (reason) {
+            emitChange(reason);
+        },
         getActiveUserId() {
             return activeUserId;
         },
