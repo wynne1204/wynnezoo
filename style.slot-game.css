@@ -51,12 +51,12 @@
     position: absolute;
     /* 0 / 1170 */
     left: 0%;
-    /* 1048 / 2532 */
-    top: 41.39%;
+    /* 1048 / 2532 → adjusted up slightly */
+    top: 40.39%;
     /* 1170 / 1170 */
     width: 100%;
-    /* 1189 / 2532 */
-    height: 46.96%;
+    /* 1189 / 2532 → increased from 46.96% to 48.96% */
+    height: 48.96%;
     object-fit: fill;
     z-index: 1;
     pointer-events: none;
@@ -205,9 +205,9 @@
     width: 5.04%;
     height: 33.6%;
     min-height: 0;
-    background: linear-gradient(180deg, #fdf2f2, #f9d7d9);
+    background: linear-gradient(180deg, #faf0e0, #f0d9b8);
     border-radius: 999px;
-    box-shadow: 0 10px 22px rgba(163, 111, 95, 0.16);
+    box-shadow: 0 10px 22px rgba(134, 77, 38, 0.18);
     padding: 1.1% 0.25% 0.7%;
     display: flex;
     flex-direction: column;
@@ -215,9 +215,9 @@
     justify-content: space-between;
     font-size: 0.68rem;
     letter-spacing: 0.05em;
-    color: #914e3c;
+    color: #864D26;
     gap: 0;
-    z-index: 220;
+    z-index: 50;
     pointer-events: none;
     overflow: visible;
 }
@@ -266,14 +266,14 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    filter: drop-shadow(0 3px 8px rgba(145, 78, 60, 0.14));
+    filter: drop-shadow(0 3px 8px rgba(134, 77, 38, 0.16));
 }
 
 .heart-icon svg {
     width: 100%;
     height: 100%;
     display: block;
-    fill: #f5b1b1;
+    fill: #dfc4a0;
     transition: fill 0.3s ease;
 }
 
@@ -646,8 +646,6 @@
 
 .game-container.is-free-spin-mode .shelf-container {
     background: transparent;
-    /* FreeSpin 货架比普通货架高 98px 且起点更高，箱子需要下移补偿 */
-    --grid-board-center-y: 57%;
 }
 
 .grid-board {
@@ -1184,6 +1182,24 @@
     animation: none;
 }
 
+/* Customer portrait: fade in + scale up, matching main stage style */
+.game-container.slot-entering .customer-panel .customer-portrait {
+    animation: slotEnter-customerFadeUp 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 350ms;
+}
+
+/* Customer bubble: pop in after portrait arrives */
+.game-container.slot-entering .customer-panel .customer-bubble {
+    animation: slotEnter-bubblePop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 650ms;
+}
+
+/* Satisfaction bar: fade in + scale up from center */
+.game-container.slot-entering .customer-satisfaction {
+    animation: slotEnter-satisfactionPop 550ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 500ms;
+}
+
 .game-container.slot-entering .shelf-container {
     animation: slotEnter-shelfContent 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: 250ms;
@@ -1320,5 +1336,45 @@
     100% {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Customer portrait: fade up, same feel as main stage */
+@keyframes slotEnter-customerFadeUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.92);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Customer bubble: bouncy pop-in */
+@keyframes slotEnter-bubblePop {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(-12deg);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(1.15) rotate(3deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+/* Satisfaction bar: bouncy scale-up from center */
+@keyframes slotEnter-satisfactionPop {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }

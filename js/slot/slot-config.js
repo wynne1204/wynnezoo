@@ -108,6 +108,12 @@ const DEFAULT_CONFIG = {
             2: 0,
             3: 0,
             4: 0
+        },
+        specialBoxScaleBySize: {
+            1: 0.85,
+            2: 0.85,
+            3: 0.85,
+            4: 0.85
         }
     },
     blueprintWeights: {
@@ -222,6 +228,10 @@ const CONFIG = {
         specialBoxOffsetYBySize: {
             ...DEFAULT_CONFIG.freeSpin.specialBoxOffsetYBySize,
             ...((externalGameConfig.freeSpin && externalGameConfig.freeSpin.specialBoxOffsetYBySize) || {})
+        },
+        specialBoxScaleBySize: {
+            ...DEFAULT_CONFIG.freeSpin.specialBoxScaleBySize,
+            ...((externalGameConfig.freeSpin && externalGameConfig.freeSpin.specialBoxScaleBySize) || {})
         }
     },
     blueprintWeights: {

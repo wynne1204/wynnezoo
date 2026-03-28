@@ -1091,9 +1091,9 @@
         const selectedHabitat = getInfoHabitat(snapshot);
         const slotCopy = getSlotCardCopy(localState.slotSnapshot, snapshot);
 
-        if (refs.resourceCoin) refs.resourceCoin.textContent = Number(snapshot.resources.coin || 0).toLocaleString();
-        if (refs.resourceDiamond) refs.resourceDiamond.textContent = Number(snapshot.resources.diamond || 0).toLocaleString();
-        if (refs.resourceTicket) refs.resourceTicket.textContent = Number(snapshot.resources.playTicket || 0).toLocaleString();
+        if (refs.resourceCoin) refs.resourceCoin.textContent = formatResourceNumber(snapshot.resources.coin || 0);
+        if (refs.resourceDiamond) refs.resourceDiamond.textContent = formatResourceNumber(snapshot.resources.diamond || 0);
+        if (refs.resourceTicket) refs.resourceTicket.textContent = formatResourceNumber(snapshot.resources.playTicket || 0);
 
         if (refs.homeBackground) {
             refs.homeBackground.src = './Texture/ZOO/UI_Zoo_MainBG.png';

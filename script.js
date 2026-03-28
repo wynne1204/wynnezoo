@@ -189,7 +189,7 @@ function getZooEconomy() {
 }
 
 function formatSlotHudValue(value) {
-    return Math.max(0, Math.floor(Number(value) || 0)).toLocaleString();
+    return formatResourceNumber(value);
 }
 
 function updateSlotEconomyHud(snapshot = null) {
@@ -619,6 +619,26 @@ function createConfettiFireworks() {
     dispatchEffect('createConfettiFireworks', []);
 }
 
+function createCustomerDepartureParticles(x, y) {
+    dispatchEffect('createCustomerDepartureParticles', [x, y]);
+}
+
+function createCoinFloatingText(x, y, text) {
+    dispatchEffect('createCoinFloatingText', [x, y, text]);
+}
+
+function createCoinRain(coinCount) {
+    dispatchEffect('createCoinRain', [coinCount]);
+}
+
+function createCoinFall(coinCount) {
+    dispatchEffect('createCoinFall', [coinCount]);
+}
+
+function createHeartBurstParticles(x, y) {
+    dispatchEffect('createHeartBurstParticles', [x, y]);
+}
+
 function preloadBombMonkeyFrames() {
     if (bombMonkeyFramesPreloaded) return;
     bombMonkeyFramesPreloaded = true;
@@ -858,16 +878,26 @@ function pulseCustomerHeartRange(startValue, endValue) {
         const rowIndex = Math.max(0, total - value);
         const row = customerHeartRows[rowIndex];
         const icon = row && row.querySelector('.heart-icon');
-        const delay = (value - start) * 60;
+        const delay = (value - start) * 120;
         window.setTimeout(() => {
+            // 强烈的弹跳 + 发光动画
             animateUiElement(icon, [
-                { transform: 'scale(0.88)', filter: 'brightness(0.92)' },
-                { transform: 'scale(1.16)', filter: 'brightness(1.15)' },
+                { transform: 'scale(0.6)' },
+                { transform: 'scale(1.45)', filter: 'drop-shadow(0 0 8px rgba(255,107,132,0.9)) brightness(1.3)' },
+                { transform: 'scale(0.92)', filter: 'brightness(1.05)' },
+                { transform: 'scale(1.12)', filter: 'drop-shadow(0 0 4px rgba(255,107,132,0.5)) brightness(1.15)' },
                 { transform: 'scale(1)', filter: 'brightness(1)' }
             ], {
-                duration: 420,
+                duration: 550,
                 easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
             });
+            // 爱心位置迸发小粒子
+            if (icon) {
+                const rect = icon.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+                createHeartBurstParticles(cx, cy);
+            }
         }, delay);
     }
 }
@@ -927,6 +957,12 @@ function ensureCurrentCustomer() {
 
 async function advanceToNextCustomer() {
     const activePanel = customerPanel || customerPortraitDisplay;
+    // 离场粒子：从顾客立绘中心位置发射
+    const portraitEl = customerPortraitDisplay || customerPanel;
+    if (portraitEl) {
+        const rect = portraitEl.getBoundingClientRect();
+        createCustomerDepartureParticles(rect.left + rect.width / 2, rect.top + rect.height * 0.35);
+    }
     animateUiElement(activePanel, [
         { opacity: 1, transform: 'translateY(0) scale(1)' },
         { opacity: 0.12, transform: 'translateY(20px) scale(0.96)' }
@@ -952,22 +988,34 @@ async function advanceToNextCustomer() {
 async function handleSatisfiedCustomer(event, clusterCenter) {
     if (!event || !event.satisfiesCustomer) return;
 
+    // 气泡强烈弹跳 + 发光反馈
     animateUiElement(customerPreferenceBubble || customerPanel, [
         { transform: 'scale(1)', filter: 'brightness(1)' },
-        { transform: 'scale(1.08)', filter: 'brightness(1.12)' },
+        { transform: 'scale(1.25)', filter: 'brightness(1.3) drop-shadow(0 0 12px rgba(255,215,0,0.7))' },
+        { transform: 'scale(0.92)', filter: 'brightness(1.05)' },
+        { transform: 'scale(1.08)', filter: 'brightness(1.15)' },
         { transform: 'scale(1)', filter: 'brightness(1)' }
     ], {
-        duration: CUSTOMER_SATISFIED_FEEDBACK_MS,
+        duration: CUSTOMER_SATISFIED_FEEDBACK_MS + 100,
         easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
     });
+    // 立绘开心跳跃
     animateUiElement(customerPortraitDisplay, [
         { transform: 'translateY(0) scale(1)' },
-        { transform: 'translateY(-6px) scale(1.02)' },
+        { transform: 'translateY(-14px) scale(1.05)' },
+        { transform: 'translateY(2px) scale(0.98)' },
+        { transform: 'translateY(-4px) scale(1.02)' },
         { transform: 'translateY(0) scale(1)' }
     ], {
-        duration: CUSTOMER_SATISFIED_FEEDBACK_MS,
+        duration: CUSTOMER_SATISFIED_FEEDBACK_MS + 100,
         easing: 'ease-out'
     });
+
+    // 气泡位置迸发爱心粒子
+    if (customerPreferenceBubble) {
+        const rect = customerPreferenceBubble.getBoundingClientRect();
+        createHeartBurstParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
 
     if (clusterCenter) {
         createFloatingText(clusterCenter.x, clusterCenter.y - 84, `❤ +${event.satisfactionGain}`);
@@ -1818,6 +1866,13 @@ function getFreeSpinSpecialBoxOffsetY(size) {
     return Number.isFinite(offset) ? offset : 0;
 }
 
+function getFreeSpinBoxScale(size) {
+    const safeSize = Math.max(1, Math.floor(Number(size) || 1));
+    const scaleMap = (CONFIG.freeSpin && CONFIG.freeSpin.specialBoxScaleBySize) || {};
+    const scale = Number(scaleMap[safeSize]);
+    return (Number.isFinite(scale) && scale > 0) ? scale : 1;
+}
+
 function pickWeightedNumericKey(weights, fallbackValue) {
     const entries = Object.entries(weights || {})
         .map(([key, value]) => ({ key: Number(key), weight: Number(value) }))
@@ -2019,8 +2074,9 @@ function renderFreeSpinBoard() {
         cell.style.setProperty('--free-spin-gap-x', columnGap);
         cell.style.setProperty('--free-spin-gap-y', rowGap);
         if (item.size > 1) {
-            const boxWidth = cellWidth * bgSizeScale * item.size;
-            const boxHeight = cellHeight * 2 * item.size;
+            const sizeScale = getFreeSpinBoxScale(item.size);
+            const boxWidth = cellWidth * bgSizeScale * item.size * sizeScale;
+            const boxHeight = cellHeight * 2 * item.size * sizeScale;
             const boxAspect = boxWidth / boxHeight;
             const renderHeight = (boxAspect > safeSpriteAspect)
                 ? boxHeight
@@ -2035,8 +2091,15 @@ function renderFreeSpinBoard() {
             cell.style.setProperty('--free-spin-box-offset-y', `${offsetY}px`);
             cell.style.setProperty('--free-spin-box-shift-y', `${extraOffsetY}px`);
         } else {
-            cell.style.removeProperty('--free-spin-box-width');
-            cell.style.removeProperty('--free-spin-box-height');
+            const sizeScale1 = getFreeSpinBoxScale(1);
+            if (sizeScale1 !== 1) {
+                const scaledBgSize = bgSizeScale * 100 * sizeScale1;
+                cell.style.setProperty('--free-spin-box-width', `${scaledBgSize}%`);
+                cell.style.setProperty('--free-spin-box-height', `${200 * sizeScale1}%`);
+            } else {
+                cell.style.removeProperty('--free-spin-box-width');
+                cell.style.removeProperty('--free-spin-box-height');
+            }
             cell.style.removeProperty('--free-spin-box-render-width');
             cell.style.removeProperty('--free-spin-box-render-height');
             cell.style.removeProperty('--free-spin-box-offset-y');
@@ -4387,6 +4450,11 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
             createConfettiFireworks();
         }
 
+        // 连团数量 > 4 时触发金币雨，> 6 时更多金币
+        if (event.size > 4) {
+            createCoinRain(event.size > 6 ? 70 : 40);
+        }
+
         await waitMs(500);
 
         let sumX = 0;
@@ -4407,7 +4475,8 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
                 y: sumY / count
             };
 
-            createFloatingText(
+            // 金币奖励飘字带金币图标
+            createCoinFloatingText(
                 clusterCenter.x,
                 clusterCenter.y - 40,
                 rewardTextFormatter(event)

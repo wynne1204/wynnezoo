@@ -230,3 +230,130 @@
         opacity: 0;
     }
 }
+
+/* -------------------------------------------------------
+   Customer Departure Particles
+   ------------------------------------------------------- */
+.customer-departure-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    border-radius: 50%;
+    line-height: 1;
+    text-align: center;
+}
+
+@keyframes customer-departure-anim {
+    0% {
+        transform: translate(0, 0) scale(0.5);
+        opacity: 1;
+    }
+    40% {
+        opacity: 1;
+        transform: translate(calc(var(--tx) * 0.4), calc(var(--ty) * 0.4)) scale(1.1);
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+/* -------------------------------------------------------
+   Coin Floating Text (with icon)
+   ------------------------------------------------------- */
+.floating-text-coin {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.floating-coin-icon {
+    width: 1.1em;
+    height: 1.1em;
+    object-fit: contain;
+    vertical-align: middle;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+    flex-shrink: 0;
+}
+
+/* -------------------------------------------------------
+   Coin Rain
+   ------------------------------------------------------- */
+.coin-rain-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 200;
+}
+
+.coin-rain-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 6px rgba(180, 130, 20, 0.5));
+}
+
+@keyframes coin-burst {
+    0% {
+        transform: translate(-50%, 0) scale(0) rotate(0deg);
+        opacity: 1;
+    }
+    15% {
+        transform: translate(calc(var(--tx) * 0.15 - 50%), calc(var(--ty) * 0.15)) scale(1.2) rotate(calc(var(--rot) * 0.15));
+        opacity: 1;
+    }
+    70% {
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(var(--tx) - 50%), var(--ty)) scale(0.5) rotate(var(--rot));
+        opacity: 0;
+    }
+}
+
+/* -------------------------------------------------------
+   Heart Burst Particles
+   ------------------------------------------------------- */
+.heart-burst-particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    line-height: 1;
+    text-align: center;
+}
+
+@keyframes heart-burst-anim {
+    0% {
+        transform: translate(-50%, -50%) scale(0.3);
+        opacity: 1;
+    }
+    30% {
+        transform: translate(calc(var(--tx) * 0.3 - 50%), calc(var(--ty) * 0.3 - 50%)) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(calc(var(--tx) - 50%), calc(var(--ty) - 50%)) scale(0.4);
+        opacity: 0;
+    }
+}
+
+/* -------------------------------------------------------
+   Coin Fall (top-down rain)
+   ------------------------------------------------------- */
+@keyframes coin-fall {
+    0% {
+        transform: translateX(0) translateY(0) rotate(0deg) scale(0.5);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+        transform: translateX(calc(var(--drift-x) * 0.1)) translateY(calc(var(--fall-dist) * 0.05)) rotate(calc(var(--rot) * 0.1)) scale(1);
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(var(--drift-x)) translateY(var(--fall-dist)) rotate(var(--rot)) scale(0.6);
+        opacity: 0;
+    }
+}

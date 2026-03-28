@@ -171,21 +171,29 @@
             return;
         }
 
+        const wrapStyle = window.getComputedStyle(gridWrap);
+        const wrapPadTop = parsePixelValue(wrapStyle.paddingTop, 0);
+        const wrapPadBottom = parsePixelValue(wrapStyle.paddingBottom, 0);
+        const wrapPadLeft = parsePixelValue(wrapStyle.paddingLeft, 0);
+        const wrapPadRight = parsePixelValue(wrapStyle.paddingRight, 0);
+        const innerWidth = wrapRect.width - wrapPadLeft - wrapPadRight;
+        const innerHeight = wrapRect.height - wrapPadTop - wrapPadBottom;
+
         const computedStyle = window.getComputedStyle(bonusGridBoard);
         const gap = parsePixelValue(computedStyle.columnGap || computedStyle.gap, 0);
         const columns = Math.max(1, Number(BONUS_GAME_CONFIG.columns) || 4);
         const rows = Math.max(1, Number(BONUS_STATE.boardRows) || Number(BONUS_GAME_CONFIG.initialRows) || 4);
-        const maxCellByWidth = (wrapRect.width - (gap * (columns - 1))) / columns;
-        const maxCellByHeight = (wrapRect.height - (gap * (rows - 1))) / rows;
+        const maxCellByWidth = (innerWidth - (gap * (columns - 1))) / columns;
+        const maxCellByHeight = (innerHeight - (gap * (rows - 1))) / rows;
         const cellSize = Math.min(maxCellByWidth, maxCellByHeight);
 
         if (!Number.isFinite(cellSize) || cellSize <= 0) {
-            bonusScreen.style.setProperty('--bonus-board-max-width', `${Math.max(0, wrapRect.width)}px`);
+            bonusScreen.style.setProperty('--bonus-board-max-width', `${Math.max(0, innerWidth)}px`);
             return;
         }
 
         const boardWidth = Math.min(
-            wrapRect.width,
+            innerWidth,
             (cellSize * columns) + (gap * (columns - 1))
         );
         bonusScreen.style.setProperty('--bonus-board-max-width', `${Math.max(0, boardWidth)}px`);
