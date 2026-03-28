@@ -37,7 +37,10 @@ const STATE = {
     freeSpinTriggersUsed: 0,
     unrevealedIndices: [],
     unrevealedPosByIndex: new Int32Array(0),
-    gridCells: []
+    gridCells: [],
+    currentCustomer: null,
+    customerVisitCount: 0,
+    lastCustomerSignature: ''
 };
 
 const FREE_SPIN_STATE = {
@@ -87,6 +90,12 @@ const controlPanel = document.querySelector('.control-panel');
 const stackProgressRuler = document.getElementById('stack-progress-ruler');
 const multiplierBubble = document.getElementById('multiplier-bubble');
 const multiplierFill = document.getElementById('multiplier-fill');
+const customerSatisfaction = document.getElementById('customer-satisfaction');
+const customerHeartRows = Array.from(document.querySelectorAll('#customer-satisfaction .heart-row'));
+const customerPanel = document.getElementById('customer-panel');
+const customerPortraitDisplay = document.getElementById('customer-portrait');
+const customerPreferenceBubble = document.getElementById('customer-preference-bubble');
+const customerPreferenceBlockDisplay = document.getElementById('customer-preference-block');
 const currentRewardDisplay = document.getElementById('current-reward');
 const slotResourceCoinDisplay = document.getElementById('slot-resource-coin');
 const slotResourceDiamondDisplay = document.getElementById('slot-resource-diamond');
@@ -158,6 +167,7 @@ const AUTO_OPEN_STATE = {
 let isGridBoardClickBound = false;
 let activeBombWheelOverlay = null;
 let stackProgressCells = [];
+let lastRenderedSatisfactionValue = 0;
 const STACK_VIEWPORT_STATE = {
     autoFollow: true,
     hasShownScrollHint: false,
@@ -171,6 +181,8 @@ const SLOT_GAME_RUNTIME = {
     initialized: false,
     viewActive: false
 };
+const CUSTOMER_SWITCH_DELAY_MS = 320;
+const CUSTOMER_SATISFIED_FEEDBACK_MS = 420;
 
 function getZooEconomy() {
     return (window.WynneRegistry && window.WynneRegistry.get('WynneZooEconomy')) || window.WynneZooEconomy || null;
@@ -776,6 +788,210 @@ function createSpecialBlockData(type) {
         };
     }
     return createNormalBlockData('S1');
+}
+
+function getCustomerConfig() {
+    const rawConfig = CONFIG.customerSystem || {};
+    const targetCandidate = rawConfig.target
+        ?? CONFIG.customerSatisfactionTarget
+        ?? CONFIG.bonusTriggerProgressTarget
+        ?? 8;
+    const safeTarget = Math.max(1, Math.floor(Number(targetCandidate) || 8));
+    const portraitImages = Array.isArray(rawConfig.portraitImages)
+        ? rawConfig.portraitImages
+        : (Array.isArray(CONFIG.customerPortraits) ? CONFIG.customerPortraits : []);
+    const preferencePool = Array.isArray(rawConfig.preferencePool)
+        ? rawConfig.preferencePool
+        : (Array.isArray(rawConfig.preferenceSymbols)
+            ? rawConfig.preferenceSymbols
+            : (Array.isArray(CONFIG.customerPreferencePool)
+                ? CONFIG.customerPreferencePool
+                : (Array.isArray(CONFIG.customerPreferenceSymbols) ? CONFIG.customerPreferenceSymbols : [])));
+
+    return {
+        target: safeTarget,
+        portraitImages: portraitImages.length > 0
+            ? portraitImages
+            : [
+                './Texture/story/立绘/游客-1.png',
+                './Texture/story/立绘/游客-2.png',
+                './Texture/story/立绘/游客-3.png',
+                './Texture/story/立绘/游客-4.png'
+            ],
+        preferencePool: preferencePool.length > 0 ? preferencePool : [...NORMAL_SYMBOL_ORDER]
+    };
+}
+
+function getCustomerSatisfactionTarget() {
+    return getCustomerConfig().target;
+}
+
+function normalizeCustomerPreferenceKey(symbolKey) {
+    const raw = String(symbolKey || '').trim();
+    if (!raw) return 'normal:S1';
+    if (raw.startsWith('normal:')) return raw;
+    const normalizedSymbol = NORMAL_SYMBOL_ORDER.includes(raw) ? raw : 'S1';
+    return `normal:${normalizedSymbol}`;
+}
+
+function getCustomerPreferenceSymbolId(symbolKey) {
+    const normalizedKey = normalizeCustomerPreferenceKey(symbolKey);
+    const [, symbolId = 'S1'] = normalizedKey.split(':');
+    return NORMAL_SYMBOL_ORDER.includes(symbolId) ? symbolId : 'S1';
+}
+
+function getCurrentCustomerPreferenceKey() {
+    return STATE.currentCustomer ? normalizeCustomerPreferenceKey(STATE.currentCustomer.preferenceKey) : null;
+}
+
+function animateUiElement(element, keyframes, options) {
+    if (!element || typeof element.animate !== 'function') return null;
+    return element.animate(keyframes, options);
+}
+
+function pulseCustomerHeartRange(startValue, endValue) {
+    if (!Array.isArray(customerHeartRows) || customerHeartRows.length <= 0) return;
+    const start = Math.max(1, Math.floor(Number(startValue) || 0));
+    const end = Math.max(start, Math.floor(Number(endValue) || 0));
+    const total = customerHeartRows.length;
+    for (let value = start; value <= end; value++) {
+        const rowIndex = Math.max(0, total - value);
+        const row = customerHeartRows[rowIndex];
+        const icon = row && row.querySelector('.heart-icon');
+        const delay = (value - start) * 60;
+        window.setTimeout(() => {
+            animateUiElement(icon, [
+                { transform: 'scale(0.88)', filter: 'brightness(0.92)' },
+                { transform: 'scale(1.16)', filter: 'brightness(1.15)' },
+                { transform: 'scale(1)', filter: 'brightness(1)' }
+            ], {
+                duration: 420,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+            });
+        }, delay);
+    }
+}
+
+function renderCurrentCustomer() {
+    const currentCustomer = STATE.currentCustomer;
+    if (!currentCustomer) return;
+
+    if (customerPortraitDisplay) {
+        customerPortraitDisplay.src = currentCustomer.portraitSrc;
+        customerPortraitDisplay.alt = currentCustomer.portraitAlt || '顾客立绘';
+    }
+
+    if (customerPreferenceBlockDisplay) {
+        const symbolId = getCustomerPreferenceSymbolId(currentCustomer.preferenceKey);
+        customerPreferenceBlockDisplay.src = getNormalSymbolImage(symbolId);
+        customerPreferenceBlockDisplay.alt = `当前顾客喜欢的积木 ${symbolId}`;
+    }
+}
+
+function createRandomCustomerProfile() {
+    const customerConfig = getCustomerConfig();
+    const portraits = customerConfig.portraitImages;
+    const preferences = customerConfig.preferencePool
+        .filter((item) => NORMAL_SYMBOL_ORDER.includes(String(item || '').trim()))
+        .map((item) => String(item).trim());
+
+    let chosenPortrait = pickRandomItem(portraits) || portraits[0];
+    let chosenPreference = pickRandomItem(preferences) || preferences[0] || 'S1';
+    let signature = `${chosenPortrait}|${chosenPreference}`;
+
+    for (let attempt = 0; attempt < 6 && signature === STATE.lastCustomerSignature; attempt++) {
+        chosenPortrait = pickRandomItem(portraits) || chosenPortrait;
+        chosenPreference = pickRandomItem(preferences) || chosenPreference;
+        signature = `${chosenPortrait}|${chosenPreference}`;
+    }
+
+    STATE.customerVisitCount += 1;
+    return {
+        id: `customer-${STATE.customerVisitCount}`,
+        portraitSrc: chosenPortrait,
+        portraitAlt: `顾客 ${STATE.customerVisitCount}`,
+        preferenceKey: normalizeCustomerPreferenceKey(chosenPreference)
+    };
+}
+
+function ensureCurrentCustomer() {
+    if (STATE.currentCustomer) {
+        renderCurrentCustomer();
+        return STATE.currentCustomer;
+    }
+    STATE.currentCustomer = createRandomCustomerProfile();
+    STATE.lastCustomerSignature = `${STATE.currentCustomer.portraitSrc}|${getCustomerPreferenceSymbolId(STATE.currentCustomer.preferenceKey)}`;
+    renderCurrentCustomer();
+    return STATE.currentCustomer;
+}
+
+async function advanceToNextCustomer() {
+    const activePanel = customerPanel || customerPortraitDisplay;
+    animateUiElement(activePanel, [
+        { opacity: 1, transform: 'translateY(0) scale(1)' },
+        { opacity: 0.12, transform: 'translateY(20px) scale(0.96)' }
+    ], {
+        duration: CUSTOMER_SWITCH_DELAY_MS,
+        easing: 'ease-in'
+    });
+    await waitMs(CUSTOMER_SWITCH_DELAY_MS);
+
+    STATE.currentCustomer = createRandomCustomerProfile();
+    STATE.lastCustomerSignature = `${STATE.currentCustomer.portraitSrc}|${getCustomerPreferenceSymbolId(STATE.currentCustomer.preferenceKey)}`;
+    renderCurrentCustomer();
+
+    animateUiElement(activePanel, [
+        { opacity: 0.12, transform: 'translateY(20px) scale(0.96)' },
+        { opacity: 1, transform: 'translateY(0) scale(1)' }
+    ], {
+        duration: 340,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+    });
+}
+
+async function handleSatisfiedCustomer(event, clusterCenter) {
+    if (!event || !event.satisfiesCustomer) return;
+
+    animateUiElement(customerPreferenceBubble || customerPanel, [
+        { transform: 'scale(1)', filter: 'brightness(1)' },
+        { transform: 'scale(1.08)', filter: 'brightness(1.12)' },
+        { transform: 'scale(1)', filter: 'brightness(1)' }
+    ], {
+        duration: CUSTOMER_SATISFIED_FEEDBACK_MS,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+    });
+    animateUiElement(customerPortraitDisplay, [
+        { transform: 'translateY(0) scale(1)' },
+        { transform: 'translateY(-6px) scale(1.02)' },
+        { transform: 'translateY(0) scale(1)' }
+    ], {
+        duration: CUSTOMER_SATISFIED_FEEDBACK_MS,
+        easing: 'ease-out'
+    });
+
+    if (clusterCenter) {
+        createFloatingText(clusterCenter.x, clusterCenter.y - 84, `❤ +${event.satisfactionGain}`);
+    }
+
+    await waitMs(CUSTOMER_SATISFIED_FEEDBACK_MS);
+    await advanceToNextCustomer();
+}
+
+function decorateSettlementEventWithCustomerOutcome(event) {
+    ensureCurrentCustomer();
+    const preferenceKey = getCurrentCustomerPreferenceKey();
+    const safeSize = Math.max(0, Math.floor(Number(event && event.size) || 0));
+    const matchesCustomerPreference = Boolean(
+        event
+        && preferenceKey
+        && String(event.symbolKey || '') === String(preferenceKey)
+        && safeSize >= Math.max(1, Math.floor(Number(CONFIG.clusterPayout.minClusterSize) || 3))
+    );
+    const satisfactionGain = matchesCustomerPreference ? Math.max(0, safeSize - 2) : 0;
+    event.customerPreferenceKey = preferenceKey;
+    event.satisfactionGain = satisfactionGain;
+    event.satisfiesCustomer = satisfactionGain > 0;
+    return event;
 }
 
 function cloneBlueprintCounts(counts = {}) {
@@ -2345,6 +2561,7 @@ function initGame() {
     scheduleDeferredPreload();
     bindGridBoardClickHandler();
     applyModeTexts();
+    ensureCurrentCustomer();
 
     // Reset State
     resetGridState(CONFIG.gridSize);
@@ -2363,6 +2580,7 @@ function initGame() {
     updateStackBlockZIndex();
     updateSway();
     updateStackProgressBar();
+    renderCurrentCustomer();
     removeBombWheel();
     clearGridSettlementClasses();
     hideFreeSpinTriggerOverlay();
@@ -2515,7 +2733,7 @@ function createProgressRewardBlockData() {
 function grantStackBlocks(count) {
     const safeCount = Math.max(0, Math.floor(Number(count) || 0));
     if (safeCount <= 0) return 0;
-    const blockList = Array.from({ length: safeCount }, () => createProgressRewardBlockData());
+    const blockList = Array.from({ length: safeCount }, () => ({ type: 'satisfaction', imageSrc: '', normalKey: null }));
     addBlocksToStack(blockList);
     return safeCount;
 }
@@ -2530,6 +2748,7 @@ function grantBonusSymbolBlock() {
 }
 
 function updateConsecutiveBlockGlow() {
+    if (!stackContainer) return;
     STATE.stack.forEach((item) => {
         if (!item || !item.element) return;
         item.element.classList.remove('block-match-glow');
@@ -2590,6 +2809,7 @@ function updateConsecutiveBlockGlow() {
 }
 
 function updateStackBlockZIndex() {
+    if (!stackContainer) return;
     STATE.stack.forEach((item, index) => {
         if (!item || !item.element) return;
         item.element.style.zIndex = String(index + 1);
@@ -2715,41 +2935,45 @@ function finalizeStackMutation(scrollTarget = null) {
 }
 
 function addBlockToStack(blockData, isHidden = false, options = {}) {
-    const block = document.createElement('div');
-    block.classList.add('block');
-    if (!isHidden) {
-        block.classList.add('new-item');
-    }
-    if (blockData.type === 'wild' || blockData.type === 'stickyWild') {
-        block.classList.add('block-wild-glow');
-    }
-    if (blockData.type === 'bonus') {
-        block.classList.add('block-bonus-glow');
-    }
-    block.style.left = `${getRandomStackOffsetPx()}px`;
-    block.dataset.blockType = blockData.type;
-    if (blockData.normalKey) {
-        block.dataset.normalKey = blockData.normalKey;
-    }
+    let block = null;
+    if (stackContainer) {
+        block = document.createElement('div');
+        block.classList.add('block');
+        if (!isHidden) {
+            block.classList.add('new-item');
+        }
+        if (blockData.type === 'wild' || blockData.type === 'stickyWild') {
+            block.classList.add('block-wild-glow');
+        }
+        if (blockData.type === 'bonus') {
+            block.classList.add('block-bonus-glow');
+        }
+        block.style.left = `${getRandomStackOffsetPx()}px`;
+        block.dataset.blockType = blockData.type;
+        if (blockData.normalKey) {
+            block.dataset.normalKey = blockData.normalKey;
+        }
 
-    const img = document.createElement('img');
-    img.classList.add('block-img');
-    img.src = blockData.imageSrc;
-    img.alt = 'stack block';
-    img.draggable = false;
-    img.loading = 'eager';
-    img.onerror = () => {
-        img.remove();
-        block.textContent = '?';
-    };
-    block.appendChild(img);
-    
-    if (isHidden) {
-        block.style.opacity = '0';
-    }
+        if (blockData.imageSrc) {
+            const img = document.createElement('img');
+            img.classList.add('block-img');
+            img.src = blockData.imageSrc;
+            img.alt = 'stack block';
+            img.draggable = false;
+            img.loading = 'eager';
+            img.onerror = () => {
+                img.remove();
+                block.textContent = '?';
+            };
+            block.appendChild(img);
+        }
 
-    // Add to top of stack (visually bottom in column-reverse)
-    stackContainer.appendChild(block);
+        if (isHidden) {
+            block.style.opacity = '0';
+        }
+
+        stackContainer.appendChild(block);
+    }
     STATE.stack.push({
         ...blockData,
         element: block
@@ -2801,6 +3025,11 @@ function consumeStackBlocks(count, options = {}) {
 
 function flyBlockToStack(startX, startY, blockData) {
     return new Promise((resolve) => {
+        if (!gameContainer || !stackContainer) {
+            addBlockToStack(blockData, false);
+            resolve();
+            return;
+        }
         const flyEl = document.createElement('div');
         flyEl.className = 'block';
         flyEl.style.margin = '0';
@@ -2906,6 +3135,7 @@ function flyVisualBlockToStack(startX, startY, blockData) {
 }
 
 function updateSway() {
+    if (!stackContainer) return;
     // Remove old classes
     stackContainer.classList.remove('sway-low', 'sway-medium', 'sway-high', 'sway-extreme');
 
@@ -2940,7 +3170,7 @@ function updateBombDisplay() {
 }
 
 function ensureStackProgressBar() {
-    const steps = Math.max(1, Math.floor(Number(CONFIG.bonusTriggerProgressTarget) || 30));
+    const steps = getCustomerSatisfactionTarget();
     document.documentElement.style.setProperty('--stack-progress-steps', String(steps));
 
     if (!multiplierFill || !stackProgressRuler) {
@@ -2982,7 +3212,7 @@ function ensureStackProgressBar() {
 function updateStackProgressBar() {
     ensureStackProgressBar();
 
-    const steps = Math.max(1, Math.floor(Number(CONFIG.bonusTriggerProgressTarget) || 30));
+    const steps = getCustomerSatisfactionTarget();
     const current = Math.max(0, Math.floor(Number(STATE.stackHeight) || 0));
     const clamped = Math.min(current, steps);
 
@@ -2993,6 +3223,16 @@ function updateStackProgressBar() {
 
     if (multiplierBubble) {
         multiplierBubble.textContent = `${clamped}/${steps}`;
+    }
+
+    if (customerHeartRows.length > 0) {
+        customerHeartRows.forEach((row, index) => {
+            row.classList.toggle('active', (customerHeartRows.length - index) <= clamped);
+        });
+        if (clamped > lastRenderedSatisfactionValue) {
+            pulseCustomerHeartRange(lastRenderedSatisfactionValue + 1, clamped);
+        }
+        lastRenderedSatisfactionValue = clamped;
     }
 }
 
@@ -3006,6 +3246,7 @@ function resetStackProgressState() {
     }
     maybeAutoScrollTowerViewport({ force: true, smooth: false });
     updateSway();
+    lastRenderedSatisfactionValue = 0;
     updateStackProgressBar();
 }
 
@@ -3312,32 +3553,27 @@ async function resolveBombWheelOutcome(outcome, outcomeSegment, cell, index, ui)
     await waitMs(500);
     removeBombWheel();
 
-    const target = Math.max(1, Math.floor(Number(CONFIG.bonusTriggerProgressTarget) || 30));
+    const target = getCustomerSatisfactionTarget();
     let floatingMessage = 'No reward';
 
     if (outcome.id === 'add3Blocks') {
-        // 濂栧姳1锛氱粰3涓彔鍙犱箰绉湪
         grantStackBlocks(3);
-        floatingMessage = 'Stack +3';
+        floatingMessage = '满意度 +3';
     } else if (outcome.id === 'add8Blocks') {
-        // 濂栧姳2锛氱粰8涓彔鍙犱箰绉湪
         grantStackBlocks(8);
-        floatingMessage = 'Stack +8';
+        floatingMessage = '满意度 +8';
     } else if (outcome.id === 'fillToMaxProgress') {
-        // 濂栧姳3锛氳繘搴︾洿鎺ユ媺婊″埌 bonusTriggerProgressTarget
         const need = Math.max(0, target - STATE.stackHeight);
         if (need > 0) {
             grantStackBlocks(need);
-            floatingMessage = `杩涘害鎷夋弧 (+${need})`;
+            floatingMessage = `满意拉满 (+${need})`;
         } else {
-            floatingMessage = 'Progress maxed';
+            floatingMessage = '满意度已满';
         }
     } else if (outcome.id === 'giveBonusSymbol') {
-        // 濂栧姳4锛氱粰1涓?BONUS 绗﹀彿
         grantBonusSymbolBlock();
-        floatingMessage = 'BONUS gained';
+        floatingMessage = 'BONUS +1';
     } else {
-        // reward 5: nothing
         floatingMessage = 'No reward';
     }
 
@@ -3512,7 +3748,7 @@ function getBonusTriggerCounts() {
 
 function shouldTriggerBonusGameNow() {
     if (STATE.hasTriggeredBonusGame || STATE.isBonusGameActive || STATE.bonusGamePendingStart || STATE.isGameOver || FREE_SPIN_STATE.pendingStart) return false;
-    const target = Math.max(1, Math.floor(Number(CONFIG.bonusTriggerProgressTarget) || 30));
+    const target = getCustomerSatisfactionTarget();
     return STATE.stackHeight >= target;
 }
 
@@ -3554,7 +3790,7 @@ function handleBonusGameFinished(result = {}) {
     if (bonusReward > 0) {
         STATE.bonusDiamondReward += bonusReward;
     }
-    const bonusProgressCost = Math.max(0, Math.floor(Number(CONFIG.bonusTriggerProgressTarget) || 0));
+    const bonusProgressCost = getCustomerSatisfactionTarget();
     if (bonusProgressCost > 0) {
         consumeStackBlocks(bonusProgressCost, { finalize: true });
     }
@@ -3850,6 +4086,9 @@ async function settleFreeSpinRewardsForCurrentBoard() {
                 indexes: bestCluster.indexes.slice(),
                 minIndex: bestCluster.minIndex,
                 stackBlocks: getSettlementStackBlockCount(settleSize),
+                satisfactionGain: 0,
+                satisfiesCustomer: false,
+                customerPreferenceKey: null,
                 multiplier: getClusterMultiplier(settleSize),
                 jackpot: settleSize >= CONFIG.clusterPayout.jackpotThreshold
             });
@@ -3930,9 +4169,17 @@ function handleFreeSpinCellClick(itemId) {
             }
 
             await settleFreeSpinRewardsForCurrentBoard();
-
-            if (getUnrevealedFreeSpinItems().length === 0) {
+            const shouldFinishBoard = getUnrevealedFreeSpinItems().length === 0;
+            if (shouldFinishBoard) {
                 finishCurrentFreeSpinBoard();
+            }
+            const bonusTriggered = await maybeTriggerBonusGame();
+            if (bonusTriggered) {
+                resolve();
+                return;
+            }
+
+            if (shouldFinishBoard) {
                 resolve();
                 return;
             }
@@ -4133,7 +4380,7 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
         : ((event) => `+${event.reward}`);
 
     for (let index = 0; index < events.length; index++) {
-        const event = events[index];
+        const event = decorateSettlementEventWithCustomerOutcome(events[index]);
         const highlightedIndexes = highlightRealtimeSettlementEvent(event, cells);
 
         if (event.size >= 5) {
@@ -4166,7 +4413,7 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
                 rewardTextFormatter(event)
             );
 
-            const blockCount = getSettlementStackBlockCountByClusterSize(event.size);
+            const blockCount = Math.max(0, Math.floor(Number(event.satisfactionGain) || 0));
             if (blockCount > 0) {
                 const flyTasks = [];
                 for (let stackIndex = 0; stackIndex < blockCount; stackIndex++) {
@@ -4184,6 +4431,10 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
                     })());
                 }
                 await Promise.all(flyTasks);
+            }
+
+            if (event.satisfiesCustomer) {
+                await handleSatisfiedCustomer(event, clusterCenter);
             }
         }
 
@@ -4227,6 +4478,9 @@ async function settleRealtimeRewardsForCurrentBoard(centerX, centerY) {
                 indexes: bestCluster.indexes.slice(),
                 minIndex: bestCluster.minIndex,
                 stackBlocks: getSettlementStackBlockCount(settleSize),
+                satisfactionGain: 0,
+                satisfiesCustomer: false,
+                customerPreferenceKey: null,
                 multiplier: getClusterMultiplier(settleSize),
                 jackpot: settleSize >= CONFIG.clusterPayout.jackpotThreshold
             };
@@ -4373,6 +4627,8 @@ function enterSlotGameView() {
     }
     SLOT_GAME_RUNTIME.viewActive = true;
     updateSlotEconomyHud();
+    ensureCurrentCustomer();
+    renderCurrentCustomer();
     updatePrimaryActionButtonState();
     updateTowerViewportScrollState();
     maybeAutoScrollTowerViewport({ force: STACK_VIEWPORT_STATE.autoFollow, smooth: false });
@@ -4489,6 +4745,9 @@ function getSlotGameSnapshot() {
         roundReward: Math.max(0, Math.floor(Number(STATE.roundReward) || 0)),
         bonusDiamondReward: Math.max(0, Math.floor(Number(STATE.bonusDiamondReward) || 0)),
         stackHeight: Math.max(0, Math.floor(Number(STATE.stackHeight) || 0)),
+        satisfaction: Math.max(0, Math.floor(Number(STATE.stackHeight) || 0)),
+        satisfactionTarget: getCustomerSatisfactionTarget(),
+        currentCustomerPreferenceKey: getCurrentCustomerPreferenceKey(),
         currentMultiplier: Number(STATE.currentMultiplier || CONFIG.baseMultiplier || 1)
     };
 }

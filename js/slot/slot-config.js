@@ -60,7 +60,16 @@ const DEFAULT_CONFIG = {
     multiplierStep: 0.2,
     baseBet: 100,
     maxStackForFullProgress: 15,
-    bonusTriggerProgressTarget: 18,
+    bonusTriggerProgressTarget: 8,
+    customerSatisfactionTarget: 8,
+    customerPortraits: [
+        './Texture/story/立绘/游客-1.png',
+        './Texture/story/立绘/游客-2.png',
+        './Texture/story/立绘/游客-3.png',
+        './Texture/story/立绘/游客-4.png'
+    ],
+    customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5'],
+    customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5'],
     // 黏性百搭出现后，仅下一轮继续在同位置出现（共额外1轮）
     stickyWildExtraRounds: 1,
     stackHorizontalOffsetRange: {
@@ -236,6 +245,19 @@ const CONFIG = {
         ...(externalGameConfig.destructionSpeeds || {})
     }
 };
+
+const resolveSatisfactionTarget = () => {
+    const toNumber = (value) => Number.isFinite(Number(value)) ? Number(Number(value)) : NaN;
+    const custom = toNumber(CONFIG.customerSatisfactionTarget);
+    const legacy = toNumber(CONFIG.bonusTriggerProgressTarget);
+    const fallback = toNumber(DEFAULT_CONFIG.customerSatisfactionTarget);
+    const candidate = Number.isFinite(custom) ? custom : (Number.isFinite(legacy) ? legacy : fallback);
+    return Math.max(1, Math.floor(Number.isFinite(candidate) ? candidate : DEFAULT_CONFIG.customerSatisfactionTarget));
+};
+
+const resolvedSatisfactionTarget = resolveSatisfactionTarget();
+CONFIG.customerSatisfactionTarget = resolvedSatisfactionTarget;
+CONFIG.bonusTriggerProgressTarget = resolvedSatisfactionTarget;
 
 // --------------- Config Sanitization ---------------
 CONFIG.gridSize = Math.max(1, Math.floor(Number(CONFIG.gridSize) || DEFAULT_CONFIG.gridSize));
@@ -546,9 +568,9 @@ const CELL_BOMB = 1;
 
 // --------------- Monkey Wheel Data ---------------
 const BOMB_WHEEL_OPTIONS = [
-    { id: 'add3Blocks',        shortLabel: '+3',    resultText: 'Reward: +3 stack blocks' },
-    { id: 'add8Blocks',        shortLabel: '+8',    resultText: 'Reward: +8 stack blocks' },
-    { id: 'fillToMaxProgress', shortLabel: 'MAX',   resultText: 'Reward: fill stack progress to max' },
+    { id: 'add3Blocks',        shortLabel: '+3',    resultText: 'Reward: +3 satisfaction' },
+    { id: 'add8Blocks',        shortLabel: '+8',    resultText: 'Reward: +8 satisfaction' },
+    { id: 'fillToMaxProgress', shortLabel: 'MAX',   resultText: 'Reward: fill satisfaction to max' },
     { id: 'giveBonusSymbol',   shortLabel: 'BONUS', resultText: 'Reward: gain 1 BONUS symbol' },
     { id: 'giveNothing',       shortLabel: '0',     resultText: 'Reward: no bonus' }
 ];

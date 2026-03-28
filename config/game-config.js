@@ -54,7 +54,16 @@ window.APP_CONFIG = {
         multiplierStep: 0.2,
         baseBet: 100,
         maxStackForFullProgress: 15,
-        bonusTriggerProgressTarget: 30,
+        bonusTriggerProgressTarget: 8,
+        customerSatisfactionTarget: 8,
+        customerPortraits: [
+            './Texture/story/立绘/游客-1.png',
+            './Texture/story/立绘/游客-2.png',
+            './Texture/story/立绘/游客-3.png',
+            './Texture/story/立绘/游客-4.png'
+        ],
+        customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5'],
+        customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5'],
         // 黏性百搭“额外停留”轮数：出现后仅下一轮继续在同坐标出现
         stickyWildExtraRounds: 1,
         stackHorizontalOffsetRange: {

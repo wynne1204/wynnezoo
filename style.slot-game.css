@@ -188,6 +188,186 @@
     z-index: 40;
 }
 
+/* Customer Layout */
+.main-stage.customer-stage {
+    position: static;
+    display: block;
+    padding: 0;
+    overflow: visible;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.customer-satisfaction {
+    position: absolute;
+    left: 4.35%;
+    top: calc(6.6% - 20px);
+    width: 5.04%;
+    height: 33.6%;
+    min-height: 0;
+    background: linear-gradient(180deg, #fdf2f2, #f9d7d9);
+    border-radius: 999px;
+    box-shadow: 0 10px 22px rgba(163, 111, 95, 0.16);
+    padding: 1.1% 0.25% 0.7%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    color: #914e3c;
+    gap: 0;
+    z-index: 220;
+    pointer-events: none;
+    overflow: visible;
+}
+
+.customer-satisfaction-label {
+    position: absolute;
+    left: 50%;
+    bottom: -24px;
+    font-weight: 700;
+    writing-mode: horizontal-tb;
+    white-space: nowrap;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    transform: translateX(-50%);
+    margin: 0;
+    color: #ffffff;
+    -webkit-text-stroke: 2px #864D26;
+    paint-order: stroke fill;
+    text-shadow:
+        0 0 0 #864D26,
+        1px 0 0 #864D26,
+        -1px 0 0 #864D26,
+        0 1px 0 #864D26,
+        0 -1px 0 #864D26,
+        1px 1px 0 #864D26,
+        -1px 1px 0 #864D26,
+        1px -1px 0 #864D26,
+        -1px -1px 0 #864D26;
+}
+
+.heart-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    flex: 1 1 auto;
+    align-items: center;
+}
+
+.heart-icon {
+    width: 1.7vw;
+    min-width: 19px;
+    max-width: 28px;
+    height: 1.7vw;
+    min-height: 19px;
+    max-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    filter: drop-shadow(0 3px 8px rgba(145, 78, 60, 0.14));
+}
+
+.heart-icon svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    fill: #f5b1b1;
+    transition: fill 0.3s ease;
+}
+
+.heart-row.active .heart-icon {
+    animation: heartPulse 1s ease infinite;
+}
+
+.heart-row.active .heart-icon svg {
+    fill: #ff6b84;
+}
+
+.customer-panel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 13;
+}
+
+.customer-portrait {
+    position: absolute;
+    left: 13.42%;
+    top: 6.79%;
+    width: 73.16%;
+    height: 73.42%;
+    overflow: visible;
+    box-shadow: none;
+    background: transparent;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.customer-portrait img {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    object-position: center bottom;
+    filter: drop-shadow(0 10px 18px rgba(80, 38, 14, 0.12));
+}
+
+.customer-bubble {
+    position: absolute;
+    left: 52.39%;
+    top: 7.58%;
+    width: 42.05%;
+    height: 14.65%;
+    z-index: 14;
+    background-image: url('./Texture/UI/NewSlot/bubble_bg.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+.customer-bubble .bubble-bg {
+    display: none;
+}
+
+.bubble-content {
+    position: absolute;
+    top: 52%;
+    left: 57%;
+    transform: translate(-50%, -50%);
+    width: 39.23%;
+    height: 52.02%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.bubble-content img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: translate(-10px, -10px);
+}
+
+@keyframes heartPulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
 /* Stack Progress Sidebar */
 .multiplier-sidebar {
     width: 66px;
@@ -998,6 +1178,10 @@
 .game-container.slot-entering .main-stage {
     animation: slotEnter-stageFade 550ms ease-out both;
     animation-delay: 200ms;
+}
+
+.game-container.slot-entering .main-stage.customer-stage {
+    animation: none;
 }
 
 .game-container.slot-entering .shelf-container {

@@ -233,21 +233,30 @@
                     </div>
                 </div>
 
-                <div class="main-stage">
-                    <div class="multiplier-sidebar" aria-label="Stack Progress">
-                        <div class="stack-progress-ruler" id="stack-progress-ruler"></div>
-                        <div class="multiplier-track">
-                            <div class="multiplier-fill" id="multiplier-fill"></div>
-                        </div>
-                        <div class="current-multiplier-bubble" id="multiplier-bubble">0/30</div>
-                    </div>
+                <aside class="customer-satisfaction" id="customer-satisfaction" aria-label="顾客满意度">
+                    <div class="customer-satisfaction-label">满意度</div>
+                    <div class="heart-row" data-heart-index="1"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="2"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="3"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="4"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="5"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="6"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="7"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                    <div class="heart-row" data-heart-index="8"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
+                </aside>
 
-                    <div class="tower-section">
-                        <div class="tower-viewport" id="tower-viewport">
-                            <div id="stack-container" class="stack-container"></div>
+                <div class="main-stage customer-stage">
+                    <section class="customer-panel" id="customer-panel">
+                        <div class="customer-portrait">
+                            <img src="./Texture/story/立绘/游客-1.png" alt="顾客立绘" id="customer-portrait">
                         </div>
-                        <div class="tower-base"></div>
-                    </div>
+                        <div class="customer-bubble" id="customer-preference-bubble">
+                            <img src="./Texture/UI/NewSlot/bubble_bg.png" alt="喜爱积木气泡" class="bubble-bg">
+                            <div class="bubble-content">
+                                <img src="./Texture/BlockImg/Block_1.png" alt="当前顾客喜欢的积木" id="customer-preference-block">
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div class="control-panel">
