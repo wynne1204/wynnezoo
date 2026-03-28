@@ -1002,7 +1002,14 @@
         }
 
         if (refs.mainTaskText) {
-            refs.mainTaskText.textContent = getMainTaskCopy(snapshot);
+            // Prefer quest system text when available; fall back to habitat-based copy
+            const questMod = globalScope.WynneRegistry
+                && typeof globalScope.WynneRegistry.get === 'function'
+                ? globalScope.WynneRegistry.get('WynneZooQuest')
+                : null;
+            refs.mainTaskText.textContent = questMod && typeof questMod.getActiveQuestText === 'function'
+                ? questMod.getActiveQuestText()
+                : getMainTaskCopy(snapshot);
         }
 
         if (refs.habitatResidentPill) {
@@ -1205,6 +1212,52 @@
 
         if (refs.mainTaskButton) {
             refs.mainTaskButton.addEventListener('click', () => {
+                // Quest system navigation: use quest nav target if available
+                const questModule = globalScope.WynneRegistry
+                    && typeof globalScope.WynneRegistry.get === 'function'
+                    ? globalScope.WynneRegistry.get('WynneZooQuest')
+                    : null;
+
+                if (questModule && typeof questModule.getActiveQuestNavTarget === 'function') {
+                    const navTarget = questModule.getActiveQuestNavTarget();
+                    if (navTarget) {
+                        const appShell = globalScope.WynneZooAppShell;
+                        if (navTarget === 'story') {
+                            if (appShell && typeof appShell.showStory === 'function') {
+                                closePanel();
+                                closeStoryPreviewPanel();
+                                appShell.showStory();
+                            } else {
+                                renderStoryPreviewList();
+                                if (localState.storyEntryCount > 0) {
+                                    closePanel();
+                                    setStoryPreviewOpen(true);
+                                } else {
+                                    showToast('当前还没有可用的剧情章节。', 'warn');
+                                }
+                            }
+                            return;
+                        }
+                        if (navTarget === 'slot') {
+                            if (appShell && typeof appShell.showSlotGame === 'function') {
+                                closePanel();
+                                closeStoryPreviewPanel();
+                                appShell.showSlotGame();
+                            } else {
+                                showToast('盲盒挑战暂不可用。', 'warn');
+                            }
+                            return;
+                        }
+                        if (navTarget === 'habitat-panel') {
+                            if (!openPanelForTab('status')) {
+                                showToast('当前没有可查看的栏舍信息。', 'warn');
+                            }
+                            return;
+                        }
+                    }
+                }
+
+                // Fallback: original behavior when quest system is unavailable
                 const snapshot = economy && typeof economy.getSnapshot === 'function'
                     ? economy.getSnapshot()
                     : null;
@@ -1274,6 +1327,28 @@
             });
         } else {
             render();
+        }
+
+        // Quest system integration: initialize button text and subscribe to changes
+        const questModule = globalScope.WynneRegistry
+            && typeof globalScope.WynneRegistry.get === 'function'
+            ? globalScope.WynneRegistry.get('WynneZooQuest')
+            : null;
+
+        if (questModule) {
+            // Initialize button text from quest system
+            if (refs.mainTaskText && typeof questModule.getActiveQuestText === 'function') {
+                refs.mainTaskText.textContent = questModule.getActiveQuestText();
+            }
+
+            // Subscribe to quest state changes to update button text in real-time
+            if (typeof questModule.subscribe === 'function') {
+                questModule.subscribe(function () {
+                    if (refs.mainTaskText && typeof questModule.getActiveQuestText === 'function') {
+                        refs.mainTaskText.textContent = questModule.getActiveQuestText();
+                    }
+                });
+            }
         }
 
         refs.initialized = true;
