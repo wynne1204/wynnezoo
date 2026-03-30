@@ -1,0 +1,16 @@
+.git/**
+.github/**
+.agents/**
+.claude/**
+.kiro/**
+.vscode/**
+tools/**
+Doc/**
+*.cmd
+*.xlsx
+*.py
+progress.md
+PERFORMANCE_PARTITION.md
+README.md
+skills-lock.json
+__head_index.html
