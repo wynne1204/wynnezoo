@@ -28,5 +28,10 @@ jobs:
       - name: Login CloudBase CLI
         run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
 
+      - name: Clean up non-deployable files
+        run: |
+          rm -rf .git .github .agents .claude .kiro .vscode tools Doc
+          rm -f *.cmd *.xlsx *.py progress.md PERFORMANCE_PARTITION.md README.md skills-lock.json __head_index.html .cloudbaseignore
+
       - name: Deploy root static files to hosting
         run: tcb hosting deploy ./ / -e ${{ secrets.TCB_ENV_ID }}
