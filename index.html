@@ -4,9 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wynne's ZOO</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="effects.css">
-    <link rel="stylesheet" href="style.story.css">
+    <script>
+    (function(globalScope){
+        var parsedLastModified = Date.parse(document.lastModified || '');
+        var assetVersion = Number.isFinite(parsedLastModified) && parsedLastModified > 0
+            ? String(parsedLastModified)
+            : String(Date.now());
+
+        function isLocalAsset(src) {
+            return !!src && !/^(?:[a-z]+:)?\/\//i.test(src) && !/^(?:data|blob):/i.test(src);
+        }
+
+        function withAssetVersion(src) {
+            var normalized = String(src || '').trim();
+            if (!normalized || !isLocalAsset(normalized) || /(?:^|[?&])v=/.test(normalized)) {
+                return normalized;
+            }
+
+            var separator = normalized.indexOf('?') >= 0 ? '&' : '?';
+            return normalized + separator + 'v=' + encodeURIComponent(assetVersion);
+        }
+
+        function writeStylesheet(href) {
+            document.write('<link rel="stylesheet" href="' + withAssetVersion(href) + '">');
+        }
+
+        globalScope.__ASSET_VERSION__ = assetVersion;
+        globalScope.__withAssetVersion__ = withAssetVersion;
+        globalScope.__writeVersionedScript__ = function(src) {
+            document.write('<script src="' + withAssetVersion(src) + '"><' + '/script>');
+        };
+
+        writeStylesheet('style.base.css');
+        writeStylesheet('style.zoo-home.css');
+        writeStylesheet('style.slot-game.css');
+        writeStylesheet('style.bonus-game.css');
+        writeStylesheet('style.story.css');
+        writeStylesheet('style.collection.css');
+        writeStylesheet('effects.css');
+    })(window);
+    </script>
     <script>
     // Early WebP detection + automatic .png -> .webp swap for <img> tags
     (function(){
@@ -607,12 +644,17 @@
     <script>
     // Swap all <img src="...png"> to .webp if browser supports it
     (function(){
+        var withAssetVersion = window.__withAssetVersion__ || function(src){ return src; };
         function swap(img){
             var s=img.getAttribute('src');
-            if(s&&/\.png(?:$|\?)/i.test(s)){img.setAttribute('src',s.replace(/\.png(?=$|\?)/i,'.webp'))}
+            if(!s){return}
+            var nextSrc=s;
+            if(window.__webp===true&&/\.png(?:$|\?)/i.test(nextSrc)){nextSrc=nextSrc.replace(/\.png(?=$|\?)/i,'.webp')}
+            nextSrc=withAssetVersion(nextSrc);
+            if(nextSrc!==s){img.setAttribute('src',nextSrc)}
         }
         function swapAll(){
-            document.querySelectorAll('img[src$=".png"]').forEach(swap);
+            document.querySelectorAll('img[src]').forEach(swap);
         }
         function startObserver(){
             if(typeof MutationObserver==='function'){
@@ -622,7 +664,7 @@
                             m.addedNodes.forEach(function(n){
                                 if(n.nodeType===1){
                                     if(n.tagName==='IMG')swap(n);
-                                    else if(n.querySelectorAll){n.querySelectorAll('img[src$=".png"]').forEach(swap)}
+                                    else if(n.querySelectorAll){n.querySelectorAll('img[src]').forEach(swap)}
                                 }
                             });
                         } else if(m.type==='attributes'&&m.target.tagName==='IMG'){
@@ -641,26 +683,30 @@
         setTimeout(function(){clearInterval(check)},500);
     })();
     </script>
-    <script src="js/module-registry.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="config/game-config.js"></script>
-    <script src="js/slot/slot-config.js"></script>
-    <script src="js/zoo/zoo-balance.js"></script>
-    <script src="js/zoo/zoo-economy.js"></script>
-    <script src="js/zoo/zoo-quest.js"></script>
-    <script src="script.js"></script>
-    <script src="js/story/story-schema.js"></script>
     <script>
-        (function loadGeneratedStoryData() {
-            document.write('<script src="js/story/story-generated-data.js?v=' + Date.now() + '"><\\/script>');
+        (function loadVersionedScripts() {
+            var writeScript = window.__writeVersionedScript__ || function(src) {
+                document.write('<script src="' + src + '"><\\/script>');
+            };
+
+            writeScript('js/module-registry.js');
+            writeScript('js/utils.js');
+            writeScript('config/game-config.js');
+            writeScript('js/slot/slot-config.js');
+            writeScript('js/zoo/zoo-balance.js');
+            writeScript('js/zoo/zoo-economy.js');
+            writeScript('js/zoo/zoo-quest.js');
+            writeScript('script.js');
+            writeScript('js/story/story-schema.js');
+            writeScript('js/story/story-generated-data.js');
+            writeScript('js/story/story-data.js');
+            writeScript('js/story/story-player.js');
+            writeScript('js/zoo/zoo-home.js');
+            writeScript('js/zoo/zoo-collection.js');
+            writeScript('js/zoo/system-unlock.js');
+            writeScript('js/app-shell.js');
+            writeScript('js/zoo/zoo-login.js');
         }());
     </script>
-    <script src="js/story/story-data.js"></script>
-    <script src="js/story/story-player.js"></script>
-    <script src="js/zoo/zoo-home.js"></script>
-    <script src="js/zoo/zoo-collection.js"></script>
-    <script src="js/zoo/system-unlock.js"></script>
-    <script src="js/app-shell.js"></script>
-    <script src="js/zoo/zoo-login.js"></script>
 </body>
 </html>

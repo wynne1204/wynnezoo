@@ -4,3 +4,7 @@ Original prompt: 有一个问题你帮我看看，我在我这个电脑的浏览
 - 2026-03-26: 准备先用最小修复统一根字号与文本缩放策略，避免浏览器默认字号/自动文本放大影响剧情与剧情入口弹层。
 - 2026-03-26: 已在 `style.base.css` 增加 `html { font-size: 16px; text-size-adjust: none; -webkit-text-size-adjust: none; }`。
 - 2026-03-26: 本地起了一个临时 `http.server` 做静态检查准备，但内置 Playwright 客户端脚本因当前环境缺少可直接解析的 `playwright` 包而无法按技能要求跑通；这次先保留为代码级修复，建议在两台电脑上各自强刷后做实机对比。
+
+- 2026-03-30: Added cache-busting in `index.html` for static hosting refreshes, then traced a regression where dynamic script injection rendered a literal `<\/script>` and swallowed the rest of the boot scripts.
+- 2026-03-30: Reproduced locally with `http.server` and Playwright. During the broken state, `window.WynneZooAppShell`, `window.WynneStoryPlayer`, and `window.WynneZooEconomy` were all missing, which is why entering a user ID could not proceed into the game.
+- 2026-03-30: Fixed the injected script closing tag to `'<script ...><' + '/script>'` and removed the duplicate `style.story.css` include. Retest showed the core globals recovered and the app could auto-enter the post-login flow again.
