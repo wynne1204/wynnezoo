@@ -28,10 +28,43 @@ jobs:
       - name: Login CloudBase CLI
         run: tcb login --apiKeyId ${{ secrets.TCB_SECRET_ID }} --apiKey ${{ secrets.TCB_SECRET_KEY }}
 
-      - name: Clean up non-deployable files
+      - name: Prepare deploy directory
         run: |
-          rm -rf .git .github .agents .claude .kiro .vscode tools Doc
-          rm -f *.cmd *.xlsx *.py progress.md PERFORMANCE_PARTITION.md README.md skills-lock.json __head_index.html .cloudbaseignore
+          rm -rf .deploy-static
+          mkdir -p .deploy-static
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.agents/' \
+            --exclude '.claude/' \
+            --exclude '.kiro/' \
+            --exclude '.vscode/' \
+            --exclude 'tools/' \
+            --exclude 'Doc/' \
+            --exclude '*.cmd' \
+            --exclude '*.xlsx' \
+            --exclude '*.py' \
+            --exclude 'progress.md' \
+            --exclude 'PERFORMANCE_PARTITION.md' \
+            --exclude 'README.md' \
+            --exclude 'skills-lock.json' \
+            --exclude '__head_index.html' \
+            --exclude '.cloudbaseignore' \
+            ./ .deploy-static/
 
       - name: Deploy root static files to hosting
-        run: tcb hosting deploy ./ / -e ${{ secrets.TCB_ENV_ID }}
+        env:
+          COS_SDK_KEEPALIVE: "false"
+        run: |
+          for attempt in 1 2 3; do
+            if tcb hosting deploy ./.deploy-static/ / -e ${{ secrets.TCB_ENV_ID }}; then
+              exit 0
+            fi
+
+            if [ "$attempt" -eq 3 ]; then
+              exit 1
+            fi
+
+            echo "Deploy failed on attempt $attempt, retrying in 15 seconds..."
+            sleep 15
+          done
