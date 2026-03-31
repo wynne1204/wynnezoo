@@ -1,6 +1,6 @@
 # Figma 导入 UI 必读
 
-> 适用于本项目（Wynne's ZOO）的 Web 前端 Figma → CSS 落地规范。
+> 适用于本项目（今天也要开园呀）的 Web 前端 Figma → CSS 落地规范。
 > 设计稿基准宽度 **1170px**，运行时通过 `container-type: inline-size` + `cqw` 单位做响应式适配。
 
 ---

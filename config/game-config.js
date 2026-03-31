@@ -1,4 +1,4 @@
-// CasinoStack 运行时配置
+// 今天也要开园呀 — 运行时配置
 window.APP_CONFIG = {
     game: {
         gridSize: 16,
