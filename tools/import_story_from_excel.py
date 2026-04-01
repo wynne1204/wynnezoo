@@ -271,8 +271,12 @@ def get_dual_dialogue_actor_labels(extra_text: str) -> list[str]:
     return [normalize_text(part) for part in split_extra_parts(extra_text)[:2] if normalize_text(part)]
 
 
-def derive_background_mode(extra_text: str) -> str:
+def derive_background_mode(extra_text: str, scene_name: str = '') -> str:
     extra = normalize_text(extra_text)
+    normalized_scene_name = normalize_text(scene_name).replace(' ', '').strip().lower()
+    if normalized_scene_name in BACKGROUND_MAIN_VALUES:
+        return 'zoo-home'
+
     if not extra:
         return 'story'
 
@@ -475,10 +479,10 @@ def get_configured_camera_effect(supplement_type: int, extra_text: str) -> str:
     return ''
 
 
-def get_configured_background_mode(supplement_type: int, extra_text: str) -> str:
+def get_configured_background_mode(supplement_type: int, extra_text: str, scene_name: str = '') -> str:
     if supplement_type == SUPPLEMENT_TYPE_ZOO_HOME:
         return 'zoo-home'
-    return derive_background_mode(extra_text)
+    return derive_background_mode(extra_text, scene_name)
 
 
 def derive_title(index_value: str, speaker_label: str, text: str, scene_name: str) -> str:
@@ -569,12 +573,6 @@ def convert_sheet(sheet) -> tuple[dict[str, Any] | None, list[str]]:
         if not any([speaker_label, text, scene_name, extra, supplement_type]):
             continue
 
-        background_src = build_background_src(sheet.title, scene_name) if scene_name else ''
-        if background_src:
-            background_path = STORY_ASSET_ROOT / sheet.title / f'{scene_name}.png'
-            if not background_path.exists():
-                warnings.add(f'Missing background asset: {background_path}')
-
         presentation = 'illustration' if scene_name and is_cg_scene(scene_name) else 'standard'
         effect_class = (
             get_configured_effect_class(supplement_type, extra)
@@ -586,7 +584,12 @@ def convert_sheet(sheet) -> tuple[dict[str, Any] | None, list[str]]:
             if supplement_type > 0
             else derive_camera_effect(extra)
         )
-        background_mode = get_configured_background_mode(supplement_type, extra)
+        background_mode = get_configured_background_mode(supplement_type, extra, scene_name)
+        background_src = '' if background_mode == 'zoo-home' else (build_background_src(sheet.title, scene_name) if scene_name else '')
+        if background_src:
+            background_path = STORY_ASSET_ROOT / sheet.title / f'{scene_name}.png'
+            if not background_path.exists():
+                warnings.add(f'Missing background asset: {background_path}')
         item_reward = get_item_reward(sheet.title, extra, warnings) if supplement_type == SUPPLEMENT_TYPE_ITEM_REWARD else None
         interaction = get_cleaning_interaction(sheet.title, background_src, extra, warnings) if supplement_type == SUPPLEMENT_TYPE_INTERACTION else None
         collection_unlock = get_collection_unlock(extra) if supplement_type == SUPPLEMENT_TYPE_COLLECTION else None

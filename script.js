@@ -3700,8 +3700,7 @@ function getClusterMultiplier(size) {
     const safeSize = Math.max(0, Math.floor(Number(size) || 0));
     if (safeSize < payout.minClusterSize) return 0;
     if (safeSize >= payout.jackpotThreshold) return payout.jackpotMultiplier;
-    const lookupSize = safeSize >= 8 ? 8 : safeSize;
-    const mapped = Number(payout.multipliers[lookupSize]);
+    const mapped = Number(payout.multipliers[safeSize]);
     return Number.isFinite(mapped) ? Math.max(0, mapped) : 0;
 }
 
@@ -3715,9 +3714,6 @@ function getClusterReward(symbolKey, size) {
     }
     if (safeSize >= 10) {
         return payoutTable[10] || 0;
-    }
-    if (safeSize >= 8) {
-        return payoutTable[8] || 0;
     }
     return payoutTable[safeSize] || 0;
 }

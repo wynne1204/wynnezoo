@@ -10,13 +10,20 @@
 
     const STARTER_PLAY_TICKETS = 3;
 
-    const HABITAT_TIER_ORDER = ['standard', 'improved', 'deluxe'];
+    const HABITAT_TIER_ORDER = ['tier-1', 'tier-2', 'tier-3', 'tier-4', 'tier-5', 'tier-6'];
+
+    const LEGACY_TIER_ID_MAP = {
+        standard: 'tier-1',
+        improved: 'tier-3',
+        deluxe: 'tier-6'
+    };
 
     const HABITAT_TIERS = {
-        standard: {
-            id: 'standard',
-            label: '普通栏舍',
-            shortLabel: '普通',
+        'tier-1': {
+            id: 'tier-1',
+            level: 1,
+            label: '1级栏舍',
+            shortLabel: 'Lv.1',
             diamondCost: 0,
             capacity: 2,
             environment: 60,
@@ -24,27 +31,65 @@
             ticketIntervalSec: 180,
             ticketCap: 3
         },
-        improved: {
-            id: 'improved',
-            label: '中级栏舍',
-            shortLabel: '中级',
+        'tier-2': {
+            id: 'tier-2',
+            level: 2,
+            label: '2级栏舍',
+            shortLabel: 'Lv.2',
+            diamondCost: 40,
+            capacity: 3,
+            environment: 68,
+            moodBonus: 4,
+            ticketIntervalSec: 155,
+            ticketCap: 4
+        },
+        'tier-3': {
+            id: 'tier-3',
+            level: 3,
+            label: '3级栏舍',
+            shortLabel: 'Lv.3',
             diamondCost: 80,
             capacity: 4,
-            environment: 78,
+            environment: 76,
             moodBonus: 8,
-            ticketIntervalSec: 125,
+            ticketIntervalSec: 130,
             ticketCap: 5
         },
-        deluxe: {
-            id: 'deluxe',
-            label: '高级栏舍',
-            shortLabel: '高级',
+        'tier-4': {
+            id: 'tier-4',
+            level: 4,
+            label: '4级栏舍',
+            shortLabel: 'Lv.4',
+            diamondCost: 140,
+            capacity: 5,
+            environment: 84,
+            moodBonus: 12,
+            ticketIntervalSec: 110,
+            ticketCap: 6
+        },
+        'tier-5': {
+            id: 'tier-5',
+            level: 5,
+            label: '5级栏舍',
+            shortLabel: 'Lv.5',
             diamondCost: 220,
             capacity: 6,
-            environment: 92,
-            moodBonus: 18,
-            ticketIntervalSec: 85,
-            ticketCap: 8
+            environment: 90,
+            moodBonus: 16,
+            ticketIntervalSec: 95,
+            ticketCap: 7
+        },
+        'tier-6': {
+            id: 'tier-6',
+            level: 6,
+            label: '6级栏舍',
+            shortLabel: 'Lv.6',
+            diamondCost: 320,
+            capacity: 8,
+            environment: 98,
+            moodBonus: 22,
+            ticketIntervalSec: 80,
+            ticketCap: 9
         }
     };
 
@@ -57,22 +102,24 @@
             cardGlyph: '猫',
             cardSceneLabel: '小熊猫乐园',
             artTheme: 'red-panda',
-            sceneAsset: './Texture/ZOO/red-panda-habitat-standard.png',
+            sceneAsset: './Texture/ZOO/redpanda/habitat-level-1.webp',
             sceneAlt: '小熊猫栖息地主视觉',
             sceneBadge: 'Red Panda',
             appearanceTitle: '小熊猫栖息地',
             stageAssets: {
-                standardEmpty: './Texture/ZOO/小熊猫栖息地-普通-没有小熊猫.png',
-                standard: './Texture/ZOO/red-panda-habitat-standard.png',
-                improved: './Texture/ZOO/red-panda-habitat-improved.png',
-                deluxe: './Texture/ZOO/red-panda-habitat-deluxe.png',
-                christmas: './Texture/ZOO/red-panda-habitat-christmas.png'
+                level1: './Texture/ZOO/redpanda/habitat-level-1.webp',
+                level2: './Texture/ZOO/redpanda/habitat-level-2.webp',
+                level3: './Texture/ZOO/redpanda/habitat-level-3.webp',
+                level4: './Texture/ZOO/redpanda/habitat-level-4.webp',
+                level5: './Texture/ZOO/redpanda/habitat-level-5.webp',
+                level6: './Texture/ZOO/redpanda/habitat-level-6.webp'
             },
             unlockCostCoin: 0,
             defaultUnlocked: false,
-            unlockPendingStory: true,
-            unlockStoryLabel: '后续剧情',
-            defaultTierId: 'standard',
+            unlockPendingStory: false,
+            unlockStoryId: '第二章',
+            unlockStoryLabel: '第二章剧情',
+            defaultTierId: 'tier-1',
             hungerDecayPerSec: 0.017,
             thirstDecayPerSec: 0.021,
             baseMoodBonus: 6,
@@ -93,7 +140,7 @@
             stageAssets: {},
             unlockCostCoin: 1200,
             defaultUnlocked: false,
-            defaultTierId: 'standard',
+            defaultTierId: 'tier-1',
             hungerDecayPerSec: 0.015,
             thirstDecayPerSec: 0.017,
             baseMoodBonus: 4,
@@ -127,7 +174,8 @@
     }
 
     function getTierById(tierId) {
-        return HABITAT_TIERS[tierId] || HABITAT_TIERS.standard;
+        const normalizedTierId = LEGACY_TIER_ID_MAP[tierId] || tierId;
+        return HABITAT_TIERS[normalizedTierId] || HABITAT_TIERS['tier-1'];
     }
 
     function getTierIndex(tierId) {

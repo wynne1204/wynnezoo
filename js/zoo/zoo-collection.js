@@ -2,14 +2,15 @@
     'use strict';
 
     const PAGE_SIZE = 9;
-    const GUIDE_HAND_IMAGE_SRC = './Texture/UI/tutorial_hand.png';
-    const COLLECTION_CARD_BACKGROUND_SRC = './Texture/UI/Collection/figma_card_bg.png';
+    const GUIDE_HAND_IMAGE_SRC = './Texture/UI/tutorial_hand.webp';
+    const COLLECTION_CARD_BACKGROUND_SRC = './Texture/UI/Collection/figma_card_bg.webp';
     const COLLECTION_TAG_ASSET_BY_RARITY = Object.freeze({
-        '普通': './Texture/UI/Collection/普通标签.png',
-        '罕见': './Texture/UI/Collection/罕见标签.png',
-        '近危': './Texture/UI/Collection/近危标签.png',
-        '濒危': './Texture/UI/Collection/濒危标签.png',
-        '野外灭绝': './Texture/UI/Collection/野外灭绝标签.png'
+        '普通': './Texture/UI/Collection/普通标签.webp',
+        '罕见': './Texture/UI/Collection/罕见标签.webp',
+        '易危': './Texture/UI/Collection/近危标签.webp',
+        '近危': './Texture/UI/Collection/近危标签.webp',
+        '濒危': './Texture/UI/Collection/濒危标签.webp',
+        '野外灭绝': './Texture/UI/Collection/野外灭绝标签.webp'
     });
     const COLLECTION_CARD_POSITIONS = Object.freeze([
         { x: 0, y: 0 },
@@ -51,6 +52,7 @@
         detailSpeciesId: '',
         snapshot: null
     };
+    let iucnFitFrame = 0;
 
     function getEconomy() {
         const economy = globalScope.WynneZooEconomy || null;
@@ -70,6 +72,59 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
+    }
+
+    function fitSingleLineText(element, options = {}) {
+        if (!(element instanceof HTMLElement)) {
+            return;
+        }
+
+        const maxFontSize = Number(options.maxFontSize) || 38;
+        const minFontSize = Number(options.minFontSize) || 12;
+        const step = Number(options.step) || 1;
+        let fontSize = maxFontSize;
+
+        // Temporarily allow overflow so scrollWidth reflects true content width
+        const prevOverflow = element.style.overflow;
+        element.style.overflow = 'visible';
+
+        element.style.setProperty('--cd-figma-iucn-font-size', String(maxFontSize));
+        void element.scrollWidth;
+
+        while (fontSize > minFontSize && element.scrollWidth > element.clientWidth + 1) {
+            fontSize -= step;
+            element.style.setProperty('--cd-figma-iucn-font-size', String(fontSize));
+            void element.scrollWidth;
+        }
+
+        // Restore overflow
+        element.style.overflow = prevOverflow;
+    }
+
+    function scheduleIucnTextFit() {
+        if (!(refs.detailIucn instanceof HTMLElement)) {
+            return;
+        }
+
+        if (iucnFitFrame && typeof globalScope.cancelAnimationFrame === 'function') {
+            globalScope.cancelAnimationFrame(iucnFitFrame);
+        }
+
+        const runFit = () => {
+            iucnFitFrame = 0;
+            fitSingleLineText(refs.detailIucn, {
+                maxFontSize: 38,
+                minFontSize: 14,
+                step: 1
+            });
+        };
+
+        if (typeof globalScope.requestAnimationFrame === 'function') {
+            iucnFitFrame = globalScope.requestAnimationFrame(runFit);
+            return;
+        }
+
+        globalScope.setTimeout(runFit, 0);
     }
 
     function cacheDom() {
@@ -133,6 +188,8 @@
 
     function getRarityTone(rarity) {
         switch (String(rarity || '').trim()) {
+        case '易危':
+            return 'rare';
         case '罕见':
             return 'uncommon';
         case '近危':
@@ -309,6 +366,10 @@
         }
 
         if (!species) {
+            if (iucnFitFrame && typeof globalScope.cancelAnimationFrame === 'function') {
+                globalScope.cancelAnimationFrame(iucnFitFrame);
+                iucnFitFrame = 0;
+            }
             refs.detail.hidden = true;
             if (refs.screen) {
                 refs.screen.classList.remove('is-detail-view');
@@ -362,6 +423,7 @@
         if (refs.screen) {
             refs.screen.classList.add('is-detail-view');
         }
+        scheduleIucnTextFit();
     }
 
     function closeDetail() {
@@ -387,7 +449,10 @@
             economy.markCollectionSpeciesViewed(species.id);
         }
         if (species.unlocked && species.isPendingGuide && economy && typeof economy.clearCollectionGuide === 'function') {
-            economy.clearCollectionGuide(species.id);
+            const clearedGuide = economy.clearCollectionGuide(species.id);
+            if (clearedGuide && typeof economy.markPendingReturnStoryReady === 'function') {
+                economy.markPendingReturnStoryReady(species.id);
+            }
         }
 
         state.snapshot = economy ? economy.getSnapshot() : state.snapshot;
@@ -446,6 +511,12 @@
         if (refs.backBtn) {
             refs.backBtn.addEventListener('click', handleBack);
         }
+
+        globalScope.addEventListener('resize', () => {
+            if (state.detailSpeciesId) {
+                renderDetail();
+            }
+        });
 
     }
 

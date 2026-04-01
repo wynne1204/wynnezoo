@@ -24,19 +24,19 @@
         },
         {
             id: 3,
-            description: '进行 1 次盲盒挑战',
-            conditionType: 'blindbox',
-            targetValue: 1,
-            relatedId: '',
-            navTarget: 'slot'
-        },
-        {
-            id: 4,
             description: '建造小熊猫栏舍',
             conditionType: 'build',
             targetValue: 1,
             relatedId: 'red-panda',
             navTarget: 'habitat-panel'
+        },
+        {
+            id: 4,
+            description: '进行 1 次盲盒挑战',
+            conditionType: 'blindbox',
+            targetValue: 1,
+            relatedId: '',
+            navTarget: 'slot'
         },
         {
             id: 5,
@@ -55,6 +55,9 @@
             navTarget: 'habitat-panel'
         }
     ]);
+    const HABITAT_ID_BY_SPECIES_ID = Object.freeze({
+        'red-panda': 'red-panda-grove'
+    });
 
     // =========================================================================
     // 运行时状态
@@ -228,27 +231,32 @@
         return null;
     }
 
+    function getQuestHabitatId(quest) {
+        var relatedId = String(quest && quest.relatedId || '').trim();
+        return HABITAT_ID_BY_SPECIES_ID[relatedId] || relatedId;
+    }
+
     /**
      * 检查 build 类型任务条件：目标栏舍是否已解锁。
      * @param {Object} snapshot - 经济系统快照
      * @param {Object} quest - 当前活跃任务
      */
     function checkBuildCondition(snapshot, quest) {
-        var habitat = findHabitatById(snapshot, quest.relatedId);
+        var habitat = findHabitatById(snapshot, getQuestHabitatId(quest));
         if (habitat && habitat.unlocked) {
             runtimeState.progress = quest.targetValue;
         }
     }
 
     /**
-     * 检查 upgrade 类型任务条件：目标栏舍是否已升级（tier.id !== 'standard'）。
+     * 检查 upgrade 类型任务条件：目标栏舍是否已升级到 2 级及以上。
      * @param {Object} snapshot - 经济系统快照
      * @param {Object} quest - 当前活跃任务
      */
     function checkUpgradeCondition(snapshot, quest) {
-        var habitat = findHabitatById(snapshot, quest.relatedId);
+        var habitat = findHabitatById(snapshot, getQuestHabitatId(quest));
         if (habitat && habitat.unlocked && habitat.tier
-            && habitat.tier.id !== 'standard') {
+            && habitat.tier.id !== 'tier-1') {
             runtimeState.progress = quest.targetValue;
         }
     }
@@ -271,9 +279,7 @@
                 }
                 break;
             case 'build':
-                if (reason === 'unlock-habitat') {
-                    checkBuildCondition(snapshot, quest);
-                }
+                checkBuildCondition(snapshot, quest);
                 break;
             case 'upgrade':
                 if (reason === 'upgrade-tier') {
@@ -398,16 +404,16 @@
 
         switch (quest.conditionType) {
             case 'build': {
-                var habitat = findHabitatById(snapshot, quest.relatedId);
+                var habitat = findHabitatById(snapshot, getQuestHabitatId(quest));
                 if (habitat && habitat.unlocked) {
                     runtimeState.progress = quest.targetValue;
                 }
                 break;
             }
             case 'upgrade': {
-                var habitat = findHabitatById(snapshot, quest.relatedId);
+                var habitat = findHabitatById(snapshot, getQuestHabitatId(quest));
                 if (habitat && habitat.unlocked && habitat.tier
-                    && habitat.tier.id !== 'standard') {
+                    && habitat.tier.id !== 'tier-1') {
                     runtimeState.progress = quest.targetValue;
                 }
                 break;
@@ -501,6 +507,7 @@
                 conditionType: quest.conditionType,
                 targetValue: quest.targetValue,
                 relatedId: quest.relatedId,
+                navTarget: quest.navTarget,
                 progress: runtimeState.progress
             };
         }

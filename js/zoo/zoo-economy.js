@@ -8,14 +8,22 @@
 
     const STORAGE_PREFIX = 'wynnesZoo.zooEconomy.user.';
     const ACTIVE_USER_STORAGE_KEY = 'wynnesZoo.activeUserId';
-    const SAVE_VERSION = 6;
+    const SAVE_VERSION = 7;
     const DEFAULT_USER_ID_PREFIX = 'guest';
     const ACTIVE_TABS = new Set(['status', 'animals', 'environment', 'appearance']);
+    const HABITAT_BUILD_DURATION_MS = 2000;
     const listeners = new Set();
     let tickTimerId = 0;
     let visibilityHandlerBound = false;
-    const COLLECTION_REDPANDA_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_小熊猫.png';
-    const COLLECTION_PLACEHOLDER_IMAGE_SRC = COLLECTION_REDPANDA_CARD_IMAGE_SRC;
+    const COLLECTION_REDPANDA_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_小熊猫.webp';
+    const COLLECTION_NORTHEAST_TIGER_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_东北虎.webp';
+    const COLLECTION_ASIAN_ELEPHANT_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_亚洲象.webp';
+    const COLLECTION_PENGUIN_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_企鹅.webp';
+    const COLLECTION_GIANT_PANDA_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_大熊猫.webp';
+    const COLLECTION_SLOTH_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_树懒.webp';
+    const COLLECTION_GOLDEN_SNUB_NOSED_MONKEY_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_金丝猴.webp';
+    const COLLECTION_GIRAFFE_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_长颈鹿.webp';
+    const COLLECTION_SNOW_LEOPARD_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_雪豹.webp';
     const COLLECTION_SPECIES_DEFINITIONS = Object.freeze([
         {
             id: 'red-panda',
@@ -36,148 +44,148 @@
             placeholder: false
         },
         {
-            id: 'monkey',
-            name: '猴子',
-            rarity: '普通',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '猴子图鉴占位图',
-            summary: '性格活泼好动，喜欢在树枝间跳跃玩耍。',
-            traits: '身手敏捷、群居动物、喜欢吃水果。',
-            habitat: '常见于气候温暖的森林和丛林区域。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '猴子动物详情占位立绘',
-            detailDescription: '猴子通常生活在温暖湿润的森林环境中，善于借助树枝快速移动。它们具有较强的学习能力和社群意识，常通过叫声、动作和梳理行为维持群体关系。',
-            iucnText: '部分猴类处于需持续监测状态',
-            populationText: '约20000只',
-            temperatureText: '18-32度',
-            socialText: '群居',
-            placeholder: true
-        },
-        {
-            id: 'alpaca',
-            name: '羊驼',
-            rarity: '罕见',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '羊驼图鉴占位图',
-            summary: '外表憨态可掬，有着厚实柔软的绒毛。',
-            traits: '性情温顺、群居动物、有时会吐口水。',
-            habitat: '多栖居于高海拔的高原地区。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '羊驼动物详情占位立绘',
-            detailDescription: '羊驼原产于南美洲高原地区，拥有厚实的绒毛和耐寒能力，适应昼夜温差较大的环境。它们性情相对温和，通常以小群体活动，并通过姿态和叫声传递信息。',
-            iucnText: '人工保育稳定，野外种群待持续观察',
-            populationText: '约15000只',
-            temperatureText: '5-22度',
-            socialText: '群居',
-            placeholder: true
-        },
-        {
-            id: 'snow-leopard',
-            name: '雪豹',
-            rarity: '近危',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '雪豹图鉴占位图',
-            summary: '行动隐秘的高山猎手，善于在岩壁与雪坡间无声移动。',
-            traits: '跳跃能力强、独居、尾巴粗长能帮助保持平衡与保暖。',
-            habitat: '生活在高寒山地、裸岩峭壁和稀疏灌丛地带。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '雪豹动物详情占位立绘',
-            detailDescription: '雪豹被称为高山生态系统中的隐秘猎手，主要分布在高海拔寒冷山区。它们依靠厚密皮毛和长尾适应低温环境，行动范围广，通常独自巡游领地。',
-            iucnText: '近危 (NT)，需要长期保护栖息地',
-            populationText: '约4000只',
-            temperatureText: '-20-12度',
-            socialText: '独居',
-            placeholder: true
-        },
-        {
-            id: 'koala',
-            name: '考拉',
-            rarity: '近危',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '考拉图鉴占位图',
-            summary: '一天中大部分时间都在安静休息，对环境变化较为敏感。',
-            traits: '嗜睡、偏食桉树叶、喜欢固定的树冠活动范围。',
-            habitat: '适合树木高大、气候温和的森林环境。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '考拉动物详情占位立绘',
-            detailDescription: '考拉主要生活在桉树林中，依赖稳定的树冠和充足的叶片资源。它们新陈代谢较慢，大部分时间用于休息和消化，因此对温度和栖息地变化十分敏感。',
-            iucnText: '近危 (NT)，需控制栖息地破碎化',
-            populationText: '约8000只',
-            temperatureText: '12-30度',
-            socialText: '独居',
-            placeholder: true
-        },
-        {
-            id: 'emperor-penguin',
-            name: '帝企鹅',
-            rarity: '罕见',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '帝企鹅图鉴占位图',
-            summary: '群体协作能力出众，会通过紧密站位共同抵御严寒。',
-            traits: '耐寒、擅长游泳、育雏期间拥有很强的守护本能。',
-            habitat: '适宜寒冷海岸、冰缘地带与低温水域周边。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '帝企鹅动物详情占位立绘',
-            detailDescription: '帝企鹅是典型的极地鸟类，擅长在寒冷海域潜游觅食，并依靠群体站位抵御严寒。繁殖季节中，成体会分工协作，确保幼崽在极端气候中存活。',
-            iucnText: '近危风险上升，受气候变化影响显著',
-            populationText: '约12000只',
-            temperatureText: '-40-5度',
-            socialText: '群居',
-            placeholder: true
-        },
-        {
-            id: 'ring-tailed-lemur',
-            name: '环尾狐猴',
+            id: 'northeast-tiger',
+            name: '东北虎',
             rarity: '濒危',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '环尾狐猴图鉴占位图',
-            summary: '尾巴花纹鲜明，群体中互动频繁，性格活泼好动。',
-            traits: '会晒太阳取暖、擅长跳跃、常以气味标记地盘。',
-            habitat: '偏好干燥树林、岩地与灌丛混合的区域。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '环尾狐猴动物详情占位立绘',
-            detailDescription: '环尾狐猴拥有辨识度很高的环纹尾巴，常以群体形式活动。它们会通过晒太阳、跳跃和气味标记来适应环境，是岛屿生态中极具代表性的灵长类动物。',
-            iucnText: '濒危 (EN)，受栖息地缩减影响明显',
-            populationText: '约2500只',
-            temperatureText: '16-30度',
-            socialText: '群居',
-            placeholder: true
+            imageSrc: COLLECTION_NORTHEAST_TIGER_CARD_IMAGE_SRC,
+            imageAlt: '东北虎图鉴立绘',
+            summary: '体型健硕的森林顶级猎手，步伐安静却极具压迫感。',
+            traits: '独居巡猎、爆发力强、冬季会长出更厚的被毛。',
+            habitat: '偏好针阔混交林、山地林区与水源充足的寒温带森林。',
+            detailImageSrc: COLLECTION_NORTHEAST_TIGER_CARD_IMAGE_SRC,
+            detailImageAlt: '东北虎动物详情立绘',
+            detailDescription: '东北虎是现存体型最大的猫科动物之一，主要分布在中国东北和俄罗斯远东的森林地带。它们需要广阔而连续的领地来完成巡猎、繁殖和育幼，对栖息地完整性与野生猎物数量都非常敏感。',
+            iucnText: 'IUCN 红色名录濒危 (EN)，属重点保护物种',
+            populationText: '约600只',
+            temperatureText: '-30-20度',
+            socialText: '独居',
+            placeholder: false
         },
         {
-            id: 'zebra',
-            name: '斑马',
-            rarity: '普通',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '斑马图鉴占位图',
-            summary: '群体移动时节奏整齐，对周围动静非常敏锐。',
-            traits: '善奔跑、条纹独一无二、会通过叫声和耳位交流。',
-            habitat: '适合开阔草原、稀树草原和稳定的饮水点附近。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '斑马动物详情占位立绘',
-            detailDescription: '斑马广泛分布于草原与稀树草原地带，依赖群体行动提升警戒效率。它们醒目的黑白条纹不仅便于识别个体，也能在群体奔跑时干扰捕食者判断。',
-            iucnText: '普通种群仍需关注迁徙通道保护',
-            populationText: '约30000只',
-            temperatureText: '20-35度',
+            id: 'asian-elephant',
+            name: '亚洲象',
+            rarity: '濒危',
+            imageSrc: COLLECTION_ASIAN_ELEPHANT_CARD_IMAGE_SRC,
+            imageAlt: '亚洲象图鉴立绘',
+            summary: '沉稳而聪明的巨型草食动物，记忆力和家庭意识都很强。',
+            traits: '母系家族、长距离迁移、会用鼻子完成取食和交流。',
+            habitat: '适合热带雨林、季雨林与拥有稳定水源的草木混生地带。',
+            detailImageSrc: COLLECTION_ASIAN_ELEPHANT_CARD_IMAGE_SRC,
+            detailImageAlt: '亚洲象动物详情立绘',
+            detailDescription: '亚洲象是亚洲现存最大的陆生哺乳动物，通常以母象为核心组成家族群体活动。它们每日需要大量食物和饮水，对迁徙通道和森林连通性依赖极高，栖息地缩减会直接影响种群延续。',
+            iucnText: 'IUCN 红色名录濒危 (EN)，栖息地破碎化压力显著',
+            populationText: '约40000-50000只',
+            temperatureText: '18-35度',
             socialText: '群居',
-            placeholder: true
+            placeholder: false
+        },
+        {
+            id: 'penguin',
+            name: '企鹅',
+            rarity: '罕见',
+            imageSrc: COLLECTION_PENGUIN_CARD_IMAGE_SRC,
+            imageAlt: '企鹅图鉴立绘',
+            summary: '擅长在寒冷海域穿梭，走起路来摇摆可爱却很有耐力。',
+            traits: '善游泳、群体繁殖、羽毛致密可有效隔绝冷水。',
+            habitat: '多见于寒冷海岸、岛屿冰缘地带以及周边海域。',
+            detailImageSrc: COLLECTION_PENGUIN_CARD_IMAGE_SRC,
+            detailImageAlt: '企鹅动物详情立绘',
+            detailDescription: '企鹅并不是单一物种，而是一类高度适应海洋生活的不会飞的鸟类。它们依靠流线型身体和密集羽毛在低温海域中潜游觅食，繁殖时往往会聚成庞大群落，以群体协作提升幼崽存活率。',
+            iucnText: '不同企鹅物种保育等级差异较大，需关注海冰与食物链变化',
+            populationText: '南半球多种群合计数百万只',
+            temperatureText: '-40-15度',
+            socialText: '群居',
+            placeholder: false
+        },
+        {
+            id: 'giant-panda',
+            name: '大熊猫',
+            rarity: '易危',
+            imageSrc: COLLECTION_GIANT_PANDA_CARD_IMAGE_SRC,
+            imageAlt: '大熊猫图鉴立绘',
+            summary: '以竹子为主食，动作看起来慢悠悠，却有很强的攀爬能力。',
+            traits: '偏食竹类、独居、会通过气味与声音划分活动范围。',
+            habitat: '适宜高山竹林、湿润山地与季节分明的温带森林。',
+            detailImageSrc: COLLECTION_GIANT_PANDA_CARD_IMAGE_SRC,
+            detailImageAlt: '大熊猫动物详情立绘',
+            detailDescription: '大熊猫是中国最具代表性的珍稀动物之一，主要分布在四川、陕西和甘肃的高山竹林。它们虽然属于食肉目，却高度依赖竹类为主食，因此对竹林面积、连通性和季节性食物更替都十分敏感。',
+            iucnText: 'IUCN 红色名录易危 (VU)，保护成效持续向好',
+            populationText: '约1900只',
+            temperatureText: '2-25度',
+            socialText: '独居',
+            placeholder: false
+        },
+        {
+            id: 'sloth',
+            name: '树懒',
+            rarity: '罕见',
+            imageSrc: COLLECTION_SLOTH_CARD_IMAGE_SRC,
+            imageAlt: '树懒图鉴立绘',
+            summary: '动作缓慢却非常稳定，擅长长时间倒挂在树冠间休息。',
+            traits: '新陈代谢慢、善于伪装、一天中大部分时间都在树上。',
+            habitat: '偏好湿润热带雨林、树冠层发达且植被茂密的环境。',
+            detailImageSrc: COLLECTION_SLOTH_CARD_IMAGE_SRC,
+            detailImageAlt: '树懒动物详情立绘',
+            detailDescription: '树懒是中南美洲热带雨林中的典型树栖哺乳动物，以极慢的动作节奏和低代谢著称。它们依赖茂密树冠提供食物与隐蔽空间，毛发表面还会生长藻类，帮助自己更好地融入森林环境。',
+            iucnText: '不同树懒物种保育状态不一，森林保护尤为关键',
+            populationText: '多物种总量尚存，局部种群下降明显',
+            temperatureText: '20-32度',
+            socialText: '独居',
+            placeholder: false
+        },
+        {
+            id: 'golden-snub-nosed-monkey',
+            name: '金丝猴',
+            rarity: '濒危',
+            imageSrc: COLLECTION_GOLDEN_SNUB_NOSED_MONKEY_CARD_IMAGE_SRC,
+            imageAlt: '金丝猴图鉴立绘',
+            summary: '金色长毛十分醒目，群体协作和高山适应能力都很出色。',
+            traits: '群居、耐寒、擅长在陡峭林地间跳跃移动。',
+            habitat: '主要生活在海拔较高、气候寒冷的山地针阔混交林。',
+            detailImageSrc: COLLECTION_GOLDEN_SNUB_NOSED_MONKEY_CARD_IMAGE_SRC,
+            detailImageAlt: '金丝猴动物详情立绘',
+            detailDescription: '金丝猴是中国特有的珍稀灵长类动物之一，拥有柔长而华丽的被毛，可以帮助它们在寒冷高山环境中保温。它们通常以复杂群体结构活动，依赖完整森林提供食物、庇护与迁移通道。',
+            iucnText: 'IUCN 红色名录濒危 (EN)，属国家一级保护动物',
+            populationText: '野外约数万只，不同种群差异明显',
+            temperatureText: '-10-20度',
+            socialText: '群居',
+            placeholder: false
         },
         {
             id: 'giraffe',
             name: '长颈鹿',
-            rarity: '野外灭绝',
-            imageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            imageAlt: '长颈鹿图鉴占位图',
-            summary: '拥有出众视野，进食时偏爱高处的新鲜嫩叶。',
-            traits: '脖颈修长、步态平稳、需要宽阔的活动空间。',
-            habitat: '常见于高树分布较多、视野开阔的草原地带。',
-            detailImageSrc: COLLECTION_PLACEHOLDER_IMAGE_SRC,
-            detailImageAlt: '长颈鹿动物详情占位立绘',
-            detailDescription: '长颈鹿以修长的脖颈和开阔视野著称，主要在稀树草原中取食高处树叶。它们行动优雅，需要较大的活动空间，也依赖稳定水源和植被分布。',
-            iucnText: '部分亚种保育等级较高，需持续恢复种群',
-            populationText: '约6800只',
-            temperatureText: '18-34度',
+            rarity: '普通',
+            imageSrc: COLLECTION_GIRAFFE_CARD_IMAGE_SRC,
+            imageAlt: '长颈鹿图鉴立绘',
+            summary: '拥有极佳视野和修长脖颈，总能先一步发现远处动静。',
+            traits: '高处取食、奔跑速度快、斑纹像指纹一样各不相同。',
+            habitat: '常见于稀树草原、灌木草地与水源分布稳定的开阔区域。',
+            detailImageSrc: COLLECTION_GIRAFFE_CARD_IMAGE_SRC,
+            detailImageAlt: '长颈鹿动物详情立绘',
+            detailDescription: '长颈鹿是现存最高的陆生动物，依靠修长脖颈取食高处枝叶，也能在开阔草原中提前观察风险。它们通常以松散群体活动，需要较大的觅食空间和稳定的植被结构来维持种群健康。',
+            iucnText: 'IUCN 红色名录无危 (LC)，但部分亚种保护压力仍然较高',
+            populationText: '约117000只',
+            temperatureText: '18-35度',
             socialText: '松散群居',
-            placeholder: true
+            placeholder: false
+        },
+        {
+            id: 'snow-leopard',
+            name: '雪豹',
+            rarity: '易危',
+            imageSrc: COLLECTION_SNOW_LEOPARD_CARD_IMAGE_SRC,
+            imageAlt: '雪豹图鉴立绘',
+            summary: '行动隐秘的高山猎手，善于在岩壁与雪坡间无声移动。',
+            traits: '跳跃能力强、独居、尾巴粗长能帮助保持平衡与保暖。',
+            habitat: '生活在高寒山地、裸岩峭壁和稀疏灌丛地带。',
+            detailImageSrc: COLLECTION_SNOW_LEOPARD_CARD_IMAGE_SRC,
+            detailImageAlt: '雪豹动物详情立绘',
+            detailDescription: '雪豹被称为高山生态系统中的隐秘猎手，主要分布在高海拔寒冷山区。它们依靠厚密皮毛和长尾适应低温环境，行动范围广，通常独自巡游领地。',
+            iucnText: 'IUCN 红色名录易危 (VU)，需长期保护高山栖息地',
+            populationText: '约4000-6500只',
+            temperatureText: '-20-12度',
+            socialText: '独居',
+            placeholder: false
         }
     ]);
     const COLLECTION_SPECIES_ID_SET = new Set(COLLECTION_SPECIES_DEFINITIONS.map((species) => species.id));
@@ -414,7 +422,9 @@
                 lastSettlement: null,
                 lastTicketSpendAt: 0,
                 storyFlags: {},
-                unlockedSystems: {}
+                unlockedSystems: {},
+                storyFlow: normalizePendingReturnStoryFlow(null),
+                constructionFlow: normalizeConstructionFlow(null)
             }
         };
     }
@@ -525,6 +535,42 @@
         }, {});
     }
 
+    function normalizePendingReturnStoryFlow(rawFlow) {
+        const flow = rawFlow && typeof rawFlow === 'object' ? rawFlow : {};
+        const pendingReturnStoryId = normalizeStoryId(flow.pendingReturnStoryId);
+        const pendingGuideSpeciesId = normalizeCollectionSpeciesId(flow.pendingGuideSpeciesId);
+
+        return {
+            pendingReturnStoryId,
+            pendingGuideSpeciesId,
+            readyToResume: Boolean(pendingReturnStoryId && flow.readyToResume)
+        };
+    }
+
+    function normalizeConstructionFlow(rawFlow) {
+        const flow = rawFlow && typeof rawFlow === 'object' ? rawFlow : {};
+        const habitatId = String(flow.habitatId || '').trim().slice(0, 64);
+        const definition = habitatId
+            ? balance.getAllHabitatDefinitions().find((item) => item && item.id === habitatId)
+            : null;
+        const startedAt = Math.max(0, Math.floor(Number(flow.startedAt) || 0));
+        const completeAt = Math.max(0, Math.floor(Number(flow.completeAt) || 0));
+
+        if (!definition || completeAt <= 0) {
+            return {
+                habitatId: '',
+                startedAt: 0,
+                completeAt: 0
+            };
+        }
+
+        return {
+            habitatId: definition.id,
+            startedAt,
+            completeAt: Math.max(startedAt, completeAt)
+        };
+    }
+
     function normalizeState(rawState) {
         const defaultState = createDefaultState();
         if (!rawState || typeof rawState !== 'object') {
@@ -562,7 +608,9 @@
                     : null,
                 lastTicketSpendAt: Math.max(0, Math.floor(Number(rawState.meta && rawState.meta.lastTicketSpendAt) || 0)),
                 storyFlags: normalizeStoryFlags(rawState.meta && rawState.meta.storyFlags),
-                unlockedSystems: normalizeUnlockedSystems(rawState.meta && rawState.meta.unlockedSystems)
+                unlockedSystems: normalizeUnlockedSystems(rawState.meta && rawState.meta.unlockedSystems),
+                storyFlow: normalizePendingReturnStoryFlow(rawState.meta && rawState.meta.storyFlow),
+                constructionFlow: normalizeConstructionFlow(rawState.meta && rawState.meta.constructionFlow)
             }
         };
 
@@ -747,11 +795,54 @@
         return changed;
     }
 
+    function shouldUseAnimatedConstruction(habitatId) {
+        return String(habitatId || '').trim() === 'red-panda-grove';
+    }
+
+    function syncConstruction(nowTs = Date.now()) {
+        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
+            runtimeState.meta = {};
+        }
+
+        const constructionFlow = normalizeConstructionFlow(runtimeState.meta.constructionFlow);
+        if (!constructionFlow.habitatId) {
+            if (runtimeState.meta.constructionFlow && runtimeState.meta.constructionFlow.habitatId) {
+                runtimeState.meta.constructionFlow = normalizeConstructionFlow(null);
+                return true;
+            }
+            return false;
+        }
+
+        const habitat = runtimeState.habitats.find((item) => item && item.id === constructionFlow.habitatId) || null;
+        if (!habitat) {
+            runtimeState.meta.constructionFlow = normalizeConstructionFlow(null);
+            return true;
+        }
+
+        if (habitat.unlocked) {
+            runtimeState.meta.constructionFlow = normalizeConstructionFlow(null);
+            return true;
+        }
+
+        const safeNow = Math.max(0, Math.floor(Number(nowTs) || Date.now()));
+        if (constructionFlow.completeAt > safeNow) {
+            return false;
+        }
+
+        habitat.unlocked = true;
+        habitat.ticketProgressSec = 0;
+        habitat.storedTickets = 0;
+        habitat.lastSyncAt = safeNow;
+        runtimeState.meta.constructionFlow = normalizeConstructionFlow(null);
+        return true;
+    }
+
     function syncAll(nowTs = Date.now()) {
         let changed = false;
         runtimeState.habitats.forEach((habitat) => {
             changed = syncHabitatWithTime(habitat, nowTs) || changed;
         });
+        changed = syncConstruction(nowTs) || changed;
         changed = syncCollectionUnlocksFromPlayedStories(nowTs) || changed;
         return changed;
     }
@@ -772,10 +863,21 @@
         const nextTier = balance.getNextTier(habitat.tierId);
         const metrics = deriveHabitatMetrics(habitat);
         const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
+        const constructionFlow = normalizeConstructionFlow(runtimeState.meta && runtimeState.meta.constructionFlow);
         const storyRequirementMet = hasMetStoryRequirement(definition, storyFlags);
         const unlockStoryId = normalizeStoryId(definition.unlockStoryId);
         const unlockStoryLabel = String(definition.unlockStoryLabel || unlockStoryId || '').trim();
         const unlockPending = isUnlockPending(definition);
+        const isConstructing = !habitat.unlocked && constructionFlow.habitatId === habitat.id;
+        const constructionRemainingMs = isConstructing
+            ? Math.max(0, constructionFlow.completeAt - Date.now())
+            : 0;
+        const constructionDurationMs = isConstructing
+            ? Math.max(1, constructionFlow.completeAt - constructionFlow.startedAt)
+            : 0;
+        const constructionProgressPct = isConstructing
+            ? Math.max(0, Math.min(100, Math.round(((constructionDurationMs - constructionRemainingMs) / constructionDurationMs) * 100)))
+            : 0;
         const totalTicketCap = Math.max(1, getTotalTicketCap());
         const totalBufferedTickets = runtimeState.resources.playTicket + getTotalStoredTickets();
         const ticketPoolFull = totalBufferedTickets >= totalTicketCap;
@@ -799,16 +901,21 @@
             appearanceTitle: definition.appearanceTitle || definition.tagline,
             stageAssets: definition.stageAssets || {},
             unlocked: habitat.unlocked,
+            isConstructing,
+            constructionRemainingMs,
+            constructionProgressPct,
             unlockCostCoin: habitat.unlockCostCoin,
             unlockStoryId,
             unlockStoryLabel,
             isStoryLocked: !habitat.unlocked && (!storyRequirementMet || unlockPending),
-            canUnlock: !habitat.unlocked && !unlockPending && storyRequirementMet && runtimeState.resources.coin >= habitat.unlockCostCoin,
-            unlockActionText: unlockPending
+            canUnlock: !habitat.unlocked && !isConstructing && !unlockPending && storyRequirementMet && runtimeState.resources.coin >= habitat.unlockCostCoin,
+            unlockActionText: isConstructing
+                ? '建造中...'
+                : (unlockPending
                 ? '暂未开放'
                 : (!storyRequirementMet
                     ? `完成${unlockStoryLabel || '对应剧情'}后解锁`
-                    : `解锁栖息地 · ${habitat.unlockCostCoin} 金币`),
+                    : `建造栏舍 · ${habitat.unlockCostCoin} 金币`)),
             tier,
             nextTier,
             residentCount: metrics.residentCount,
@@ -822,13 +929,17 @@
             ticketBaseIntervalSec: tier.ticketIntervalSec,
             ticketSummary: habitat.unlocked
                 ? `${metrics.ticketEfficiencyLabel} · 每 ${Math.max(1, Math.round(metrics.effectiveTicketIntervalSec / 60))} 分钟产出 1 张盲盒券`
-                : `解锁后每 ${Math.max(1, Math.round(tier.ticketIntervalSec / 60))} 分钟产出 1 张盲盒券`,
+                : (isConstructing
+                    ? '栏舍施工中，完工后会开始自动产出盲盒券'
+                    : `建成后每 ${Math.max(1, Math.round(tier.ticketIntervalSec / 60))} 分钟产出 1 张盲盒券`),
             ticketProgressPct: habitat.unlocked
                 ? (ticketPoolFull ? 100 : Math.round((habitat.ticketProgressSec / Math.max(1, metrics.effectiveTicketIntervalSec)) * 100))
                 : 0,
             ticketCountdownText: habitat.unlocked
                 ? (ticketPoolFull ? '盲盒券库存已满' : `下一张券 ${balance.formatDuration(ticketSecondsLeft)}`)
-                : '解锁后开始自动产券',
+                : (isConstructing
+                    ? `建造中 · ${balance.formatDuration(Math.max(1, Math.ceil(constructionRemainingMs / 1000)))}`
+                    : '建成后开始自动产券'),
             claimableTickets,
             hasClaimableTickets: claimableTickets > 0,
             totalTicketCap,
@@ -836,11 +947,13 @@
             animals,
             lockDescription: habitat.unlocked
                 ? ''
+                : (isConstructing
+                    ? `${definition.name} 正在施工中，约 2 秒后就会正式开放为 1 级栏舍。`
                 : (unlockPending
                     ? `${definition.name} 暂未开放，后续会改为指定剧情解锁。`
                     : (!storyRequirementMet
                         ? `完成${unlockStoryLabel || '对应剧情'}后，${definition.name}才会开放，小动物也会正式入住。`
-                        : `消耗 ${habitat.unlockCostCoin} 金币解锁后，小动物会正式入住，并开始自动产出 ${balance.SLOT_THEME.ticketName}。`))
+                        : `消耗 ${habitat.unlockCostCoin} 金币建成后，${definition.name}会直接以 1 级栏舍开放，并开始自动产出 ${balance.SLOT_THEME.ticketName}。`)))
         };
     }
 
@@ -893,6 +1006,8 @@
             habitats,
             selectedHabitat,
             habitat: selectedHabitat,
+            storyFlow: { ...(runtimeState.meta.storyFlow || normalizePendingReturnStoryFlow(null)) },
+            constructionFlow: { ...(runtimeState.meta.constructionFlow || normalizeConstructionFlow(null)) },
             lastSettlement: runtimeState.meta.lastSettlement
                 ? { ...runtimeState.meta.lastSettlement }
                 : null
@@ -1128,11 +1243,183 @@
         return true;
     }
 
+    function getPendingReturnStory() {
+        syncAll(Date.now());
+        const storyFlow = runtimeState.meta && runtimeState.meta.storyFlow
+            ? normalizePendingReturnStoryFlow(runtimeState.meta.storyFlow)
+            : normalizePendingReturnStoryFlow(null);
+
+        if (!storyFlow.pendingReturnStoryId) {
+            return null;
+        }
+
+        return { ...storyFlow };
+    }
+
+    function setPendingReturnStory(storyId, options = {}) {
+        syncAll(Date.now());
+        const pendingReturnStoryId = normalizeStoryId(storyId);
+        const pendingGuideSpeciesId = normalizeCollectionSpeciesId(options.pendingGuideSpeciesId || options.speciesId);
+        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
+            runtimeState.meta = {};
+        }
+
+        runtimeState.meta.storyFlow = {
+            pendingReturnStoryId,
+            pendingGuideSpeciesId,
+            readyToResume: Boolean(pendingReturnStoryId && options.readyToResume)
+        };
+        emitChange('pending-return-story');
+        return getPendingReturnStory();
+    }
+
+    function markPendingReturnStoryReady(speciesId = '') {
+        syncAll(Date.now());
+        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
+            runtimeState.meta = {};
+        }
+
+        const storyFlow = normalizePendingReturnStoryFlow(runtimeState.meta.storyFlow);
+        if (!storyFlow.pendingReturnStoryId) {
+            return false;
+        }
+
+        const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
+        if (storyFlow.pendingGuideSpeciesId && normalizedSpeciesId && storyFlow.pendingGuideSpeciesId !== normalizedSpeciesId) {
+            return false;
+        }
+
+        if (storyFlow.readyToResume) {
+            return true;
+        }
+
+        runtimeState.meta.storyFlow = {
+            ...storyFlow,
+            readyToResume: true
+        };
+        emitChange('pending-return-story-ready');
+        return true;
+    }
+
+    function consumePendingReturnStory() {
+        syncAll(Date.now());
+        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
+            runtimeState.meta = {};
+        }
+
+        const storyFlow = normalizePendingReturnStoryFlow(runtimeState.meta.storyFlow);
+        if (!storyFlow.pendingReturnStoryId || !storyFlow.readyToResume) {
+            return '';
+        }
+
+        runtimeState.meta.storyFlow = normalizePendingReturnStoryFlow(null);
+        emitChange('pending-return-story-consumed');
+        return storyFlow.pendingReturnStoryId;
+    }
+
+    function beginHabitatConstruction(habitatId = '') {
+        syncAll(Date.now());
+        const targetHabitatId = String(habitatId || '').trim();
+        const habitat = targetHabitatId
+            ? (runtimeState.habitats.find((item) => item && item.id === targetHabitatId) || null)
+            : getSelectedHabitat();
+
+        if (!habitat) {
+            return {
+                ok: false,
+                code: 'unknown-habitat',
+                message: '未找到要建造的栏舍。'
+            };
+        }
+
+        const habitatDefinition = balance.getHabitatDefinition(habitat.id);
+        const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
+        const constructionFlow = normalizeConstructionFlow(runtimeState.meta && runtimeState.meta.constructionFlow);
+
+        if (habitat.unlocked) {
+            return {
+                ok: false,
+                code: 'already-unlocked',
+                message: `${habitatDefinition.name} 已经建好了。`
+            };
+        }
+
+        if (!shouldUseAnimatedConstruction(habitat.id)) {
+            return unlockSelectedHabitat();
+        }
+
+        if (constructionFlow.habitatId === habitat.id) {
+            return {
+                ok: false,
+                code: 'construction-active',
+                message: `${habitatDefinition.name} 正在建造中。`
+            };
+        }
+
+        if (constructionFlow.habitatId) {
+            return {
+                ok: false,
+                code: 'construction-busy',
+                message: '当前已有栏舍正在建造中。'
+            };
+        }
+
+        if (isUnlockPending(habitatDefinition)) {
+            return {
+                ok: false,
+                code: 'unlock-pending',
+                message: `${habitatDefinition.name} 暂未开放，解锁剧情还没配置。`
+            };
+        }
+
+        if (!hasMetStoryRequirement(habitatDefinition, storyFlags)) {
+            return {
+                ok: false,
+                code: 'story-locked',
+                message: `${habitatDefinition.name} 需要先完成${habitatDefinition.unlockStoryLabel || '对应剧情'}。`
+            };
+        }
+
+        if (runtimeState.resources.coin < habitat.unlockCostCoin) {
+            return {
+                ok: false,
+                code: 'coin-shortage',
+                message: `金币不足，还差 ${habitat.unlockCostCoin - runtimeState.resources.coin} 金币。`
+            };
+        }
+
+        const startedAt = Date.now();
+        runtimeState.resources.coin -= habitat.unlockCostCoin;
+        runtimeState.ui.activeHabitatId = habitat.id;
+        runtimeState.ui.panelOpen = false;
+        habitat.ticketProgressSec = 0;
+        habitat.storedTickets = 0;
+        habitat.lastSyncAt = startedAt;
+        runtimeState.meta.constructionFlow = normalizeConstructionFlow({
+            habitatId: habitat.id,
+            startedAt,
+            completeAt: startedAt + HABITAT_BUILD_DURATION_MS
+        });
+        emitChange('start-habitat-construction');
+
+        return {
+            ok: true,
+            code: 'construction-started',
+            habitatId: habitat.id,
+            durationMs: HABITAT_BUILD_DURATION_MS,
+            message: `${habitatDefinition.name} 开始建造，马上就会落成 1 级栏舍。`
+        };
+    }
+
     function unlockSelectedHabitat() {
         syncAll(Date.now());
         const habitat = getSelectedHabitat();
         const habitatDefinition = balance.getHabitatDefinition(habitat.id);
         const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
+
+        if (shouldUseAnimatedConstruction(habitat.id)) {
+            return beginHabitatConstruction(habitat.id);
+        }
 
         if (habitat.unlocked) {
             return {
@@ -1403,6 +1690,11 @@
         unlockCollectionSpecies,
         clearCollectionGuide,
         markCollectionSpeciesViewed,
+        getPendingReturnStory,
+        setPendingReturnStory,
+        markPendingReturnStoryReady,
+        consumePendingReturnStory,
+        beginHabitatConstruction,
         unlockSelectedHabitat,
         feedSelectedHabitatAnimals,
         upgradeSelectedHabitatTier,

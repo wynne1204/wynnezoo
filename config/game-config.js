@@ -29,14 +29,15 @@ window.APP_CONFIG = {
             minClusterSize: 3,
             baseCoins: 100,
             jackpotThreshold: 10,
-            jackpotMultiplier: 100,
+            jackpotMultiplier: 12.5,
             multipliers: {
                 3: 1,
-                4: 2,
-                5: 2,
-                6: 5,
-                7: 7,
-                8: 10
+                4: 1.5,
+                5: 2.5,
+                6: 3.8,
+                7: 5.5,
+                8: 7.8,
+                9: 10
             },
             // 连线结算给到叠叠乐积木数量（可配置）
             stackBlocksByClusterSize: {

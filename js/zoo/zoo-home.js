@@ -45,8 +45,13 @@
         storyPreviewOpen: false,
         storyEntryCount: 0,
         unlockNotificationQueue: [],
-        unlockPopupActive: false
+        unlockPopupActive: false,
+        lastConstructionHabitatId: ''
     };
+    const HABITAT_ID_BY_SPECIES_ID = Object.freeze({
+        'red-panda': 'red-panda-grove'
+    });
+    const DIRECT_BUILD_HABITAT_ID = 'red-panda-grove';
 
     function cacheDom() {
         refs.homeScreen = document.getElementById('zoo-home-screen');
@@ -231,6 +236,72 @@
         return snapshot.selectedHabitat || snapshot.habitat || getHomeHabitat(snapshot);
     }
 
+    function getQuestModule() {
+        return globalScope.WynneRegistry
+            && typeof globalScope.WynneRegistry.get === 'function'
+            ? globalScope.WynneRegistry.get('WynneZooQuest')
+            : null;
+    }
+
+    function getQuestSnapshot() {
+        const questModule = getQuestModule();
+        return questModule && typeof questModule.getSnapshot === 'function'
+            ? questModule.getSnapshot()
+            : null;
+    }
+
+    function getQuestTargetHabitatId(quest) {
+        const relatedId = String(quest && quest.relatedId || '').trim();
+        return HABITAT_ID_BY_SPECIES_ID[relatedId] || '';
+    }
+
+    function shouldShowHabitatBuildGuide(snapshot, habitat) {
+        if (!snapshot || !habitat || habitat.id !== 'red-panda-grove') {
+            return false;
+        }
+
+        if (habitat.unlocked || habitat.isConstructing) {
+            return false;
+        }
+
+        if (shouldShowCollectionFollowupGuide(snapshot)) {
+            return false;
+        }
+
+        const storyFlow = snapshot.storyFlow && typeof snapshot.storyFlow === 'object'
+            ? snapshot.storyFlow
+            : null;
+        if (storyFlow && String(storyFlow.pendingReturnStoryId || '').trim()) {
+            return false;
+        }
+
+        const storyFlags = snapshot.storyFlags && typeof snapshot.storyFlags === 'object'
+            ? snapshot.storyFlags
+            : {};
+        return Boolean(storyFlags['第二章']);
+    }
+
+    function shouldShowCollectionFollowupGuide(snapshot) {
+        if (!snapshot) {
+            return false;
+        }
+
+        const pendingGuideSpeciesId = snapshot.collection
+            ? String(snapshot.collection.pendingGuideSpeciesId || '').trim()
+            : '';
+        if (pendingGuideSpeciesId) {
+            return true;
+        }
+
+        const storyFlow = snapshot.storyFlow && typeof snapshot.storyFlow === 'object'
+            ? snapshot.storyFlow
+            : null;
+        return Boolean(
+            storyFlow
+            && String(storyFlow.pendingReturnStoryId || '').trim()
+        );
+    }
+
     function getSlotCardCopy(slotSnapshot, zooSnapshot) {
         const theme = zooSnapshot && zooSnapshot.slotTheme
             ? zooSnapshot.slotTheme
@@ -296,26 +367,58 @@
         };
     }
 
+    function getHabitatTierLevel(habitat) {
+        if (!habitat || !habitat.tier) {
+            return 1;
+        }
+
+        const tierLevel = Number(habitat.tier.level);
+        if (Number.isFinite(tierLevel) && tierLevel > 0) {
+            return Math.max(1, Math.min(6, Math.round(tierLevel)));
+        }
+
+        return 1;
+    }
+
+    function getHabitatArtKey(habitat) {
+        if (!habitat) {
+            return 'level1';
+        }
+
+        return `level${getHabitatTierLevel(habitat)}`;
+    }
+
     function getHabitatArt(habitat) {
         if (!habitat) {
             return '';
         }
 
+        if (!habitat.unlocked) {
+            return '';
+        }
+
         const assets = habitat.stageAssets || {};
-        if (habitat.tier && habitat.tier.id === 'deluxe') {
-            return assets.deluxe || assets.improved || assets.standard || habitat.sceneAsset || '';
+        const desiredLevel = getHabitatTierLevel(habitat);
+
+        for (let level = desiredLevel; level >= 1; level -= 1) {
+            const asset = assets[`level${level}`];
+            if (asset) {
+                return asset;
+            }
         }
-        if (habitat.tier && habitat.tier.id === 'improved') {
-            return assets.improved || assets.standard || habitat.sceneAsset || '';
+
+        for (let level = desiredLevel + 1; level <= 6; level += 1) {
+            const asset = assets[`level${level}`];
+            if (asset) {
+                return asset;
+            }
         }
-        if (habitat.residentCount <= 0) {
-            return assets.standardEmpty || assets.standard || habitat.sceneAsset || '';
-        }
-        return assets.standard || assets.standardEmpty || habitat.sceneAsset || '';
+
+        return habitat.sceneAsset || '';
     }
 
     const HABITAT_STAGE_LAYOUTS = {
-        standard: {
+        level1: {
             stageLeft: '1.2821%',
             stageTop: '28.2385%',
             stageWidth: '106.9915%',
@@ -325,7 +428,7 @@
             imageWidth: '100%',
             imageHeight: '100%'
         },
-        'standard-empty': {
+        level2: {
             stageLeft: '1.2821%',
             stageTop: '28.2385%',
             stageWidth: '106.9915%',
@@ -335,35 +438,45 @@
             imageWidth: '100%',
             imageHeight: '100%'
         },
-        improved: {
+        level3: {
             stageLeft: '3.1624%',
             stageTop: '24.3681%',
             stageWidth: '103.1624%',
             stageHeight: '41.7062%',
             imageLeft: '0%',
-            imageTop: '-68.01%',
+            imageTop: '0%',
             imageWidth: '100%',
-            imageHeight: '204.61%'
+            imageHeight: '100%'
         },
-        deluxe: {
+        level4: {
+            stageLeft: '3.1624%',
+            stageTop: '24.3681%',
+            stageWidth: '103.1624%',
+            stageHeight: '41.7062%',
+            imageLeft: '0%',
+            imageTop: '0%',
+            imageWidth: '100%',
+            imageHeight: '100%'
+        },
+        level5: {
+            stageLeft: '3.1624%',
+            stageTop: '22.4%',
+            stageWidth: '103.1624%',
+            stageHeight: '43.8%',
+            imageLeft: '0%',
+            imageTop: '0%',
+            imageWidth: '100%',
+            imageHeight: '100%'
+        },
+        level6: {
             stageLeft: '3.1624%',
             stageTop: '20.4976%',
             stageWidth: '101.0256%',
             stageHeight: '45.5766%',
             imageLeft: '0%',
-            imageTop: '-47.67%',
+            imageTop: '0%',
             imageWidth: '100%',
-            imageHeight: '183.38%'
-        },
-        christmas: {
-            stageLeft: '0%',
-            stageTop: '24.1706%',
-            stageWidth: '105.4701%',
-            stageHeight: '41.9036%',
-            imageLeft: '0%',
-            imageTop: '-64.76%',
-            imageWidth: '100%',
-            imageHeight: '208.23%'
+            imageHeight: '100%'
         }
     };
 
@@ -380,32 +493,11 @@
             .join(';');
     }
 
-    function getHabitatArtVariant(habitat, art) {
-        if (!habitat) {
-            return 'standard';
-        }
-
-        const assets = habitat.stageAssets || {};
-        if (art && assets.christmas && art === assets.christmas) {
-            return 'christmas';
-        }
-        if (habitat.tier && habitat.tier.id === 'deluxe') {
-            return 'deluxe';
-        }
-        if (habitat.tier && habitat.tier.id === 'improved') {
-            return 'improved';
-        }
-        if (habitat.residentCount <= 0) {
-            return 'standard-empty';
-        }
-        return 'standard';
-    }
-
-    function getHabitatStageLayout(habitat, art) {
-        const variant = getHabitatArtVariant(habitat, art);
+    function getHabitatStageLayout(habitat) {
+        const variant = getHabitatArtKey(habitat);
         return {
             variant,
-            ...(HABITAT_STAGE_LAYOUTS[variant] || HABITAT_STAGE_LAYOUTS.standard),
+            ...(HABITAT_STAGE_LAYOUTS[variant] || HABITAT_STAGE_LAYOUTS.level1),
             ...HABITAT_TICKET_BUBBLE_LAYOUT
         };
     }
@@ -433,6 +525,68 @@
         `;
     }
 
+    function isDirectBuildTargetHabitat(habitat) {
+        return Boolean(habitat && habitat.id === DIRECT_BUILD_HABITAT_ID);
+    }
+
+    function getHabitatPrimaryAction(snapshot, habitat) {
+        const showBuildGuide = shouldShowHabitatBuildGuide(snapshot, habitat);
+        if (habitat && habitat.isConstructing) {
+            return {
+                action: 'construction-pending',
+                label: '小熊猫栏舍建造中',
+                showBuildGuide: false
+            };
+        }
+
+        if (habitat && !habitat.unlocked && isDirectBuildTargetHabitat(habitat) && showBuildGuide) {
+            return {
+                action: 'build-habitat',
+                label: '建造小熊猫栏舍',
+                showBuildGuide: true
+            };
+        }
+
+        return {
+            action: 'open-info',
+            label: '查看栏舍信息',
+            showBuildGuide
+        };
+    }
+
+    function renderHabitatSitePlaceholder(habitat) {
+        return `
+            <div class="zoo-habitat-empty-site" aria-hidden="true">
+                <div class="zoo-habitat-empty-site-ground"></div>
+                <div class="zoo-habitat-empty-site-frame"></div>
+                <div class="zoo-habitat-empty-site-copy">
+                    <span class="zoo-habitat-empty-site-badge">待建造</span>
+                    <strong>${escapeHtml((habitat && habitat.speciesLabel) || '栏舍')} 1 级栏舍</strong>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderHabitatConstructionOverlay(habitat) {
+        if (!habitat || !habitat.isConstructing) {
+            return '';
+        }
+
+        const progressPct = Math.max(0, Math.min(100, Math.round(Number(habitat.constructionProgressPct) || 0)));
+        return `
+            <div class="zoo-habitat-construction" aria-hidden="true">
+                <div class="zoo-habitat-construction-dust"></div>
+                <div class="zoo-habitat-construction-copy">
+                    <span>施工中</span>
+                    <strong>正在建造小熊猫栏舍</strong>
+                </div>
+                <div class="zoo-habitat-construction-progress">
+                    <span style="width:${progressPct}%"></span>
+                </div>
+            </div>
+        `;
+    }
+
     function getMainTaskCopy(snapshot) {
         const habitat = getInfoHabitat(snapshot);
         if (!habitat) {
@@ -442,6 +596,10 @@
         const habitatLabel = habitat.speciesLabel
             ? `${habitat.speciesLabel}栏舍`
             : habitat.name;
+
+        if (habitat.isConstructing) {
+            return `建造中 · ${habitatLabel}`;
+        }
 
         if (habitat.isStoryLocked) {
             return '建造小熊猫栏舍';
@@ -467,8 +625,18 @@
             return '';
         }
 
+        if (habitat.isStoryLocked) {
+            return '';
+        }
+
         const art = getHabitatArt(habitat);
-        const layout = getHabitatStageLayout(habitat, art);
+        const layout = getHabitatStageLayout(habitat);
+        const snapshot = economy && typeof economy.getSnapshot === 'function'
+            ? economy.getSnapshot()
+            : null;
+        const primaryAction = getHabitatPrimaryAction(snapshot, habitat);
+        const showBuildGuide = primaryAction.showBuildGuide;
+        const guidePreviewArt = showBuildGuide && !art && habitat.stageAssets ? (habitat.stageAssets.level1 || '') : '';
         const articleStyle = buildInlineStyle({
             '--habitat-stage-left': layout.stageLeft,
             '--habitat-stage-top': layout.stageTop,
@@ -486,19 +654,27 @@
 
         return `
             <article
-                class="zoo-habitat-stage zoo-habitat-stage--${escapeHtml(layout.variant)}"
+                class="zoo-habitat-stage zoo-habitat-stage--${escapeHtml(layout.variant)}${showBuildGuide ? ' is-guide-target' : ''}"
                 data-habitat-id="${escapeHtml(habitat.id)}"
                 style="${articleStyle}"
             >
                 ${renderTicketBubble(habitat)}
+                ${showBuildGuide ? `
+                    <div class="zoo-home-habitat-guide" aria-hidden="true">
+                        <div class="zoo-home-habitat-guide-bubble">点击小熊猫栏舍，建立第一个 1 级栏舍</div>
+                        <img class="zoo-home-habitat-guide-hand" src="./Texture/UI/tutorial_hand.webp" alt="">
+                    </div>
+                ` : ''}
                 <button
-                    class="zoo-habitat-hotspot"
+                    class="zoo-habitat-hotspot${showBuildGuide ? ' is-guide-highlight' : ''}${habitat.isConstructing ? ' is-constructing' : ''}${!art && !guidePreviewArt && !showBuildGuide ? ' is-empty-site' : ''}"
                     type="button"
-                    data-action="open-info"
+                    data-action="${escapeHtml(primaryAction.action)}"
                     data-habitat-id="${escapeHtml(habitat.id)}"
-                    aria-label="查看栏舍信息"
+                    aria-label="${escapeHtml(primaryAction.label)}"
+                    ${habitat.isConstructing ? 'disabled' : ''}
                 >
-                    ${art ? `<img class="zoo-habitat-scene" src="${escapeHtml(art)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : ''}
+                    ${(art || guidePreviewArt) ? `<img class="zoo-habitat-scene${guidePreviewArt && !art ? ' is-guide-preview' : ''}" src="${escapeHtml(art || guidePreviewArt)}" alt="${escapeHtml(art ? (habitat.sceneAlt || habitat.name) : '栏舍 1 级预览')}">` : renderHabitatSitePlaceholder(habitat)}
+                    ${renderHabitatConstructionOverlay(habitat)}
                 </button>
             </article>
         `;
@@ -530,8 +706,9 @@
     }
 
     function renderOverviewCard(habitat, actionMarkup = '') {
-        const previewImage = habitat && habitat.sceneAsset
-            ? `<img class="habitat-overview-image" src="${escapeHtml(habitat.sceneAsset)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">`
+        const previewArt = habitat ? getHabitatArt(habitat) : '';
+        const previewImage = previewArt
+            ? `<img class="habitat-overview-image" src="${escapeHtml(previewArt)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">`
             : '<div class="habitat-overview-image habitat-overview-image--placeholder" aria-hidden="true"></div>';
 
         return `
@@ -568,7 +745,19 @@
     }
 
     function renderUnlockButton(habitat) {
-        if (!habitat || !habitat.canUnlock) {
+        if (!habitat) {
+            return '';
+        }
+
+        if (habitat.isConstructing) {
+            return `
+                <button class="habitat-action-btn" type="button" disabled>
+                    建造中...
+                </button>
+            `;
+        }
+
+        if (!habitat.canUnlock) {
             return '';
         }
 
@@ -582,12 +771,18 @@
     function renderLockedStatusTab(snapshot) {
         const habitat = snapshot.selectedHabitat;
         const actionMarkup = renderUnlockButton(habitat);
+        const infoTitle = habitat.isConstructing
+            ? `${habitat.name} 正在建造中`
+            : `${habitat.name} 尚未开放`;
+        const infoHint = habitat.isConstructing
+            ? '完工后会直接以 1 级栏舍开放，并同步解锁入驻、升级和自动产券。'
+            : '解锁后会开放栏舍状态、小动物、环境升级和自动产券。';
         return `
             ${renderOverviewCard(habitat, actionMarkup)}
             <div class="habitat-placeholder-card habitat-locked-card">
-                <div class="habitat-info-title">${escapeHtml(habitat.name)} \u5c1a\u672a\u5f00\u653e</div>
+                <div class="habitat-info-title">${escapeHtml(infoTitle)}</div>
                 <p>${escapeHtml(habitat.lockDescription)}</p>
-                <p>\u89e3\u9501\u540e\u4f1a\u5f00\u653e\u680f\u820d\u72b6\u6001\u3001\u5c0f\u52a8\u7269\u3001\u73af\u5883\u5347\u7ea7\u548c\u81ea\u52a8\u4ea7\u5238\u3002</p>
+                <p>${escapeHtml(infoHint)}</p>
             </div>
         `;
     }
@@ -643,7 +838,7 @@
     function renderLockedEnvironmentTab(snapshot) {
         const habitat = snapshot.selectedHabitat;
         const tiers = balance && balance.HABITAT_TIERS ? Object.values(balance.HABITAT_TIERS) : [];
-        const tierCards = tiers.slice(0, 2).map((tier) => (
+        const tierCards = tiers.map((tier) => (
             renderEnvironmentTierCard(tier, habitat.tier.id, habitat.nextTier && habitat.nextTier.id)
         )).join('');
 
@@ -844,11 +1039,13 @@
             return renderLockedAppearanceTab(snapshot);
         }
 
+        const previewArt = getHabitatArt(habitat);
+
         return `
             ${renderOverviewCard(habitat)}
             <div class="appearance-preview-card">
                 <div class="appearance-preview-media">
-                    ${habitat.sceneAsset ? `<img class="appearance-preview-image" src="${escapeHtml(habitat.sceneAsset)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : '<div class="appearance-preview-image appearance-preview-image--placeholder" aria-hidden="true"></div>'}
+                    ${previewArt ? `<img class="appearance-preview-image" src="${escapeHtml(previewArt)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : '<div class="appearance-preview-image appearance-preview-image--placeholder" aria-hidden="true"></div>'}
                 </div>
                 <div class="appearance-preview-copy">
                     <div class="habitat-info-title">\u5f53\u524d\u5916\u89c2\u4e3b\u9898</div>
@@ -887,6 +1084,100 @@
         });
     }
 
+    function playBuildEffect(onComplete) {
+        var overlay = document.createElement('div');
+        overlay.className = 'zoo-build-effect-overlay';
+        for (var i = 0; i < 16; i++) {
+            var particle = document.createElement('span');
+            particle.className = 'zoo-build-effect-particle';
+            particle.style.setProperty('--particle-x', (8 + Math.random() * 84) + '%');
+            particle.style.setProperty('--particle-y', (10 + Math.random() * 70) + '%');
+            particle.style.setProperty('--particle-delay', (Math.random() * 0.4) + 's');
+            particle.style.setProperty('--particle-size', (10 + Math.random() * 18) + 'px');
+            particle.style.setProperty('--particle-drift', ((Math.random() - 0.5) * 60) + 'px');
+            overlay.appendChild(particle);
+        }
+        var buildingText = document.createElement('div');
+        buildingText.className = 'zoo-build-effect-text';
+        buildingText.textContent = '🔨 建造中…';
+        overlay.appendChild(buildingText);
+        var container = refs.homeScreen || document.body;
+        container.appendChild(overlay);
+        globalScope.setTimeout(function () {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            if (typeof onComplete === 'function') {
+                onComplete();
+            }
+        }, 2000);
+    }
+
+    function playConstructionCelebration(habitatId) {
+        var container = refs.homeScreen || document.body;
+        var celebration = document.createElement('div');
+        celebration.className = 'zoo-construction-celebration';
+        var confettiColors = ['#ffd97c', '#ff9a5c', '#7ecf6a', '#5cb8ff', '#ff6b8a', '#c78fff', '#ffe066', '#6ae0cf', '#ff8a5c', '#a8d86e'];
+        for (var i = 0; i < 10; i++) {
+            var piece = document.createElement('span');
+            piece.className = 'zoo-confetti-piece';
+            piece.style.setProperty('--confetti-x', (5 + Math.random() * 90) + '%');
+            piece.style.setProperty('--confetti-delay', (Math.random() * 0.6) + 's');
+            piece.style.setProperty('--confetti-color', confettiColors[i % confettiColors.length]);
+            piece.style.setProperty('--confetti-rotation', (Math.random() * 360) + 'deg');
+            celebration.appendChild(piece);
+        }
+        var text = document.createElement('div');
+        text.className = 'zoo-celebration-text';
+        text.textContent = '\uD83C\uDF89 建造完成！';
+        celebration.appendChild(text);
+
+        var habitat = null;
+        if (economy && typeof economy.getSnapshot === 'function') {
+            var snap = economy.getSnapshot();
+            if (snap && Array.isArray(snap.habitats)) {
+                habitat = snap.habitats.find(function (h) { return h && h.id === habitatId; }) || null;
+            }
+        }
+        var level1Art = habitat && habitat.stageAssets && habitat.stageAssets.level1 ? habitat.stageAssets.level1 : '';
+        if (level1Art) {
+            var img = document.createElement('img');
+            img.className = 'zoo-celebration-habitat-image';
+            img.src = level1Art;
+            img.alt = '栏舍 1 级';
+            celebration.appendChild(img);
+        }
+
+        container.appendChild(celebration);
+        globalScope.setTimeout(function () {
+            if (celebration.parentNode) {
+                celebration.parentNode.removeChild(celebration);
+            }
+        }, 3000);
+    }
+
+    function startHabitatConstruction(habitatId) {
+        if (!economy || typeof economy.beginHabitatConstruction !== 'function') {
+            return null;
+        }
+
+        closePanel();
+        closeStoryPreviewPanel();
+        const result = economy.beginHabitatConstruction(habitatId);
+        if (result) {
+            if (result.ok) {
+                showToast(result.message, 'success');
+                playBuildEffect(function () {
+                    render();
+                });
+            } else {
+                showToast(result.message, 'warn');
+                render();
+            }
+        }
+        return result;
+    }
+
     function openPanelForTab(tabId = 'status') {
         if (!economy) {
             return false;
@@ -898,8 +1189,21 @@
             return false;
         }
 
+        return openPanelForHabitat(habitat.id, tabId);
+    }
+
+    function openPanelForHabitat(habitatId, tabId = 'status') {
+        if (!economy) {
+            return false;
+        }
+
+        const targetHabitatId = String(habitatId || '').trim();
+        if (!targetHabitatId) {
+            return false;
+        }
+
         if (typeof economy.openHabitatPanel === 'function') {
-            economy.openHabitatPanel(habitat.id);
+            economy.openHabitatPanel(targetHabitatId);
         }
         if (typeof economy.setActiveTab === 'function') {
             economy.setActiveTab(tabId);
@@ -1089,6 +1393,7 @@
 
         const homeHabitat = getHomeHabitat(snapshot);
         const selectedHabitat = getInfoHabitat(snapshot);
+        const displayHabitat = homeHabitat || selectedHabitat;
         const slotCopy = getSlotCardCopy(localState.slotSnapshot, snapshot);
 
         if (refs.resourceCoin) refs.resourceCoin.textContent = formatResourceNumber(snapshot.resources.coin || 0);
@@ -1101,42 +1406,50 @@
         }
 
         if (refs.devNote) {
-            refs.devNote.textContent = homeHabitat
-                ? `${homeHabitat.name} 当前为 ${homeHabitat.tier.label}，${homeHabitat.ticketCountdownText}`
-                : '动物园当前还是空场景，栖息地解锁章节暂未配置。';
+            refs.devNote.textContent = displayHabitat && displayHabitat.isConstructing
+                ? `${displayHabitat.name} 正在施工中，马上就会落成为 1 级栏舍`
+                : (displayHabitat && displayHabitat.unlocked
+                    ? `${displayHabitat.name} 当前为 ${displayHabitat.tier.label}，${displayHabitat.ticketCountdownText}`
+                    : '动物园当前还是空场景，栖息地解锁章节暂未配置。');
         }
 
         if (refs.habitatStageList) {
-            refs.habitatStageList.innerHTML = renderHabitatStage(homeHabitat);
+            refs.habitatStageList.innerHTML = renderHabitatStage(displayHabitat);
         }
 
         if (refs.mainTaskText) {
-            // Prefer quest system text when available; fall back to habitat-based copy
-            const questMod = globalScope.WynneRegistry
-                && typeof globalScope.WynneRegistry.get === 'function'
-                ? globalScope.WynneRegistry.get('WynneZooQuest')
-                : null;
-            refs.mainTaskText.textContent = questMod && typeof questMod.getActiveQuestText === 'function'
-                ? questMod.getActiveQuestText()
-                : getMainTaskCopy(snapshot);
+            if (shouldShowCollectionFollowupGuide(snapshot)) {
+                refs.mainTaskText.textContent = '查看小熊猫图鉴';
+            } else if (displayHabitat && displayHabitat.isConstructing) {
+                refs.mainTaskText.textContent = '建造中...';
+            } else {
+                const questMod = getQuestModule();
+                refs.mainTaskText.textContent = questMod && typeof questMod.getActiveQuestText === 'function'
+                    ? questMod.getActiveQuestText()
+                    : getMainTaskCopy(snapshot);
+            }
         }
 
         if (refs.habitatResidentPill) {
-            refs.habitatResidentPill.textContent = homeHabitat
-                ? `${homeHabitat.residentCount}/${homeHabitat.capacity} 只小动物`
-                : (selectedHabitat.isStoryLocked
-                    ? `暂未开放 · ${selectedHabitat.unlockStoryLabel || '待定剧情'}`
-                    : (selectedHabitat.unlocked
-                        ? `${selectedHabitat.residentCount}/${selectedHabitat.capacity} 只小动物`
-                        : `待解锁 · ${selectedHabitat.unlockCostCoin} 金币`));
+            refs.habitatResidentPill.textContent = displayHabitat && displayHabitat.isConstructing
+                ? '施工中 · 即将开放 1 级栏舍'
+                : (displayHabitat && displayHabitat.unlocked
+                    ? `${displayHabitat.residentCount}/${displayHabitat.capacity} 只小动物`
+                    : (selectedHabitat.isStoryLocked
+                        ? `暂未开放 · ${selectedHabitat.unlockStoryLabel || '待定剧情'}`
+                        : (selectedHabitat.unlocked
+                            ? `${selectedHabitat.residentCount}/${selectedHabitat.capacity} 只小动物`
+                            : `待建造 · ${selectedHabitat.unlockCostCoin} 金币`)));
         }
 
         if (refs.panelTitle) {
-            refs.panelTitle.textContent = selectedHabitat.unlocked
-                ? `${selectedHabitat.name} · ${selectedHabitat.tier.shortLabel || selectedHabitat.tier.label}`
-                : (selectedHabitat.isStoryLocked
-                    ? `${selectedHabitat.name} · 暂未开放`
-                    : `${selectedHabitat.name} · 待解锁`);
+            refs.panelTitle.textContent = selectedHabitat.isConstructing
+                ? `${selectedHabitat.name} · 建造中`
+                : (selectedHabitat.unlocked
+                    ? `${selectedHabitat.name} · ${selectedHabitat.tier.shortLabel || selectedHabitat.tier.label}`
+                    : (selectedHabitat.isStoryLocked
+                        ? `${selectedHabitat.name} · 暂未开放`
+                        : `${selectedHabitat.name} · 待建造`));
         }
 
         if (refs.panel) {
@@ -1218,6 +1531,18 @@
                 const openButton = target.closest('[data-action="open-info"]');
                 if (openButton && typeof economy.openHabitatPanel === 'function') {
                     economy.openHabitatPanel(openButton.getAttribute('data-habitat-id'));
+                    return;
+                }
+
+                const buildButton = target.closest('[data-action="build-habitat"]');
+                if (buildButton) {
+                    startHabitatConstruction(buildButton.getAttribute('data-habitat-id'));
+                    return;
+                }
+
+                const pendingButton = target.closest('[data-action="construction-pending"]');
+                if (pendingButton) {
+                    showToast('小熊猫栏舍正在建造中。', 'info');
                 }
             });
         }
@@ -1321,11 +1646,45 @@
 
         if (refs.mainTaskButton) {
             refs.mainTaskButton.addEventListener('click', () => {
-                // Quest system navigation: use quest nav target if available
-                const questModule = globalScope.WynneRegistry
-                    && typeof globalScope.WynneRegistry.get === 'function'
-                    ? globalScope.WynneRegistry.get('WynneZooQuest')
+                const snapshot = economy && typeof economy.getSnapshot === 'function'
+                    ? economy.getSnapshot()
                     : null;
+                if (shouldShowCollectionFollowupGuide(snapshot)) {
+                    const appShell = globalScope.WynneZooAppShell;
+                    if (appShell && typeof appShell.showCollection === 'function') {
+                        closePanel();
+                        closeStoryPreviewPanel();
+                        appShell.showCollection();
+                    } else {
+                        showToast('当前没有可查看的图鉴内容。', 'warn');
+                    }
+                    return;
+                }
+
+                // Quest system navigation: use quest nav target if available
+                const questModule = getQuestModule();
+                const questSnapshot = questModule && typeof questModule.getSnapshot === 'function'
+                    ? questModule.getSnapshot()
+                    : null;
+                const currentQuest = questSnapshot && questSnapshot.currentQuest
+                    ? questSnapshot.currentQuest
+                    : null;
+                const questTargetHabitatId = getQuestTargetHabitatId(currentQuest);
+                const questTargetHabitat = snapshot && Array.isArray(snapshot.habitats)
+                    ? snapshot.habitats.find((habitat) => habitat && habitat.id === questTargetHabitatId)
+                    : null;
+
+                if (currentQuest
+                    && currentQuest.conditionType === 'build'
+                    && questTargetHabitat
+                    && !questTargetHabitat.unlocked) {
+                    if (questTargetHabitat.isConstructing) {
+                        showToast('小熊猫栏舍正在建造中。', 'info');
+                    } else {
+                        startHabitatConstruction(questTargetHabitat.id);
+                    }
+                    return;
+                }
 
                 if (questModule && typeof questModule.getActiveQuestNavTarget === 'function') {
                     const navTarget = questModule.getActiveQuestNavTarget();
@@ -1358,7 +1717,10 @@
                             return;
                         }
                         if (navTarget === 'habitat-panel') {
-                            if (!openPanelForTab('status')) {
+                            const opened = questTargetHabitatId
+                                ? openPanelForHabitat(questTargetHabitatId, 'status')
+                                : openPanelForTab('status');
+                            if (!opened) {
                                 showToast('当前没有可查看的栏舍信息。', 'warn');
                             }
                             return;
@@ -1367,9 +1729,6 @@
                 }
 
                 // Fallback: original behavior when quest system is unavailable
-                const snapshot = economy && typeof economy.getSnapshot === 'function'
-                    ? economy.getSnapshot()
-                    : null;
                 const habitat = getInfoHabitat(snapshot);
 
                 if (habitat && habitat.isStoryLocked) {
@@ -1442,6 +1801,22 @@
 
         if (economy && typeof economy.subscribe === 'function') {
             localState.unsubscribeEconomy = economy.subscribe((snapshot) => {
+                var prevHabitatId = localState.lastConstructionHabitatId;
+                var currentFlow = snapshot && snapshot.constructionFlow && typeof snapshot.constructionFlow === 'object'
+                    ? snapshot.constructionFlow
+                    : null;
+                var currentHabitatId = currentFlow ? String(currentFlow.habitatId || '').trim() : '';
+                localState.lastConstructionHabitatId = currentHabitatId;
+
+                if (prevHabitatId && !currentHabitatId) {
+                    var completedHabitat = snapshot && Array.isArray(snapshot.habitats)
+                        ? snapshot.habitats.find(function (h) { return h && h.id === prevHabitatId && h.unlocked; })
+                        : null;
+                    if (completedHabitat) {
+                        playConstructionCelebration(prevHabitatId);
+                    }
+                }
+
                 render(snapshot);
             });
         } else {
@@ -1457,14 +1832,30 @@
         if (questModule) {
             // Initialize button text from quest system
             if (refs.mainTaskText && typeof questModule.getActiveQuestText === 'function') {
-                refs.mainTaskText.textContent = questModule.getActiveQuestText();
+                const snapshot = economy && typeof economy.getSnapshot === 'function'
+                    ? economy.getSnapshot()
+                    : null;
+                const taskHabitat = snapshot ? (getHomeHabitat(snapshot) || getInfoHabitat(snapshot)) : null;
+                refs.mainTaskText.textContent = shouldShowCollectionFollowupGuide(snapshot)
+                    ? '查看小熊猫图鉴'
+                    : ((taskHabitat && taskHabitat.isConstructing)
+                        ? '建造中...'
+                        : questModule.getActiveQuestText());
             }
 
             // Subscribe to quest state changes to update button text in real-time
             if (typeof questModule.subscribe === 'function') {
                 questModule.subscribe(function () {
                     if (refs.mainTaskText && typeof questModule.getActiveQuestText === 'function') {
-                        refs.mainTaskText.textContent = questModule.getActiveQuestText();
+                        const snapshot = economy && typeof economy.getSnapshot === 'function'
+                            ? economy.getSnapshot()
+                            : null;
+                        const taskHabitat = snapshot ? (getHomeHabitat(snapshot) || getInfoHabitat(snapshot)) : null;
+                        refs.mainTaskText.textContent = shouldShowCollectionFollowupGuide(snapshot)
+                            ? '查看小熊猫图鉴'
+                            : ((taskHabitat && taskHabitat.isConstructing)
+                                ? '建造中...'
+                                : questModule.getActiveQuestText());
                     }
                 });
             }

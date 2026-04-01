@@ -1404,6 +1404,242 @@
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
 
+.zoo-home-habitat-guide {
+    position: absolute;
+    left: 74%;
+    top: calc(var(--habitat-stage-top, 28.2385%) - 0.6rem);
+    transform: translate(-50%, -100%);
+    z-index: 7;
+    width: max-content;
+    max-width: 12rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+}
+
+.zoo-home-habitat-guide-bubble {
+    transform: translateY(-0.9rem);
+    padding: 0.7rem 0.85rem;
+    border-radius: 1rem;
+    background: rgba(41, 24, 9, 0.94);
+    border: 0.08rem solid rgba(255, 223, 154, 0.42);
+    color: #fff5db;
+    font-family: 'Nunito', 'Microsoft YaHei', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 800;
+    line-height: 1.35;
+    text-align: center;
+    box-shadow: 0 0.8rem 1.6rem rgba(0, 0, 0, 0.24);
+}
+
+.zoo-home-habitat-guide-hand {
+    display: block;
+    width: 2.4rem;
+    margin: 0.05rem -1.2rem 0 0;
+    animation: collectionGuideHandTap 1s ease-in-out infinite;
+}
+
+.zoo-habitat-hotspot.is-empty-site {
+    border-radius: 1.1rem;
+    background:
+        linear-gradient(180deg, rgba(255, 244, 215, 0.2) 0%, rgba(141, 108, 52, 0.1) 100%);
+}
+
+.zoo-habitat-hotspot.is-constructing {
+    cursor: default;
+}
+
+.zoo-habitat-empty-site {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 12%;
+    pointer-events: none;
+}
+
+.zoo-habitat-empty-site-ground {
+    position: absolute;
+    left: 12%;
+    right: 8%;
+    bottom: 16%;
+    height: 24%;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 237, 172, 0.68) 0%, rgba(231, 196, 119, 0.48) 34%, rgba(119, 83, 35, 0.26) 100%);
+    filter: blur(0.12rem);
+}
+
+.zoo-habitat-empty-site-frame {
+    position: absolute;
+    left: 18%;
+    right: 16%;
+    bottom: 18%;
+    height: 40%;
+    border-radius: 1rem;
+    border: 0.18rem dashed rgba(151, 111, 45, 0.72);
+    background:
+        linear-gradient(180deg, rgba(255, 248, 228, 0.62) 0%, rgba(214, 187, 124, 0.26) 100%);
+    box-shadow:
+        inset 0 0 0 0.08rem rgba(255, 255, 255, 0.44),
+        0 0.6rem 1.1rem rgba(98, 70, 22, 0.14);
+}
+
+.zoo-habitat-empty-site-copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.42rem;
+    color: #5f4017;
+    text-shadow: 0 0.08rem 0 rgba(255, 255, 255, 0.42);
+}
+
+.zoo-habitat-empty-site-badge {
+    padding: 0.32rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(92, 62, 18, 0.88);
+    color: #fff2cf;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.zoo-habitat-empty-site-copy strong {
+    font-family: 'Nunito', 'Microsoft YaHei', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.zoo-habitat-construction {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 12% 16%;
+    background:
+        linear-gradient(180deg, rgba(255, 247, 223, 0.08) 0%, rgba(83, 56, 16, 0.22) 100%),
+        radial-gradient(circle at 50% 72%, rgba(255, 220, 133, 0.22) 0%, rgba(255, 220, 133, 0) 52%);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.zoo-habitat-construction::before,
+.zoo-habitat-construction::after {
+    content: '';
+    position: absolute;
+    inset: 16% 18% 18%;
+    border-radius: 1rem;
+    pointer-events: none;
+}
+
+.zoo-habitat-construction::before {
+    border: 0.16rem solid rgba(129, 93, 35, 0.32);
+    background:
+        repeating-linear-gradient(
+            -55deg,
+            rgba(255, 208, 84, 0.14) 0,
+            rgba(255, 208, 84, 0.14) 0.7rem,
+            rgba(74, 53, 16, 0.08) 0.7rem,
+            rgba(74, 53, 16, 0.08) 1.3rem
+        );
+}
+
+.zoo-habitat-construction::after {
+    background:
+        radial-gradient(circle at 24% 68%, rgba(255, 247, 210, 0.3) 0%, rgba(255, 247, 210, 0) 26%),
+        radial-gradient(circle at 76% 62%, rgba(255, 247, 210, 0.26) 0%, rgba(255, 247, 210, 0) 24%);
+    animation: zooHabitatConstructionShine 1s ease-in-out infinite;
+}
+
+.zoo-habitat-construction-dust {
+    position: absolute;
+    left: 14%;
+    right: 14%;
+    bottom: 18%;
+    height: 36%;
+    background:
+        radial-gradient(circle at 16% 80%, rgba(232, 202, 134, 0.44) 0%, rgba(232, 202, 134, 0) 34%),
+        radial-gradient(circle at 42% 58%, rgba(255, 235, 187, 0.4) 0%, rgba(255, 235, 187, 0) 26%),
+        radial-gradient(circle at 74% 72%, rgba(224, 186, 112, 0.38) 0%, rgba(224, 186, 112, 0) 30%);
+    filter: blur(0.18rem);
+    animation: zooHabitatConstructionDust 1.1s ease-in-out infinite;
+}
+
+.zoo-habitat-construction-copy {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.22rem;
+    color: #fff6dc;
+    text-align: center;
+    text-shadow: 0 0.18rem 0.7rem rgba(51, 33, 7, 0.3);
+}
+
+.zoo-habitat-construction-copy span {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.zoo-habitat-construction-copy strong {
+    font-family: 'Nunito', 'Microsoft YaHei', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.zoo-habitat-construction-progress {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 0.55rem;
+    padding: 0.08rem;
+    border-radius: 999px;
+    background: rgba(74, 48, 15, 0.44);
+    box-shadow: inset 0 0.08rem 0.18rem rgba(0, 0, 0, 0.24);
+}
+
+.zoo-habitat-construction-progress span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background:
+        linear-gradient(90deg, #ffe38d 0%, #ffcd67 52%, #f7b24f 100%);
+    box-shadow: 0 0 0.6rem rgba(255, 221, 128, 0.5);
+    transition: width 140ms linear;
+}
+
+@keyframes zooHabitatConstructionDust {
+    0%,
+    100% {
+        transform: translateY(0) scale(0.96);
+        opacity: 0.62;
+    }
+    50% {
+        transform: translateY(-0.18rem) scale(1.04);
+        opacity: 0.96;
+    }
+}
+
+@keyframes zooHabitatConstructionShine {
+    0%,
+    100% {
+        opacity: 0.36;
+    }
+    50% {
+        opacity: 0.72;
+    }
+}
+
 .zoo-home-nav-btn.is-guide-highlight {
     filter: drop-shadow(0 0 0.8rem rgba(255, 224, 143, 0.6));
 }
@@ -1529,6 +1765,10 @@
     inset: 0;
 }
 
+.zoo-habitat-stage.is-guide-target {
+    z-index: 2;
+}
+
 .zoo-habitat-hotspot {
     position: absolute;
     display: block;
@@ -1545,6 +1785,11 @@
     filter: drop-shadow(0 20px 28px rgba(71, 59, 20, 0.24));
 }
 
+.zoo-habitat-hotspot.is-guide-highlight {
+    animation: collectionGuidePulse 1s ease-in-out infinite;
+    filter: drop-shadow(0 1.05rem 1.6rem rgba(71, 59, 20, 0.24)) drop-shadow(0 0 1rem rgba(255, 224, 143, 0.58));
+}
+
 .zoo-habitat-hotspot:focus-visible {
     outline: 3px solid rgba(255, 244, 180, 0.95);
     outline-offset: 6px;
@@ -1559,7 +1804,8 @@
     width: var(--habitat-image-width, 100%);
     height: var(--habitat-image-height, 100%);
     max-width: none;
-    object-fit: fill;
+    object-fit: contain;
+    object-position: center bottom;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
@@ -2102,6 +2348,10 @@
     inset: 0;
 }
 
+.zoo-habitat-stage.is-guide-target {
+    z-index: 2;
+}
+
 .zoo-habitat-hotspot {
     position: absolute;
     display: block;
@@ -2118,6 +2368,11 @@
     filter: drop-shadow(0 1.2rem 1.5rem rgba(81, 63, 21, 0.18));
 }
 
+.zoo-habitat-hotspot.is-guide-highlight {
+    animation: collectionGuidePulse 1s ease-in-out infinite;
+    filter: drop-shadow(0 1.2rem 1.5rem rgba(81, 63, 21, 0.18)) drop-shadow(0 0 0.8rem rgba(255, 224, 143, 0.62));
+}
+
 .zoo-habitat-hotspot:focus-visible {
     outline: 0.18rem solid rgba(255, 241, 180, 0.95);
     outline-offset: 0.28rem;
@@ -2127,15 +2382,32 @@
 .zoo-habitat-scene {
     position: absolute;
     left: var(--habitat-image-left, 0%);
-    top: var(--habitat-image-top, -47.67%);
+    top: var(--habitat-image-top, 0%);
     display: block;
     width: var(--habitat-image-width, 100%);
-    height: var(--habitat-image-height, 183.38%);
+    height: var(--habitat-image-height, 100%);
     max-width: none;
-    object-fit: fill;
+    object-fit: contain;
+    object-position: center bottom;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+}
+
+/* --- Guide preview image style (Task 3.5 - Bug 5) --- */
+.zoo-habitat-scene.is-guide-preview {
+    opacity: 0.72;
+    filter: brightness(0.88) saturate(0.8);
+    animation: guidePreviewGlow 2.4s ease-in-out infinite;
+}
+
+@keyframes guidePreviewGlow {
+    0%, 100% {
+        filter: brightness(0.88) saturate(0.8);
+    }
+    50% {
+        filter: brightness(1.02) saturate(0.92);
+    }
 }
 
 .zoo-habitat-ticket-bubble {
@@ -2651,4 +2923,165 @@
         opacity: 1;
         transform: scale(1) translateY(0);
     }
+}
+
+/* --- Build Effect Overlay (Task 3.3) --- */
+.zoo-build-effect-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(8, 20, 16, 0.45);
+    animation: zooBuildPulse 1s ease-in-out infinite;
+}
+
+.zoo-build-effect-particle {
+    position: absolute;
+    left: var(--particle-x, 50%);
+    top: var(--particle-y, 50%);
+    width: var(--particle-size, 14px);
+    height: var(--particle-size, 14px);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 222, 100, 0.95) 0%, rgba(255, 186, 60, 0.7) 40%, transparent 70%);
+    box-shadow: 0 0 8px rgba(255, 200, 80, 0.5);
+    animation: zooBuildParticleBurst 1.2s ease-out var(--particle-delay, 0s) forwards;
+    pointer-events: none;
+}
+
+.zoo-build-effect-text {
+    position: relative;
+    z-index: 2;
+    padding: 0.6rem 1.2rem;
+    border-radius: 1rem;
+    background: rgba(41, 24, 9, 0.88);
+    border: 0.08rem solid rgba(255, 223, 154, 0.4);
+    color: #fff5db;
+    font-size: 1.05rem;
+    font-weight: 900;
+    text-align: center;
+    box-shadow: 0 0.6rem 1.2rem rgba(0, 0, 0, 0.3);
+    animation: zooBuildPulse 1s ease-in-out infinite;
+}
+
+@keyframes zooBuildParticleBurst {
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(0);
+    }
+    25% {
+        opacity: 1;
+        transform: scale(1.2) translateX(var(--particle-drift, 0px)) translateY(-10px);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.2) translateX(var(--particle-drift, 0px)) translateY(-40px);
+    }
+}
+
+@keyframes zooBuildPulse {
+    0% {
+        opacity: 0.85;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0.85;
+    }
+}
+
+/* --- Construction Celebration (Task 3.4) --- */
+.zoo-construction-celebration {
+    position: absolute;
+    inset: 0;
+    z-index: 21;
+    pointer-events: none;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.zoo-confetti-piece {
+    position: absolute;
+    top: -10px;
+    left: var(--confetti-x, 50%);
+    width: 10px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--confetti-color, #ffd97c);
+    transform: rotate(var(--confetti-rotation, 0deg));
+    animation: zooConfettiFall 2.4s ease-in var(--confetti-delay, 0s) forwards;
+    pointer-events: none;
+}
+
+@keyframes zooConfettiFall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(var(--confetti-rotation, 0deg)) scale(1);
+    }
+    80% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(calc(100vh + 20px)) rotate(calc(var(--confetti-rotation, 0deg) + 540deg)) scale(0.6);
+    }
+}
+
+.zoo-celebration-text {
+    position: relative;
+    z-index: 2;
+    padding: 0.7rem 1.4rem;
+    border-radius: 1.2rem;
+    background: rgba(41, 24, 9, 0.92);
+    border: 0.08rem solid rgba(255, 223, 154, 0.45);
+    color: #fff5db;
+    font-family: 'Nunito', 'Microsoft YaHei', sans-serif;
+    font-size: 1.15rem;
+    font-weight: 900;
+    text-align: center;
+    box-shadow: 0 0.8rem 1.6rem rgba(0, 0, 0, 0.28);
+    animation: zooCelebrationFloat 2.8s ease-out forwards;
+}
+
+@keyframes zooCelebrationFloat {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.8);
+    }
+    15% {
+        opacity: 1;
+        transform: translateY(0) scale(1.05);
+    }
+    25% {
+        transform: translateY(0) scale(1);
+    }
+    75% {
+        opacity: 1;
+        transform: translateY(-10px) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.9);
+    }
+}
+
+/* --- Celebration Habitat Image (Task 3.5) --- */
+.zoo-celebration-habitat-image {
+    position: relative;
+    z-index: 1;
+    display: block;
+    max-width: 60%;
+    max-height: 30vh;
+    margin-top: 0.8rem;
+    border-radius: 1rem;
+    object-fit: contain;
+    box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.2);
+    animation: zooCelebrationFloat 2.8s ease-out forwards;
 }

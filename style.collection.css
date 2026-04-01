@@ -98,7 +98,7 @@
 }
 
 .collection-card.locked {
-    filter: grayscale(80%);
+    filter: none;
     opacity: 0.7;
 }
 
@@ -306,7 +306,7 @@
 }
 
 .collection-card.locked img {
-    filter: grayscale(1) saturate(0.4) brightness(0.78);
+    filter: none;
 }
 
 .collection-card.unlocked {
@@ -835,7 +835,7 @@
 }
 
 .collection-card.locked .collection-card-image {
-    filter: grayscale(1) saturate(0.35) brightness(0.82);
+    filter: none;
 }
 
 .collection-card-empty {
@@ -1517,7 +1517,7 @@
 }
 
 .collection-screen .collection-card.locked .collection-card-image {
-    filter: grayscale(1) saturate(0.3) brightness(0.72);
+    filter: none;
 }
 
 .collection-screen .collection-card.locked .collection-card-title {
@@ -1993,7 +1993,7 @@
 }
 
 .collection-screen .collection-card.locked .collection-card-image {
-    filter: grayscale(1) saturate(0.25) brightness(0.72);
+    filter: none;
 }
 
 .collection-screen .collection-card.locked .collection-card-title {
@@ -2639,8 +2639,8 @@
 
 .collection-screen .collection-card.locked img,
 .collection-screen .collection-card[data-unlocked="false"] img {
-    filter: grayscale(1) brightness(0.82) !important;
-    opacity: 0.75 !important;
+    filter: none !important;
+    opacity: 1 !important;
 }
 
 .collection-screen .collection-card.unlocked:hover {
@@ -2718,8 +2718,8 @@
 
 .collection-screen .collection-card.locked .collection-card-image,
 .collection-screen .collection-card[data-unlocked="false"] .collection-card-image {
-    filter: grayscale(1) brightness(0.82) !important;
-    opacity: 0.75 !important;
+    filter: none !important;
+    opacity: 1 !important;
 }
 
 .collection-screen .collection-card-tag {
@@ -2871,10 +2871,14 @@
 }
 
 .collection-screen .collection-card.locked .collection-card-bg,
-.collection-screen .collection-card.locked .collection-card-image,
 .collection-screen .collection-card.locked .collection-card-tag-image {
     filter: grayscale(1) brightness(0.82) !important;
     opacity: 0.75 !important;
+}
+
+.collection-screen .collection-card.locked .collection-card-image {
+    filter: none !important;
+    opacity: 1 !important;
 }
 
 .collection-screen .collection-card.locked .collection-card-title {
@@ -3159,8 +3163,8 @@
     position: absolute;
     left: calc(97 / 1052 * 100%);
     top: calc(609 / 994 * 100%);
-    width: calc(800 / 1052 * 100%);
-    height: calc(64 / 994 * 100%);
+    width: calc(840 / 1052 * 100%);
+    aspect-ratio: 1600 / 128;
 }
 
 .collection-screen .cd-figma-iucn-bg {
@@ -3169,7 +3173,7 @@
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: contain;
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
@@ -3182,9 +3186,12 @@
     align-items: center;
     padding: 0 calc(24 * var(--cd-figma-scale)) 0 calc(72 * var(--cd-figma-scale));
     color: #f3e3c3;
-    font-size: calc(38 * var(--cd-figma-scale));
+    font-size: calc(var(--cd-figma-iucn-font-size, 38) * var(--cd-figma-scale));
     font-weight: 900;
-    line-height: 1.32;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
 }
 
 /* Unlock badge */

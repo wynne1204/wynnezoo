@@ -15,6 +15,7 @@
 
     const ENTRY_STORY_ID = 'prologue';
     const FIRST_CHAPTER_ID = '第一章';
+    const SECOND_CHAPTER_ID = '第二章';
     const STORY_BACKDROP_MODE_STORY = 'story';
     const STORY_BACKDROP_MODE_ZOO_HOME = 'zoo-home';
 
@@ -144,6 +145,37 @@
             : null;
     }
 
+    function getPendingReturnStory() {
+        return zooEconomy && typeof zooEconomy.getPendingReturnStory === 'function'
+            ? zooEconomy.getPendingReturnStory()
+            : null;
+    }
+
+    function maybePlayReadyPendingReturnStory() {
+        const pendingReturnStory = getPendingReturnStory();
+        const pendingReturnStoryId = String(pendingReturnStory && pendingReturnStory.pendingReturnStoryId || '').trim();
+        if (!pendingReturnStoryId || !pendingReturnStory.readyToResume || !hasPlayableStory(pendingReturnStoryId)) {
+            return false;
+        }
+
+        if (!zooEconomy || typeof zooEconomy.consumePendingReturnStory !== 'function') {
+            return false;
+        }
+
+        const consumedStoryId = String(zooEconomy.consumePendingReturnStory() || '').trim();
+        if (!consumedStoryId) {
+            return false;
+        }
+
+        globalScope.requestAnimationFrame(() => {
+            showStory(consumedStoryId, {
+                markAsPlayed: true,
+                returnTo: 'zoo'
+            });
+        });
+        return true;
+    }
+
     function setScreenVisibility(visibility = {}) {
         if (storyScreen) {
             storyScreen.classList.toggle('is-active', Boolean(visibility.story));
@@ -233,6 +265,10 @@
             zooHome.onShow(getSlotSnapshot());
         }
 
+        if (maybePlayReadyPendingReturnStory()) {
+            return true;
+        }
+
         return true;
     }
 
@@ -285,6 +321,11 @@
                     }))
                     : [];
                 const unlockedAnyCollectionSpecies = collectionUnlockResults.some((result) => result && result.unlockedNow);
+                const shouldDeferFollowupToCollectionReturn = Boolean(
+                    targetStoryId === FIRST_CHAPTER_ID
+                    && followupStoryId === SECOND_CHAPTER_ID
+                    && collectionUnlockResults.some((result) => result && result.unlockedNow && result.speciesId === 'red-panda')
+                );
                 if ((finishedNormally || followupStoryId)
                     && config.markAsPlayed
                     && zooEconomy
@@ -298,6 +339,14 @@
                 var systemUnlock = globalScope.WynneSystemUnlock || null;
                 if (systemUnlock && typeof systemUnlock.checkAndUnlock === 'function') {
                     systemUnlock.checkAndUnlock(targetStoryId);
+                }
+                if (shouldDeferFollowupToCollectionReturn
+                    && zooEconomy
+                    && typeof zooEconomy.setPendingReturnStory === 'function') {
+                    zooEconomy.setPendingReturnStory(followupStoryId, {
+                        pendingGuideSpeciesId: 'red-panda',
+                        readyToResume: false
+                    });
                 }
                 if (typeof config.onComplete === 'function') {
                     try {
