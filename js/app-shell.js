@@ -65,20 +65,18 @@
         return false;
     }
 
+    const MAIN_STORY_SEQUENCE = {
+        'prologue': '第一章',
+        '第一章': '第二章',
+        '第二章': '第三章'
+    };
+
     function resolveFollowupStoryId(storyId) {
         const targetId = String(storyId || '').trim();
-        const storyData = getStoryData();
-        if (storyData && typeof storyData.getNextStoryId === 'function') {
-            const nextStoryId = String(storyData.getNextStoryId(targetId) || '').trim();
-            if (nextStoryId && hasPlayableStory(nextStoryId)) {
-                return nextStoryId;
-            }
+        const nextId = MAIN_STORY_SEQUENCE[targetId] || '';
+        if (nextId && hasPlayableStory(nextId)) {
+            return nextId;
         }
-
-        if (targetId === ENTRY_STORY_ID && hasPlayableStory(FIRST_CHAPTER_ID)) {
-            return FIRST_CHAPTER_ID;
-        }
-
         return '';
     }
 

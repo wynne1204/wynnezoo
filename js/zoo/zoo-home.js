@@ -1285,6 +1285,21 @@
                 playBuildEffect(function () {
                     render();
                     playConstructionCelebration(habitatId);
+                    // 小熊猫栏舍首次建造完成后，触发特殊剧情
+                    if (habitatId === 'red-panda-grove') {
+                        globalScope.setTimeout(function () {
+                            if (economy && typeof economy.setPendingReturnStory === 'function') {
+                                economy.setPendingReturnStory('post-build-red-panda', {
+                                    readyToResume: true
+                                });
+                            }
+                            var appShell = globalScope.WynneZooAppShell
+                                || (globalScope.WynneRegistry && globalScope.WynneRegistry.get('WynneZooAppShell'));
+                            if (appShell && typeof appShell.showZooHome === 'function') {
+                                appShell.showZooHome();
+                            }
+                        }, 3500);
+                    }
                 });
             } else {
                 showToast(result.message, 'warn');

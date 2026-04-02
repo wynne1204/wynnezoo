@@ -1246,13 +1246,82 @@
                 "collectionUnlock": null
             }
         ]
+    },
+    "post-build-red-panda": {
+        "version": 1,
+        "storyId": "post-build-red-panda",
+        "title": "新家落成",
+        "stage": {
+            "maxActorsPerBeat": 2,
+            "singleActorPosition": "center",
+            "doubleActorPositions": [
+                "left",
+                "right"
+            ]
+        },
+        "characters": [
+            {
+                "id": "character-1681525453",
+                "name": "我",
+                "portraits": [
+                    {
+                        "id": "portrait-9f33252b68",
+                        "label": "我-运动",
+                        "src": "./Texture/story/立绘/我-运动.webp"
+                    }
+                ]
+            }
+        ],
+        "beats": [
+            {
+                "id": "beat-pb01-narration",
+                "title": "小熊猫栏舍建造完成",
+                "background": "",
+                "type": "narration",
+                "speakerName": "",
+                "text": "小熊猫栏舍建造完成了！红豆终于有了属于自己的新家。",
+                "actorCount": 0,
+                "actors": [],
+                "presentation": "standard",
+                "effectClass": "",
+                "cameraEffect": "",
+                "backgroundMode": "zoo-home",
+                "itemReward": null,
+                "interaction": null,
+                "choices": null,
+                "collectionUnlock": null
+            },
+            {
+                "id": "beat-pb02-dialogue",
+                "title": "欢迎红豆入住新家",
+                "background": "",
+                "type": "dialogue",
+                "speakerName": "我",
+                "text": "红豆，快来看看你的新家！以后这里就是你的小天地啦。",
+                "actorCount": 1,
+                "actors": [
+                    {
+                        "characterId": "character-1681525453",
+                        "portraitId": "portrait-9f33252b68"
+                    }
+                ],
+                "presentation": "standard",
+                "effectClass": "",
+                "cameraEffect": "",
+                "backgroundMode": "zoo-home",
+                "itemReward": null,
+                "interaction": null,
+                "choices": null,
+                "collectionUnlock": null
+            }
+        ]
     }
 };
     globalScope.WynneImportedStoryMeta = {
     "source": "剧情.xlsx",
     "generatedAt": "2026-04-02T17:14:36+08:00",
-    "storyCount": 3,
-    "beatCount": 54,
+    "storyCount": 4,
+    "beatCount": 56,
     "warnings": []
 };
 }(window));
