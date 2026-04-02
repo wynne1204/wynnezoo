@@ -1399,7 +1399,7 @@
 
 .zoo-home-collection-guide-hand {
     display: block;
-    width: 2.4rem;
+    width: 3.6rem;
     margin: 0.15rem -20px 0 0;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
@@ -2394,20 +2394,97 @@
     pointer-events: none;
 }
 
-/* --- Guide preview image style (Task 3.5 - Bug 5) --- */
-.zoo-habitat-scene.is-guide-preview {
-    opacity: 0.72;
-    filter: brightness(0.88) saturate(0.8);
-    animation: guidePreviewGlow 2.4s ease-in-out infinite;
+/* --- Build Guide Zone (highlighted click area) --- */
+.zoo-build-guide-zone {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(255, 214, 90, 0.18) 0%, rgba(255, 214, 90, 0) 70%),
+        linear-gradient(180deg, rgba(255, 240, 180, 0.12), rgba(255, 200, 80, 0.08));
 }
 
-@keyframes guidePreviewGlow {
-    0%, 100% {
-        filter: brightness(0.88) saturate(0.8);
-    }
-    50% {
-        filter: brightness(1.02) saturate(0.92);
-    }
+.zoo-build-guide-ring {
+    position: absolute;
+    inset: 6px;
+    border-radius: inherit;
+    border: 2.5px solid rgba(255, 214, 90, 0.6);
+    animation: guidePulseRing 1.6s ease-in-out infinite;
+}
+
+.zoo-build-guide-ring--outer {
+    inset: -2px;
+    border: 2px dashed rgba(255, 214, 90, 0.35);
+    animation: guidePulseRingOuter 2s ease-in-out infinite;
+}
+
+.zoo-build-guide-icon {
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+    animation: guideIconBounce 1.2s ease-in-out infinite;
+}
+
+.zoo-build-guide-label {
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(41, 24, 9, 0.75);
+    color: #ffe8a8;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes guidePulseRing {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+}
+
+@keyframes guidePulseRingOuter {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.05); }
+}
+
+@keyframes guideIconBounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-6px) scale(1.1); }
+}
+
+/* --- Construction Sparks --- */
+.zoo-habitat-construction-sparks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.zoo-construction-spark {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffe07d;
+    box-shadow: 0 0 6px 2px rgba(255, 200, 60, 0.6);
+    animation: constructionSpark 0.8s ease-out infinite;
+}
+
+.zoo-construction-spark:nth-child(1) { left: 20%; top: 40%; animation-delay: 0s; }
+.zoo-construction-spark:nth-child(2) { left: 55%; top: 30%; animation-delay: 0.15s; }
+.zoo-construction-spark:nth-child(3) { left: 75%; top: 55%; animation-delay: 0.3s; }
+.zoo-construction-spark:nth-child(4) { left: 35%; top: 60%; animation-delay: 0.45s; }
+.zoo-construction-spark:nth-child(5) { left: 65%; top: 45%; animation-delay: 0.6s; }
+.zoo-construction-spark:nth-child(6) { left: 45%; top: 35%; animation-delay: 0.75s; }
+
+@keyframes constructionSpark {
+    0% { opacity: 0; transform: scale(0) translateY(0); }
+    30% { opacity: 1; transform: scale(1.5) translateY(-8px); }
+    100% { opacity: 0; transform: scale(0.3) translateY(-20px); }
 }
 
 .zoo-habitat-ticket-bubble {
@@ -3009,14 +3086,14 @@
 
 .zoo-confetti-piece {
     position: absolute;
-    top: -10px;
+    top: -14px;
     left: var(--confetti-x, 50%);
-    width: 10px;
-    height: 14px;
+    width: var(--confetti-size, 10px);
+    height: calc(var(--confetti-size, 10px) * 1.4);
     border-radius: 2px;
     background: var(--confetti-color, #ffd97c);
     transform: rotate(var(--confetti-rotation, 0deg));
-    animation: zooConfettiFall 2.4s ease-in var(--confetti-delay, 0s) forwards;
+    animation: zooConfettiFall 2.8s ease-in var(--confetti-delay, 0s) forwards;
     pointer-events: none;
 }
 
@@ -3084,4 +3161,65 @@
     object-fit: contain;
     box-shadow: 0 0.6rem 1.4rem rgba(0, 0, 0, 0.2);
     animation: zooCelebrationFloat 2.8s ease-out forwards;
+}
+
+/* --- Celebration Sparkle Burst --- */
+.zoo-celebration-sparkle {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--sparkle-size, 6px);
+    height: var(--sparkle-size, 6px);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff8d6 0%, #ffd97c 50%, transparent 100%);
+    box-shadow: 0 0 8px 2px rgba(255, 220, 100, 0.5);
+    pointer-events: none;
+    animation: zooCelebrationSparkleBurst 1s ease-out var(--sparkle-delay, 0s) forwards;
+}
+
+@keyframes zooCelebrationSparkleBurst {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--sparkle-angle, 0deg)) translateX(0) scale(0.3);
+    }
+    25% {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(var(--sparkle-angle, 0deg)) translateX(calc(var(--sparkle-dist, 80px) * 0.5)) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--sparkle-angle, 0deg)) translateX(var(--sparkle-dist, 80px)) scale(0.1);
+    }
+}
+
+/* --- Celebration Stars --- */
+.zoo-celebration-star {
+    position: absolute;
+    left: var(--star-x, 50%);
+    top: var(--star-y, 40%);
+    font-size: 1.4rem;
+    color: #ffe680;
+    text-shadow: 0 0 12px rgba(255, 220, 80, 0.8), 0 0 24px rgba(255, 180, 40, 0.4);
+    pointer-events: none;
+    animation: zooCelebrationStarPop 1.4s ease-out var(--star-delay, 0s) forwards;
+    transform: scale(0);
+}
+
+@keyframes zooCelebrationStarPop {
+    0% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(calc(var(--star-scale, 1) * 1.3)) rotate(90deg);
+    }
+    60% {
+        opacity: 1;
+        transform: scale(var(--star-scale, 1)) rotate(180deg);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(calc(var(--star-scale, 1) * 0.4)) rotate(360deg);
+    }
 }

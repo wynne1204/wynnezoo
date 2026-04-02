@@ -290,15 +290,15 @@
 }
 
 .collection-card-guide img {
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 2.85rem;
+    height: 2.85rem;
     object-fit: contain;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
 
 .collection-card-guide.is-hand-only img {
-    width: 2.2rem;
-    height: 2.2rem;
+    width: 3.3rem;
+    height: 3.3rem;
 }
 
 .collection-card.locked {
@@ -1156,8 +1156,8 @@
 }
 
 .collection-card-guide img {
-    width: 1.9rem;
-    height: 1.9rem;
+    width: 2.85rem;
+    height: 2.85rem;
     object-fit: contain;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
@@ -2870,8 +2870,7 @@
     cursor: pointer;
 }
 
-.collection-screen .collection-card.locked .collection-card-bg,
-.collection-screen .collection-card.locked .collection-card-tag-image {
+.collection-screen .collection-card.locked .collection-card-bg {
     filter: grayscale(1) brightness(0.82) !important;
     opacity: 0.75 !important;
 }

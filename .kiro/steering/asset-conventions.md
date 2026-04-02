@@ -8,6 +8,7 @@ inclusion: auto
 
 - All image assets (backgrounds, icons, textures, etc.) MUST use WebP format for production.
 - When adding new image resources, always convert PNG/JPG to WebP before referencing in code.
+- Figma-imported assets follow the same rule: after export/download, convert them to `.webp` before committing, and reference the `.webp` file in HTML/CSS/JS.
 - Recommended conversion settings:
   - Background images: max 1920px wide, quality 85
   - UI elements/icons: quality 88

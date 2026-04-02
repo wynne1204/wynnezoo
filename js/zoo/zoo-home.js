@@ -46,7 +46,8 @@
         storyEntryCount: 0,
         unlockNotificationQueue: [],
         unlockPopupActive: false,
-        lastConstructionHabitatId: ''
+        lastConstructionHabitatId: '',
+        buildEffectActive: false
     };
     const HABITAT_ID_BY_SPECIES_ID = Object.freeze({
         'red-panda': 'red-panda-grove'
@@ -568,23 +569,7 @@
     }
 
     function renderHabitatConstructionOverlay(habitat) {
-        if (!habitat || !habitat.isConstructing) {
-            return '';
-        }
-
-        const progressPct = Math.max(0, Math.min(100, Math.round(Number(habitat.constructionProgressPct) || 0)));
-        return `
-            <div class="zoo-habitat-construction" aria-hidden="true">
-                <div class="zoo-habitat-construction-dust"></div>
-                <div class="zoo-habitat-construction-copy">
-                    <span>施工中</span>
-                    <strong>正在建造小熊猫栏舍</strong>
-                </div>
-                <div class="zoo-habitat-construction-progress">
-                    <span style="width:${progressPct}%"></span>
-                </div>
-            </div>
-        `;
+        return '';
     }
 
     function getMainTaskCopy(snapshot) {
@@ -629,6 +614,10 @@
             return '';
         }
 
+        if (habitat.isConstructing) {
+            return '';
+        }
+
         const art = getHabitatArt(habitat);
         const layout = getHabitatStageLayout(habitat);
         const snapshot = economy && typeof economy.getSnapshot === 'function'
@@ -636,7 +625,6 @@
             : null;
         const primaryAction = getHabitatPrimaryAction(snapshot, habitat);
         const showBuildGuide = primaryAction.showBuildGuide;
-        const guidePreviewArt = showBuildGuide && !art && habitat.stageAssets ? (habitat.stageAssets.level1 || '') : '';
         const articleStyle = buildInlineStyle({
             '--habitat-stage-left': layout.stageLeft,
             '--habitat-stage-top': layout.stageTop,
@@ -659,21 +647,25 @@
                 style="${articleStyle}"
             >
                 ${renderTicketBubble(habitat)}
-                ${showBuildGuide ? `
-                    <div class="zoo-home-habitat-guide" aria-hidden="true">
-                        <div class="zoo-home-habitat-guide-bubble">点击小熊猫栏舍，建立第一个 1 级栏舍</div>
-                        <img class="zoo-home-habitat-guide-hand" src="./Texture/UI/tutorial_hand.webp" alt="">
-                    </div>
-                ` : ''}
+                ${showBuildGuide ? '' : ''}
                 <button
-                    class="zoo-habitat-hotspot${showBuildGuide ? ' is-guide-highlight' : ''}${habitat.isConstructing ? ' is-constructing' : ''}${!art && !guidePreviewArt && !showBuildGuide ? ' is-empty-site' : ''}"
+                    class="zoo-habitat-hotspot${showBuildGuide ? ' is-guide-highlight' : ''}${habitat.isConstructing ? ' is-constructing' : ''}${!art && !showBuildGuide ? ' is-empty-site' : ''}"
                     type="button"
                     data-action="${escapeHtml(primaryAction.action)}"
                     data-habitat-id="${escapeHtml(habitat.id)}"
                     aria-label="${escapeHtml(primaryAction.label)}"
                     ${habitat.isConstructing ? 'disabled' : ''}
                 >
-                    ${(art || guidePreviewArt) ? `<img class="zoo-habitat-scene${guidePreviewArt && !art ? ' is-guide-preview' : ''}" src="${escapeHtml(art || guidePreviewArt)}" alt="${escapeHtml(art ? (habitat.sceneAlt || habitat.name) : '栏舍 1 级预览')}">` : renderHabitatSitePlaceholder(habitat)}
+                    ${art ? `<img class="zoo-habitat-scene" src="${escapeHtml(art)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : ''}
+                    ${showBuildGuide && !art ? `
+                        <div class="zoo-build-guide-zone" aria-hidden="true">
+                            <div class="zoo-build-guide-ring"></div>
+                            <div class="zoo-build-guide-ring zoo-build-guide-ring--outer"></div>
+                            <div class="zoo-build-guide-icon">🏗️</div>
+                            <div class="zoo-build-guide-label">点击这里建造</div>
+                        </div>
+                    ` : ''}
+                    ${!art && !showBuildGuide ? renderHabitatSitePlaceholder(habitat) : ''}
                     ${renderHabitatConstructionOverlay(habitat)}
                 </button>
             </article>
@@ -1085,6 +1077,7 @@
     }
 
     function playBuildEffect(onComplete) {
+        localState.buildEffectActive = true;
         var overlay = document.createElement('div');
         overlay.className = 'zoo-build-effect-overlay';
         for (var i = 0; i < 16; i++) {
@@ -1104,6 +1097,7 @@
         var container = refs.homeScreen || document.body;
         container.appendChild(overlay);
         globalScope.setTimeout(function () {
+            localState.buildEffectActive = false;
             if (overlay.parentNode) {
                 overlay.parentNode.removeChild(overlay);
             }
@@ -1117,43 +1111,57 @@
         var container = refs.homeScreen || document.body;
         var celebration = document.createElement('div');
         celebration.className = 'zoo-construction-celebration';
+
+        // Confetti - 20 pieces for stronger effect
         var confettiColors = ['#ffd97c', '#ff9a5c', '#7ecf6a', '#5cb8ff', '#ff6b8a', '#c78fff', '#ffe066', '#6ae0cf', '#ff8a5c', '#a8d86e'];
-        for (var i = 0; i < 10; i++) {
+        for (var i = 0; i < 20; i++) {
             var piece = document.createElement('span');
             piece.className = 'zoo-confetti-piece';
-            piece.style.setProperty('--confetti-x', (5 + Math.random() * 90) + '%');
-            piece.style.setProperty('--confetti-delay', (Math.random() * 0.6) + 's');
+            piece.style.setProperty('--confetti-x', (3 + Math.random() * 94) + '%');
+            piece.style.setProperty('--confetti-delay', (Math.random() * 0.8) + 's');
             piece.style.setProperty('--confetti-color', confettiColors[i % confettiColors.length]);
             piece.style.setProperty('--confetti-rotation', (Math.random() * 360) + 'deg');
+            piece.style.setProperty('--confetti-size', (6 + Math.random() * 10) + 'px');
             celebration.appendChild(piece);
         }
+
+        // Sparkle burst - 24 particles radiating from center
+        for (var j = 0; j < 24; j++) {
+            var sparkle = document.createElement('span');
+            sparkle.className = 'zoo-celebration-sparkle';
+            var angle = (j / 24) * 360;
+            var dist = 60 + Math.random() * 100;
+            sparkle.style.setProperty('--sparkle-angle', angle + 'deg');
+            sparkle.style.setProperty('--sparkle-dist', dist + 'px');
+            sparkle.style.setProperty('--sparkle-delay', (Math.random() * 0.3) + 's');
+            sparkle.style.setProperty('--sparkle-size', (4 + Math.random() * 8) + 'px');
+            celebration.appendChild(sparkle);
+        }
+
+        // Star burst - 8 larger stars
+        for (var k = 0; k < 8; k++) {
+            var star = document.createElement('span');
+            star.className = 'zoo-celebration-star';
+            star.textContent = '✦';
+            star.style.setProperty('--star-x', (10 + Math.random() * 80) + '%');
+            star.style.setProperty('--star-y', (15 + Math.random() * 50) + '%');
+            star.style.setProperty('--star-delay', (Math.random() * 0.5) + 's');
+            star.style.setProperty('--star-scale', (0.8 + Math.random() * 0.8).toFixed(2));
+            celebration.appendChild(star);
+        }
+
+        // Completion text
         var text = document.createElement('div');
         text.className = 'zoo-celebration-text';
-        text.textContent = '\uD83C\uDF89 建造完成！';
+        text.textContent = '🎉 建造完成！';
         celebration.appendChild(text);
-
-        var habitat = null;
-        if (economy && typeof economy.getSnapshot === 'function') {
-            var snap = economy.getSnapshot();
-            if (snap && Array.isArray(snap.habitats)) {
-                habitat = snap.habitats.find(function (h) { return h && h.id === habitatId; }) || null;
-            }
-        }
-        var level1Art = habitat && habitat.stageAssets && habitat.stageAssets.level1 ? habitat.stageAssets.level1 : '';
-        if (level1Art) {
-            var img = document.createElement('img');
-            img.className = 'zoo-celebration-habitat-image';
-            img.src = level1Art;
-            img.alt = '栏舍 1 级';
-            celebration.appendChild(img);
-        }
 
         container.appendChild(celebration);
         globalScope.setTimeout(function () {
             if (celebration.parentNode) {
                 celebration.parentNode.removeChild(celebration);
             }
-        }, 3000);
+        }, 3500);
     }
 
     function startHabitatConstruction(habitatId) {
@@ -1166,9 +1174,9 @@
         const result = economy.beginHabitatConstruction(habitatId);
         if (result) {
             if (result.ok) {
-                showToast(result.message, 'success');
                 playBuildEffect(function () {
                     render();
+                    playConstructionCelebration(habitatId);
                 });
             } else {
                 showToast(result.message, 'warn');
@@ -1801,23 +1809,9 @@
 
         if (economy && typeof economy.subscribe === 'function') {
             localState.unsubscribeEconomy = economy.subscribe((snapshot) => {
-                var prevHabitatId = localState.lastConstructionHabitatId;
-                var currentFlow = snapshot && snapshot.constructionFlow && typeof snapshot.constructionFlow === 'object'
-                    ? snapshot.constructionFlow
-                    : null;
-                var currentHabitatId = currentFlow ? String(currentFlow.habitatId || '').trim() : '';
-                localState.lastConstructionHabitatId = currentHabitatId;
-
-                if (prevHabitatId && !currentHabitatId) {
-                    var completedHabitat = snapshot && Array.isArray(snapshot.habitats)
-                        ? snapshot.habitats.find(function (h) { return h && h.id === prevHabitatId && h.unlocked; })
-                        : null;
-                    if (completedHabitat) {
-                        playConstructionCelebration(prevHabitatId);
-                    }
+                if (!localState.buildEffectActive) {
+                    render(snapshot);
                 }
-
-                render(snapshot);
             });
         } else {
             render();
