@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // Slot Game — Runtime Logic
 // Config, constants & data tables are in js/slot/slot-config.js
 // (loaded before this file via <script> tag in index.html)
@@ -833,10 +833,10 @@ function getCustomerConfig() {
         portraitImages: portraitImages.length > 0
             ? portraitImages
             : [
-                './Texture/story/立绘/游客-1.png',
-                './Texture/story/立绘/游客-2.png',
-                './Texture/story/立绘/游客-3.png',
-                './Texture/story/立绘/游客-4.png'
+                './Texture/story/立绘/游客-1.webp',
+                './Texture/story/立绘/游客-2.webp',
+                './Texture/story/立绘/游客-3.webp',
+                './Texture/story/立绘/游客-4.webp'
             ],
         preferencePool: preferencePool.length > 0 ? preferencePool : [...NORMAL_SYMBOL_ORDER]
     };
@@ -4685,6 +4685,26 @@ function ensureSlotGameInitialized() {
     return initGame();
 }
 
+function showSlotTutorial() {
+    const overlay = document.getElementById('slot-tutorial-overlay');
+    if (overlay) {
+        overlay.classList.remove('hidden');
+        updateSlotBackButtonVisibility();
+    }
+}
+
+function hideSlotTutorial() {
+    const overlay = document.getElementById('slot-tutorial-overlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+        const zooEconomy = typeof getZooEconomy === 'function' ? getZooEconomy() : null;
+        if (zooEconomy && typeof zooEconomy.markSlotTutorialSeen === 'function') {
+            zooEconomy.markSlotTutorialSeen();
+        }
+        updateSlotBackButtonVisibility();
+    }
+}
+
 function enterSlotGameView() {
     const initialized = ensureSlotGameInitialized();
     if (!initialized) {
@@ -4701,6 +4721,14 @@ function enterSlotGameView() {
     playSlotEntranceAnimation();
     // Replay the box-drop animation for unrevealed cells every time the view is entered
     replayBoardEntranceOnViewEnter();
+
+    const zooEconomy = typeof getZooEconomy === 'function' ? getZooEconomy() : null;
+    if (zooEconomy && typeof zooEconomy.hasSeenSlotTutorial === 'function') {
+        if (!zooEconomy.hasSeenSlotTutorial()) {
+            showSlotTutorial();
+        }
+    }
+
     return true;
 }
 
@@ -4818,6 +4846,11 @@ function getSlotGameSnapshot() {
 }
 
 // Event Listeners
+const slotTutorialCloseBtn = document.getElementById('slot-tutorial-close-btn');
+if (slotTutorialCloseBtn) {
+    slotTutorialCloseBtn.addEventListener('click', hideSlotTutorial);
+}
+
 if (cashoutBtn) {
     cashoutBtn.addEventListener('click', openAllBoxes);
 }

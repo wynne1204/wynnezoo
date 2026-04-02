@@ -44,13 +44,16 @@
         detailTemperature: null,
         detailSocial: null,
         detailUnlock: null,
+        materialRewardOverlay: null,
+        materialRewardConfirm: null
     };
 
     const state = {
         initialized: false,
         currentPage: 0,
         detailSpeciesId: '',
-        snapshot: null
+        snapshot: null,
+        rewardConfirming: false
     };
     let iucnFitFrame = 0;
 
@@ -147,6 +150,8 @@
         refs.detailTemperature = refs.screen && refs.screen.querySelector('[data-collection-detail-temperature]');
         refs.detailSocial = refs.screen && refs.screen.querySelector('[data-collection-detail-social]');
         refs.detailUnlock = refs.screen && refs.screen.querySelector('.cd-figma-unlock-value');
+        refs.materialRewardOverlay = document.getElementById('collection-material-reward-overlay');
+        refs.materialRewardConfirm = document.getElementById('collection-material-reward-confirm');
     }
 
     function getCollectionSnapshot(snapshot = state.snapshot) {
@@ -158,7 +163,9 @@
                 totalSpecies: 0,
                 unlockedCount: 0,
                 pendingGuideSpeciesId: '',
-                lastViewedSpeciesId: ''
+                lastViewedSpeciesId: '',
+                pendingGuideRewardSpeciesId: '',
+                guideRewardClaimedBySpeciesId: {}
             };
     }
 
@@ -225,6 +232,25 @@
         state.currentPage = Math.max(0, Math.min(maxPageIndex, state.currentPage));
     }
 
+    function syncDetailForPendingReward(collection) {
+        if (!collection) {
+            return;
+        }
+
+        const pendingRewardSpeciesId = String(collection.pendingGuideRewardSpeciesId || '').trim();
+        if (!pendingRewardSpeciesId) {
+            return;
+        }
+
+        const pendingRewardSpecies = collection.species.find((species) => species.id === pendingRewardSpeciesId) || null;
+        if (!pendingRewardSpecies || !pendingRewardSpecies.unlocked) {
+            return;
+        }
+
+        state.currentPage = pendingRewardSpecies.pageIndex;
+        state.detailSpeciesId = pendingRewardSpecies.id;
+    }
+
     function updateBackButton() {
         if (!refs.backBtn) {
             return;
@@ -236,6 +262,58 @@
         const accessibleLabel = refs.backBtn.querySelector('.collection-back-accessible');
         if (accessibleLabel) {
             accessibleLabel.textContent = label;
+        }
+    }
+
+    function updateMaterialRewardOverlay() {
+        const pendingRewardSpeciesId = String(getCollectionSnapshot().pendingGuideRewardSpeciesId || '').trim();
+        const isVisible = Boolean(pendingRewardSpeciesId && state.detailSpeciesId === pendingRewardSpeciesId);
+
+        if (refs.materialRewardOverlay) {
+            refs.materialRewardOverlay.hidden = !isVisible;
+            refs.materialRewardOverlay.setAttribute('aria-hidden', isVisible ? 'false' : 'true');
+            refs.materialRewardOverlay.classList.toggle('is-visible', isVisible);
+        }
+
+        if (refs.screen) {
+            refs.screen.classList.toggle('has-material-reward', isVisible);
+        }
+
+        if (refs.backBtn) {
+            refs.backBtn.disabled = isVisible;
+        }
+    }
+
+    function hideMaterialRewardOverlay() {
+        if (refs.materialRewardOverlay) {
+            refs.materialRewardOverlay.hidden = true;
+            refs.materialRewardOverlay.setAttribute('aria-hidden', 'true');
+            refs.materialRewardOverlay.classList.remove('is-visible');
+        }
+
+        if (refs.screen) {
+            refs.screen.classList.remove('has-material-reward');
+        }
+
+        if (refs.backBtn) {
+            refs.backBtn.disabled = false;
+        }
+    }
+
+    function forceShowZooHome() {
+        const zooHomeScreen = document.getElementById('zoo-home-screen');
+        if (refs.screen) {
+            refs.screen.classList.remove('is-active');
+            refs.screen.setAttribute('aria-hidden', 'true');
+        }
+        if (zooHomeScreen) {
+            zooHomeScreen.classList.add('is-active');
+            zooHomeScreen.setAttribute('aria-hidden', 'false');
+        }
+
+        const zooHomeModule = globalScope.ZooHomeModule || null;
+        if (zooHomeModule && typeof zooHomeModule.onShow === 'function') {
+            zooHomeModule.onShow(null);
         }
     }
 
@@ -374,6 +452,7 @@
             if (refs.screen) {
                 refs.screen.classList.remove('is-detail-view');
             }
+            updateMaterialRewardOverlay();
             return;
         }
 
@@ -424,9 +503,14 @@
             refs.screen.classList.add('is-detail-view');
         }
         scheduleIucnTextFit();
+        updateMaterialRewardOverlay();
     }
 
     function closeDetail() {
+        if (String(getCollectionSnapshot().pendingGuideRewardSpeciesId || '').trim()) {
+            return;
+        }
+
         state.detailSpeciesId = '';
         if (refs.detail) {
             refs.detail.hidden = true;
@@ -436,6 +520,7 @@
         }
         updateBackButton();
         renderGrid();
+        updateMaterialRewardOverlay();
     }
 
     function openDetail(speciesId) {
@@ -448,9 +533,17 @@
         if (species.unlocked && economy && typeof economy.markCollectionSpeciesViewed === 'function') {
             economy.markCollectionSpeciesViewed(species.id);
         }
+        const queuedMaterialReward = Boolean(
+            species.unlocked
+            && species.isPendingGuide
+            && species.id === 'red-panda'
+            && economy
+            && typeof economy.queueCollectionGuideReward === 'function'
+            && economy.queueCollectionGuideReward(species.id)
+        );
         if (species.unlocked && species.isPendingGuide && economy && typeof economy.clearCollectionGuide === 'function') {
             const clearedGuide = economy.clearCollectionGuide(species.id);
-            if (clearedGuide && typeof economy.markPendingReturnStoryReady === 'function') {
+            if (clearedGuide && !queuedMaterialReward && typeof economy.markPendingReturnStoryReady === 'function') {
                 economy.markPendingReturnStoryReady(species.id);
             }
         }
@@ -461,6 +554,69 @@
         renderGrid();
         renderDetail();
         return true;
+    }
+
+    function confirmMaterialReward() {
+        if (state.rewardConfirming) {
+            return;
+        }
+
+        const pendingRewardSpeciesId = String(getCollectionSnapshot().pendingGuideRewardSpeciesId || '').trim();
+        const economy = getEconomy();
+        if (!pendingRewardSpeciesId || !economy) {
+            updateMaterialRewardOverlay();
+            return;
+        }
+
+        state.rewardConfirming = true;
+        if (refs.materialRewardConfirm) {
+            refs.materialRewardConfirm.disabled = true;
+        }
+
+        hideMaterialRewardOverlay();
+
+        if (typeof economy.claimCollectionGuideReward === 'function') {
+            economy.claimCollectionGuideReward(pendingRewardSpeciesId);
+        }
+        if (typeof economy.markPendingReturnStoryReady === 'function') {
+            economy.markPendingReturnStoryReady(pendingRewardSpeciesId);
+        }
+
+        state.snapshot = economy.getSnapshot();
+        state.rewardConfirming = false;
+        if (refs.materialRewardConfirm) {
+            refs.materialRewardConfirm.disabled = false;
+        }
+
+        const appShell = getAppShell();
+        const pendingReturnStory = typeof economy.getPendingReturnStory === 'function'
+            ? economy.getPendingReturnStory()
+            : null;
+        const pendingReturnStoryId = String(pendingReturnStory && pendingReturnStory.pendingReturnStoryId || '').trim();
+
+        if (pendingReturnStory && pendingReturnStory.readyToResume && pendingReturnStoryId) {
+            const consumedStoryId = typeof economy.consumePendingReturnStory === 'function'
+                ? String(economy.consumePendingReturnStory() || '').trim()
+                : pendingReturnStoryId;
+            if (consumedStoryId && appShell && typeof appShell.showStory === 'function') {
+                globalScope.requestAnimationFrame(() => {
+                    appShell.showStory(consumedStoryId, {
+                        markAsPlayed: true,
+                        returnTo: 'zoo'
+                    });
+                });
+                return;
+            }
+        }
+
+        if (appShell && typeof appShell.showZooHome === 'function') {
+            globalScope.requestAnimationFrame(() => {
+                appShell.showZooHome();
+            });
+            return;
+        }
+
+        forceShowZooHome();
     }
 
     function showPage(nextPageIndex) {
@@ -512,6 +668,14 @@
             refs.backBtn.addEventListener('click', handleBack);
         }
 
+        if (refs.materialRewardConfirm) {
+            refs.materialRewardConfirm.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                confirmMaterialReward();
+            });
+        }
+
         globalScope.addEventListener('resize', () => {
             if (state.detailSpeciesId) {
                 renderDetail();
@@ -539,6 +703,7 @@
 
         state.snapshot = snapshot || (getEconomy() ? getEconomy().getSnapshot() : null);
         syncPageForGuide(getCollectionSnapshot());
+        syncDetailForPendingReward(getCollectionSnapshot());
         updateBackButton();
 
         if (refs.screen) {
@@ -555,11 +720,17 @@
             refs.screen.classList.remove('is-active');
             refs.screen.setAttribute('aria-hidden', 'true');
         }
+        state.rewardConfirming = false;
+        if (refs.materialRewardConfirm) {
+            refs.materialRewardConfirm.disabled = false;
+        }
+        updateMaterialRewardOverlay();
     }
 
     function render(snapshot = null) {
         state.snapshot = snapshot || (getEconomy() ? getEconomy().getSnapshot() : null);
         syncPageForGuide(getCollectionSnapshot());
+        syncDetailForPendingReward(getCollectionSnapshot());
         updateBackButton();
         renderGrid();
         renderDetail();

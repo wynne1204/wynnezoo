@@ -119,7 +119,7 @@
             </div>
         </section>
         <section id="zoo-home-screen" class="app-screen zoo-home-screen is-active" aria-label="&#21160;&#29289;&#22253;&#20027;&#30028;&#38754;">
-            <img id="zoo-home-bg" class="zoo-home-bg" src="./Texture/ZOO/UI_Zoo_MainBG.png" alt="&#21160;&#29289;&#22253;&#20027;&#22330;&#26223;&#32972;&#26223;">
+            <img id="zoo-home-bg" class="zoo-home-bg" src="./Texture/ZOO/UI_Zoo_MainBG.webp" alt="&#21160;&#29289;&#22253;&#20027;&#22330;&#26223;&#32972;&#26223;">
             <div class="zoo-home-topbar">
                 <div class="zoo-resource-chip is-ticket">
                     <img class="zoo-resource-chip-bg" src="./Texture/UI/Home_ResourceBarBG.png" alt="" aria-hidden="true">
@@ -285,7 +285,7 @@
                 <div class="main-stage customer-stage">
                     <section class="customer-panel" id="customer-panel">
                         <div class="customer-portrait">
-                            <img src="./Texture/story/立绘/游客-1.png" alt="顾客立绘" id="customer-portrait">
+                            <img src="./Texture/story/立绘/游客-1.webp" alt="顾客立绘" id="customer-portrait">
                         </div>
                         <div class="customer-bubble" id="customer-preference-bubble">
                             <img src="./Texture/UI/NewSlot/bubble_bg.png" alt="喜爱积木气泡" class="bubble-bg">
@@ -506,6 +506,65 @@
                     </div>
                 </div>
 
+                <div id="slot-tutorial-overlay" class="slot-tutorial-overlay hidden">
+                    <div class="tutorial-card">
+                        <div class="tutorial-header">
+                            <span class="tutorial-decorator deco-left" aria-hidden="true">✨</span>
+                            <h2>盲盒商店玩法</h2>
+                            <span class="tutorial-decorator deco-right" aria-hidden="true">✨</span>
+                        </div>
+                        
+                        <div class="tutorial-body">
+                            <div class="tutorial-step">
+                                <div class="step-icon-group">
+                                    <img class="step-img" src="./Texture/UI/Icon_Ticket.png" alt="玩法券">
+                                    <svg class="step-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    <img class="step-img" src="./Texture/Icon/Icon_Box_UnOpen.webp" alt="盲盒">
+                                </div>
+                                <div class="step-text">
+                                    <h3>1. 盲开盲盒</h3>
+                                    <p>消耗<strong class="highlight-ticket">玩法券</strong>，随机翻开货架上的盲盒</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tutorial-step">
+                                <div class="step-icon-group single-icon">
+                                    <img class="step-img-large" src="./Texture/Icon/Icon_Box_Open.webp" alt="开启">
+                                </div>
+                                <div class="step-text">
+                                    <h3>2. 连成一片</h3>
+                                    <p>开出相邻同类的物品，连成 <strong class="highlight-combo">3 个以上</strong> 即可消除得分！</p>
+                                </div>
+                            </div>
+
+                            <div class="tutorial-step">
+                                <div class="step-icon-group customer-group">
+                                    <div class="customer-avatar-wrap">
+                                        <img class="step-img-avatar" src="./Texture/story/立绘/游客-1.png" alt="顾客">
+                                        <div class="customer-heart">❤️</div>
+                                    </div>
+                                </div>
+                                <div class="step-text">
+                                    <h3>3. 满足顾客</h3>
+                                    <p>留意顾客的 <strong class="highlight-customer">心愿物品</strong>，开出对应可获得惊喜奖励！</p>
+                                </div>
+                            </div>
+
+                            <div class="tutorial-step">
+                                <div class="step-icon-group single-icon">
+                                    <span class="step-emoji">🌈</span>
+                                </div>
+                                <div class="step-text">
+                                    <h3>4. 万能百搭</h3>
+                                    <p><strong class="highlight-wild">百搭积木</strong>能跟任何物品相连，是凑成大连消的利器！</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="slot-tutorial-close-btn" class="tutorial-btn" type="button">开始寻宝 🚀</button>
+                    </div>
+                </div>
+
                 <div id="scene-fade" class="scene-fade"></div>
                 <div id="flash-overlay" class="flash-overlay"></div>
             </div>
@@ -583,6 +642,35 @@
                     </div>
                 </section>
 
+                <div id="collection-material-reward-overlay" class="collection-material-reward-overlay" hidden aria-hidden="true">
+                    <div class="collection-material-reward-backdrop"></div>
+                    <div class="collection-material-reward-glow collection-material-reward-glow--outer" aria-hidden="true"></div>
+                    <div class="collection-material-reward-glow collection-material-reward-glow--inner" aria-hidden="true"></div>
+                    <div class="collection-material-reward-card" role="dialog" aria-modal="true" aria-labelledby="collection-material-reward-title" aria-describedby="collection-material-reward-desc">
+                        <div class="collection-material-reward-badge">建造物资已送达</div>
+                        <div class="collection-material-reward-showcase" aria-hidden="true">
+                            <div class="collection-material-reward-rays"></div>
+                            <span class="collection-material-chip collection-material-chip--a"></span>
+                            <span class="collection-material-chip collection-material-chip--b"></span>
+                            <span class="collection-material-chip collection-material-chip--c"></span>
+                            <span class="collection-material-chip collection-material-chip--d"></span>
+                            <div class="collection-material-reward-core">
+                                <svg viewBox="0 0 64 64" class="collection-material-reward-icon" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M39.7 14.5L49.5 24.3L42.8 31L33 21.2L39.7 14.5Z" fill="#FFF8DE"/>
+                                    <path d="M18.8 40.3L33 26.1L37.9 31L23.7 45.2C22 46.9 19.2 46.9 17.5 45.2C15.8 43.5 15.8 41.9 18.8 40.3Z" fill="#FFE28A"/>
+                                    <path d="M42.2 10.8C43.7 9.3 46.2 9.3 47.7 10.8L53.2 16.3C54.7 17.8 54.7 20.3 53.2 21.8L50.8 24.2L39.8 13.2L42.2 10.8Z" fill="#FF8A4C"/>
+                                    <path d="M14.6 42.8L21.2 49.4" stroke="#1F5F3B" stroke-width="4" stroke-linecap="round"/>
+                                    <path d="M31.2 18.4L45.6 32.8" stroke="#1F5F3B" stroke-width="4" stroke-linecap="round"/>
+                                    <circle cx="32" cy="32" r="28" stroke="rgba(255,248,222,0.45)" stroke-width="2"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 id="collection-material-reward-title" class="collection-material-reward-title">获得建造栏舍材料！</h3>
+                        <p id="collection-material-reward-desc" class="collection-material-reward-desc">小熊猫栏舍的建造材料已经备齐，确认后就能继续推进后续建造流程。</p>
+                        <button id="collection-material-reward-confirm" class="collection-material-reward-confirm" type="button">确认收下</button>
+                    </div>
+                </div>
+
                 <button id="collection-back-btn" class="collection-figma-back-btn" type="button" aria-label="返回主页">
                     <img class="collection-figma-back-image" src="./Texture/UI/Collection/figma_detail_back_btn.webp" alt="" aria-hidden="true">
                     <span class="collection-back-accessible">返回主页</span>
@@ -594,9 +682,6 @@
         <div class="login-scene" aria-hidden="true">
             <img class="login-scene-bg" src="./Texture/UI/Login/LoginSceneBG.webp" alt="">
             <img class="login-scene-title" src="./Texture/UI/Login/LoginTitle.webp" alt="">
-            <div class="login-scene-character-frame">
-                <img class="login-scene-character" src="./Texture/UI/Login/LoginCharacter.webp" alt="">
-            </div>
         </div>
         <div id="login-loading" class="login-loading" hidden>
             <div class="login-loading-spinner" aria-hidden="true"></div>

@@ -8,7 +8,7 @@
         ticketHint: '由各栖息地根据小动物心情自动产出，用于拆开一次惊喜盲盒。普通局和 Free Spin 结算金币，Bonus 结算钻石。'
     };
 
-    const STARTER_PLAY_TICKETS = 3;
+    const STARTER_PLAY_TICKETS = 20;
 
     const HABITAT_TIER_ORDER = ['tier-1', 'tier-2', 'tier-3', 'tier-4', 'tier-5', 'tier-6'];
 
@@ -111,8 +111,7 @@
                 level2: './Texture/ZOO/redpanda/habitat-level-2.webp',
                 level3: './Texture/ZOO/redpanda/habitat-level-3.webp',
                 level4: './Texture/ZOO/redpanda/habitat-level-4.webp',
-                level5: './Texture/ZOO/redpanda/habitat-level-5.webp',
-                level6: './Texture/ZOO/redpanda/habitat-level-6.webp'
+                level5: './Texture/ZOO/redpanda/habitat-level-5.webp'
             },
             unlockCostCoin: 0,
             defaultUnlocked: false,
@@ -120,6 +119,13 @@
             unlockStoryId: '第二章',
             unlockStoryLabel: '第二章剧情',
             defaultTierId: 'tier-1',
+            availableTierIds: ['tier-1', 'tier-2', 'tier-3', 'tier-4', 'tier-5'],
+            tierDiamondCosts: {
+                'tier-2': 100,
+                'tier-3': 200,
+                'tier-4': 300,
+                'tier-5': 400
+            },
             hungerDecayPerSec: 0.017,
             thirstDecayPerSec: 0.021,
             baseMoodBonus: 6,
@@ -173,19 +179,55 @@
         return Math.min(max, Math.max(min, numeric));
     }
 
-    function getTierById(tierId) {
+    function getHabitatTierOrder(habitatId) {
+        const habitatDefinition = habitatId ? getHabitatDefinition(habitatId) : null;
+        const configuredTierIds = habitatDefinition && Array.isArray(habitatDefinition.availableTierIds)
+            ? habitatDefinition.availableTierIds.filter((tierId, index, tierIds) => (
+                HABITAT_TIERS[tierId]
+                && tierIds.indexOf(tierId) === index
+            ))
+            : [];
+
+        return configuredTierIds.length > 0
+            ? configuredTierIds
+            : HABITAT_TIER_ORDER;
+    }
+
+    function getTierById(tierId, habitatId) {
         const normalizedTierId = LEGACY_TIER_ID_MAP[tierId] || tierId;
-        return HABITAT_TIERS[normalizedTierId] || HABITAT_TIERS['tier-1'];
+        const tierOrder = getHabitatTierOrder(habitatId);
+        const fallbackTierId = tierOrder[0] || 'tier-1';
+        const baseTierId = HABITAT_TIERS[normalizedTierId] ? normalizedTierId : fallbackTierId;
+        const resolvedTierId = tierOrder.includes(baseTierId)
+            ? baseTierId
+            : (tierOrder[tierOrder.length - 1] || fallbackTierId);
+        const tier = HABITAT_TIERS[resolvedTierId] || HABITAT_TIERS[fallbackTierId] || HABITAT_TIERS['tier-1'];
+        const habitatDefinition = habitatId ? getHabitatDefinition(habitatId) : null;
+        const tierDiamondCosts = habitatDefinition && habitatDefinition.tierDiamondCosts && typeof habitatDefinition.tierDiamondCosts === 'object'
+            ? habitatDefinition.tierDiamondCosts
+            : null;
+
+        if (!tierDiamondCosts || !Object.prototype.hasOwnProperty.call(tierDiamondCosts, tier.id)) {
+            return tier;
+        }
+
+        return {
+            ...tier,
+            diamondCost: Math.max(0, Math.floor(Number(tierDiamondCosts[tier.id]) || 0))
+        };
     }
 
-    function getTierIndex(tierId) {
-        return Math.max(0, HABITAT_TIER_ORDER.indexOf(tierId));
+    function getTierIndex(tierId, habitatId) {
+        const tierOrder = getHabitatTierOrder(habitatId);
+        const normalizedTierId = getTierById(tierId, habitatId).id;
+        return Math.max(0, tierOrder.indexOf(normalizedTierId));
     }
 
-    function getNextTier(tierId) {
-        const nextIndex = getTierIndex(tierId) + 1;
-        const nextId = HABITAT_TIER_ORDER[nextIndex];
-        return nextId ? getTierById(nextId) : null;
+    function getNextTier(tierId, habitatId) {
+        const tierOrder = getHabitatTierOrder(habitatId);
+        const nextIndex = getTierIndex(tierId, habitatId) + 1;
+        const nextId = tierOrder[nextIndex];
+        return nextId ? getTierById(nextId, habitatId) : null;
     }
 
     function getHabitatDefinition(habitatId) {
@@ -276,6 +318,7 @@
         HABITAT_TIERS,
         HABITAT_DEFINITIONS,
         clampNumber,
+        getHabitatTierOrder,
         getTierById,
         getNextTier,
         getHabitatDefinition,

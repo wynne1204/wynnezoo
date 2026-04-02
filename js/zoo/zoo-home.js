@@ -374,11 +374,32 @@
         }
 
         const tierLevel = Number(habitat.tier.level);
+        const assetLevels = habitat.stageAssets && typeof habitat.stageAssets === 'object'
+            ? Object.keys(habitat.stageAssets)
+                .map((key) => Number(String(key).replace('level', '')))
+                .filter((level) => Number.isFinite(level) && level > 0)
+            : [];
+        const maxTierLevel = assetLevels.length > 0
+            ? Math.max(...assetLevels)
+            : 6;
+
         if (Number.isFinite(tierLevel) && tierLevel > 0) {
-            return Math.max(1, Math.min(6, Math.round(tierLevel)));
+            return Math.max(1, Math.min(maxTierLevel, Math.round(tierLevel)));
         }
 
         return 1;
+    }
+
+    function getHabitatTierDefinitions(habitat) {
+        if (!balance || !habitat) {
+            return [];
+        }
+
+        if (typeof balance.getHabitatTierOrder === 'function' && typeof balance.getTierById === 'function') {
+            return balance.getHabitatTierOrder(habitat.id).map((tierId) => balance.getTierById(tierId, habitat.id));
+        }
+
+        return balance.HABITAT_TIERS ? Object.values(balance.HABITAT_TIERS) : [];
     }
 
     function getHabitatArtKey(habitat) {
@@ -470,14 +491,16 @@
             imageHeight: '100%'
         },
         level6: {
-            stageLeft: '3.1624%',
-            stageTop: '20.4976%',
-            stageWidth: '101.0256%',
-            stageHeight: '45.5766%',
+            stageLeft: '5.8974%',
+            stageTop: '20.7946%',
+            stageWidth: '99.7436%',
+            stageHeight: '43.0885%',
             imageLeft: '0%',
-            imageTop: '0%',
+            imageTop: '-53.35%',
             imageWidth: '100%',
-            imageHeight: '100%'
+            imageHeight: '191.49%',
+            imageFit: 'fill',
+            imagePosition: 'center center'
         }
     };
 
@@ -569,7 +592,19 @@
     }
 
     function renderHabitatConstructionOverlay(habitat) {
-        return '';
+        if (!habitat || !habitat.isConstructing) return '';
+        return `
+            <div class="zoo-habitat-construction" aria-hidden="true">
+                <div class="zoo-habitat-construction-dust"></div>
+                <div class="zoo-habitat-construction-copy">
+                    <span>CONSTRUCTING</span>
+                    <strong>小熊猫栏舍施工中...</strong>
+                </div>
+                <div class="zoo-habitat-construction-progress">
+                    <span style="width: 65%; background: linear-gradient(90deg, #86efac 0%, #4ade80 52%, #22c55e 100%); box-shadow: 0 0 0.6rem rgba(74, 222, 128, 0.5);"></span>
+                </div>
+            </div>
+        `;
     }
 
     function getMainTaskCopy(snapshot) {
@@ -634,6 +669,8 @@
             '--habitat-image-top': layout.imageTop,
             '--habitat-image-width': layout.imageWidth,
             '--habitat-image-height': layout.imageHeight,
+            '--habitat-image-fit': layout.imageFit || 'contain',
+            '--habitat-image-position': layout.imagePosition || 'center bottom',
             '--habitat-bubble-left': layout.bubbleLeft,
             '--habitat-bubble-top': layout.bubbleTop,
             '--habitat-bubble-width': layout.bubbleWidth,
@@ -661,8 +698,14 @@
                         <div class="zoo-build-guide-zone" aria-hidden="true">
                             <div class="zoo-build-guide-ring"></div>
                             <div class="zoo-build-guide-ring zoo-build-guide-ring--outer"></div>
-                            <div class="zoo-build-guide-icon">🏗️</div>
-                            <div class="zoo-build-guide-label">点击这里建造</div>
+                            <div class="zoo-build-guide-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/>
+                                    <path d="M17.64 15 22 10.64"/>
+                                    <path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H11.2l-1.42 1.42L14 8.6l3.5 3.5Z"/>
+                                </svg>
+                            </div>
+                            <div class="zoo-build-guide-label">点此建造栏舍</div>
                         </div>
                     ` : ''}
                     ${!art && !showBuildGuide ? renderHabitatSitePlaceholder(habitat) : ''}
@@ -829,7 +872,7 @@
 
     function renderLockedEnvironmentTab(snapshot) {
         const habitat = snapshot.selectedHabitat;
-        const tiers = balance && balance.HABITAT_TIERS ? Object.values(balance.HABITAT_TIERS) : [];
+        const tiers = getHabitatTierDefinitions(habitat);
         const tierCards = tiers.map((tier) => (
             renderEnvironmentTierCard(tier, habitat.tier.id, habitat.nextTier && habitat.nextTier.id)
         )).join('');
@@ -985,7 +1028,7 @@
             return renderLockedEnvironmentTab(snapshot);
         }
 
-        const tiers = balance && balance.HABITAT_TIERS ? Object.values(balance.HABITAT_TIERS) : [];
+        const tiers = getHabitatTierDefinitions(habitat);
         const tierCards = tiers
             .filter(tier => tier.id === habitat.tier.id || (habitat.nextTier && tier.id === habitat.nextTier.id))
             .map((tier) => (
@@ -1080,19 +1123,33 @@
         localState.buildEffectActive = true;
         var overlay = document.createElement('div');
         overlay.className = 'zoo-build-effect-overlay';
-        for (var i = 0; i < 16; i++) {
+        for (var i = 0; i < 28; i++) {
             var particle = document.createElement('span');
             particle.className = 'zoo-build-effect-particle';
-            particle.style.setProperty('--particle-x', (8 + Math.random() * 84) + '%');
-            particle.style.setProperty('--particle-y', (10 + Math.random() * 70) + '%');
-            particle.style.setProperty('--particle-delay', (Math.random() * 0.4) + 's');
-            particle.style.setProperty('--particle-size', (10 + Math.random() * 18) + 'px');
-            particle.style.setProperty('--particle-drift', ((Math.random() - 0.5) * 60) + 'px');
+            particle.style.setProperty('--particle-x', (15 + Math.random() * 70) + '%');
+            particle.style.setProperty('--particle-y', (20 + Math.random() * 60) + '%');
+            particle.style.setProperty('--particle-delay', (Math.random() * 0.3) + 's');
+            particle.style.setProperty('--particle-size', (8 + Math.random() * 16) + 'px');
+            particle.style.setProperty('--particle-drift', ((Math.random() - 0.5) * 80) + 'px');
+            if (Math.random() > 0.5) {
+                particle.style.background = 'radial-gradient(circle, rgba(74,222,128,0.95) 0%, rgba(34,197,94,0.7) 50%, transparent 80%)';
+                particle.style.boxShadow = '0 0 10px rgba(74,222,128,0.5)';
+            } else {
+                particle.style.background = 'radial-gradient(circle, rgba(217,119,6,0.95) 0%, rgba(180,83,9,0.7) 50%, transparent 80%)';
+                particle.style.boxShadow = '0 0 10px rgba(217,119,6,0.5)';
+            }
             overlay.appendChild(particle);
         }
         var buildingText = document.createElement('div');
         buildingText.className = 'zoo-build-effect-text';
-        buildingText.textContent = '🔨 建造中…';
+        buildingText.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;">
+                <path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/>
+                <path d="M17.64 15 22 10.64"/>
+                <path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H11.2l-1.42 1.42L14 8.6l3.5 3.5Z"/>
+            </svg>
+            <span style="display:inline-block; vertical-align:middle; color: #4ade80;">栏舍施工中...</span>
+        `;
         overlay.appendChild(buildingText);
         var container = refs.homeScreen || document.body;
         container.appendChild(overlay);
@@ -1104,7 +1161,7 @@
             if (typeof onComplete === 'function') {
                 onComplete();
             }
-        }, 2000);
+        }, 2200);
     }
 
     function playConstructionCelebration(habitatId) {
@@ -1112,48 +1169,85 @@
         var celebration = document.createElement('div');
         celebration.className = 'zoo-construction-celebration';
 
-        // Confetti - 20 pieces for stronger effect
-        var confettiColors = ['#ffd97c', '#ff9a5c', '#7ecf6a', '#5cb8ff', '#ff6b8a', '#c78fff', '#ffe066', '#6ae0cf', '#ff8a5c', '#a8d86e'];
-        for (var i = 0; i < 20; i++) {
-            var piece = document.createElement('span');
-            piece.className = 'zoo-confetti-piece';
-            piece.style.setProperty('--confetti-x', (3 + Math.random() * 94) + '%');
-            piece.style.setProperty('--confetti-delay', (Math.random() * 0.8) + 's');
-            piece.style.setProperty('--confetti-color', confettiColors[i % confettiColors.length]);
-            piece.style.setProperty('--confetti-rotation', (Math.random() * 360) + 'deg');
-            piece.style.setProperty('--confetti-size', (6 + Math.random() * 10) + 'px');
-            celebration.appendChild(piece);
+        // Fireworks Bursts
+        var fireworkColors = ['#4ade80', '#22c55e', '#fde047', '#fef08a', '#38bdf8', '#a78bfa', '#f472b6', '#fb923c'];
+        for (var b = 0; b < 6; b++) {
+            var bx = 15 + Math.random() * 70;
+            var by = 15 + Math.random() * 35;
+            var delay = Math.random() * 0.5;
+            var color1 = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+            var color2 = fireworkColors[Math.floor(Math.random() * fireworkColors.length)];
+            
+            for (var p = 0; p < 28; p++) {
+                var particle = document.createElement('span');
+                particle.className = 'zoo-firework-particle';
+                var angle = (p / 28) * Math.PI * 2;
+                var velocity = 60 + Math.random() * 80;
+                var tx = Math.cos(angle) * velocity;
+                var ty = Math.sin(angle) * velocity;
+                
+                particle.style.setProperty('--fw-x', bx + '%');
+                particle.style.setProperty('--fw-y', by + '%');
+                particle.style.setProperty('--fw-tx', tx + 'px');
+                particle.style.setProperty('--fw-ty', ty + 'px');
+                particle.style.setProperty('--fw-color', p % 2 === 0 ? color1 : color2);
+                particle.style.setProperty('--fw-delay', delay + 's');
+                celebration.appendChild(particle);
+            }
         }
 
-        // Sparkle burst - 24 particles radiating from center
-        for (var j = 0; j < 24; j++) {
+        // Leaf and Sparkle bursts
+        for (var j = 0; j < 36; j++) {
             var sparkle = document.createElement('span');
             sparkle.className = 'zoo-celebration-sparkle';
-            var angle = (j / 24) * 360;
-            var dist = 60 + Math.random() * 100;
+            var angle = (j / 36) * 360;
+            var dist = 80 + Math.random() * 140;
             sparkle.style.setProperty('--sparkle-angle', angle + 'deg');
             sparkle.style.setProperty('--sparkle-dist', dist + 'px');
-            sparkle.style.setProperty('--sparkle-delay', (Math.random() * 0.3) + 's');
-            sparkle.style.setProperty('--sparkle-size', (4 + Math.random() * 8) + 'px');
+            sparkle.style.setProperty('--sparkle-delay', (Math.random() * 0.2) + 's');
+            sparkle.style.setProperty('--sparkle-size', (5 + Math.random() * 10) + 'px');
+            
+            if (j % 2 === 0) {
+                sparkle.style.background = 'radial-gradient(circle, #fff 0%, #4ade80 50%, transparent 100%)';
+                sparkle.style.boxShadow = '0 0 10px 2px rgba(74,222,128,0.6)';
+            } else {
+                sparkle.style.background = 'radial-gradient(circle, #fff 0%, #fde047 50%, transparent 100%)';
+                sparkle.style.boxShadow = '0 0 10px 2px rgba(253,224,71,0.6)';
+            }
             celebration.appendChild(sparkle);
         }
 
-        // Star burst - 8 larger stars
-        for (var k = 0; k < 8; k++) {
+        // Star bursts using SVG paths instead of text characters
+        for (var k = 0; k < 14; k++) {
             var star = document.createElement('span');
             star.className = 'zoo-celebration-star';
-            star.textContent = '✦';
-            star.style.setProperty('--star-x', (10 + Math.random() * 80) + '%');
-            star.style.setProperty('--star-y', (15 + Math.random() * 50) + '%');
-            star.style.setProperty('--star-delay', (Math.random() * 0.5) + 's');
-            star.style.setProperty('--star-scale', (0.8 + Math.random() * 0.8).toFixed(2));
+            star.style.width = '32px';
+            star.style.height = '32px';
+            star.style.display = 'inline-block';
+            if (k % 2 === 0) {
+                star.innerHTML = '<svg viewBox="0 0 24 24" fill="#4ade80" width="100%" height="100%"><path d="M12 2L15 9l7 1-5 5 1.5 7.5L12 18l-6.5 4.5L7 15l-5-5 7-1z"/></svg>';
+                star.style.filter = 'drop-shadow(0 0 8px rgba(74,222,128,0.8))';
+            } else {
+                star.innerHTML = '<svg viewBox="0 0 24 24" fill="#fde047" width="100%" height="100%"><path d="M12 2C12 2 15 10 22 12C22 12 15 14 12 22C12 22 9 14 2 12C2 12 9 10 12 2z"/></svg>';
+                star.style.filter = 'drop-shadow(0 0 8px rgba(253,224,71,0.8))';
+            }
+            star.style.setProperty('--star-x', (15 + Math.random() * 70) + '%');
+            star.style.setProperty('--star-y', (20 + Math.random() * 40) + '%');
+            star.style.setProperty('--star-delay', (Math.random() * 0.4) + 's');
+            star.style.setProperty('--star-scale', (0.8 + Math.random() * 0.6).toFixed(2));
             celebration.appendChild(star);
         }
 
         // Completion text
         var text = document.createElement('div');
         text.className = 'zoo-celebration-text';
-        text.textContent = '🎉 建造完成！';
+        text.innerHTML = `
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:8px;">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <path d="M22 4L12 14.01l-3-3"/>
+            </svg>
+            <span style="display:inline-block; vertical-align:middle; color: #4ade80; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">栏舍建造完成！</span>
+        `;
         celebration.appendChild(text);
 
         container.appendChild(celebration);
@@ -1409,7 +1503,7 @@
         if (refs.resourceTicket) refs.resourceTicket.textContent = formatResourceNumber(snapshot.resources.playTicket || 0);
 
         if (refs.homeBackground) {
-            refs.homeBackground.src = './Texture/ZOO/UI_Zoo_MainBG.png';
+            refs.homeBackground.src = './Texture/ZOO/UI_Zoo_MainBG.webp';
             refs.homeBackground.alt = '动物园主场景背景';
         }
 

@@ -18,11 +18,11 @@
     ]);
 
     function buildStoryAsset(fileName) {
-        return `./Texture/story/${STORY_FOLDER}/${fileName}.png`;
+        return `./Texture/story/${STORY_FOLDER}/${fileName}.webp`;
     }
 
     function buildPortraitAsset(fileName) {
-        return `./Texture/story/${PORTRAIT_FOLDER}/${fileName}.png`;
+        return `./Texture/story/${PORTRAIT_FOLDER}/${fileName}.webp`;
     }
 
     const BUILTIN_ASSET_LIBRARY = Object.freeze({

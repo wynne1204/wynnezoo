@@ -1,4 +1,4 @@
-﻿(function initZooEconomy(globalScope) {
+(function initZooEconomy(globalScope) {
     'use strict';
 
     const balance = globalScope.WynneZooBalance || null;
@@ -294,15 +294,35 @@
         }, {});
     }
 
+    function normalizeCollectionRewardClaimMap(rawMap) {
+        if (!rawMap || typeof rawMap !== 'object') {
+            return {};
+        }
+
+        return Object.keys(rawMap).reduce((result, key) => {
+            const normalizedKey = normalizeCollectionSpeciesId(key);
+            if (!normalizedKey || !COLLECTION_SPECIES_ID_SET.has(normalizedKey) || !rawMap[key]) {
+                return result;
+            }
+
+            result[normalizedKey] = true;
+            return result;
+        }, {});
+    }
+
     function normalizeCollectionState(rawCollection) {
         const unlockedAtBySpeciesId = normalizeCollectionUnlockMap(rawCollection && rawCollection.unlockedAtBySpeciesId);
         const pendingGuideSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.pendingGuideSpeciesId);
         const lastViewedSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.lastViewedSpeciesId);
+        const pendingGuideRewardSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.pendingGuideRewardSpeciesId);
+        const guideRewardClaimedBySpeciesId = normalizeCollectionRewardClaimMap(rawCollection && rawCollection.guideRewardClaimedBySpeciesId);
 
         return {
             unlockedAtBySpeciesId,
             pendingGuideSpeciesId: COLLECTION_SPECIES_ID_SET.has(pendingGuideSpeciesId) ? pendingGuideSpeciesId : '',
-            lastViewedSpeciesId: COLLECTION_SPECIES_ID_SET.has(lastViewedSpeciesId) ? lastViewedSpeciesId : ''
+            lastViewedSpeciesId: COLLECTION_SPECIES_ID_SET.has(lastViewedSpeciesId) ? lastViewedSpeciesId : '',
+            pendingGuideRewardSpeciesId: COLLECTION_SPECIES_ID_SET.has(pendingGuideRewardSpeciesId) ? pendingGuideRewardSpeciesId : '',
+            guideRewardClaimedBySpeciesId
         };
     }
 
@@ -387,7 +407,7 @@
             id: definition.id,
             unlocked: Boolean(definition.defaultUnlocked),
             unlockCostCoin: Math.max(0, Math.floor(Number(definition.unlockCostCoin) || 0)),
-            tierId: balance.getTierById(definition.defaultTierId).id,
+            tierId: balance.getTierById(definition.defaultTierId, definition.id).id,
             ticketProgressSec: 0,
             storedTickets: 0,
             lastSyncAt: Math.max(0, Math.floor(Number(nowTs) || Date.now())),
@@ -404,7 +424,7 @@
             version: SAVE_VERSION,
             resources: {
                 coin: 0,
-                diamond: 0,
+                diamond: 100,
                 playTicket: starterPlayTickets
             },
             ui: {
@@ -415,7 +435,9 @@
             collection: {
                 unlockedAtBySpeciesId: {},
                 pendingGuideSpeciesId: '',
-                lastViewedSpeciesId: ''
+                lastViewedSpeciesId: '',
+                pendingGuideRewardSpeciesId: '',
+                guideRewardClaimedBySpeciesId: {}
             },
             habitats,
             meta: {
@@ -498,7 +520,7 @@
             id: definition.id,
             unlocked: Boolean((rawHabitat && rawHabitat.unlocked) ?? baseHabitat.unlocked),
             unlockCostCoin: Math.max(0, Math.floor(Number((rawHabitat && rawHabitat.unlockCostCoin) ?? definition.unlockCostCoin) || 0)),
-            tierId: balance.getTierById((rawHabitat && rawHabitat.tierId) || baseHabitat.tierId).id,
+            tierId: balance.getTierById((rawHabitat && rawHabitat.tierId) || baseHabitat.tierId, definition.id).id,
             ticketProgressSec: Math.max(0, Number((rawHabitat && rawHabitat.ticketProgressSec) ?? baseHabitat.ticketProgressSec) || 0),
             storedTickets: Math.max(0, Math.floor(Number((rawHabitat && rawHabitat.storedTickets) ?? baseHabitat.storedTickets) || 0)),
             lastSyncAt: Math.max(0, Math.floor(Number((rawHabitat && rawHabitat.lastSyncAt) ?? baseHabitat.lastSyncAt) || baseHabitat.lastSyncAt)),
@@ -663,7 +685,7 @@
     function getTotalTicketCap() {
         return runtimeState.habitats.reduce((sum, habitat) => {
             if (!habitat.unlocked) return sum;
-            return sum + balance.getTierById(habitat.tierId).ticketCap;
+            return sum + balance.getTierById(habitat.tierId, habitat.id).ticketCap;
         }, 0);
     }
 
@@ -676,7 +698,7 @@
 
     function deriveHabitatMetrics(habitat) {
         const definition = balance.getHabitatDefinition(habitat.id);
-        const tier = balance.getTierById(habitat.tierId);
+        const tier = balance.getTierById(habitat.tierId, habitat.id);
         const animals = Array.isArray(habitat.animals) ? habitat.animals : [];
         const residentCount = animals.length;
         const capacity = tier.capacity;
@@ -750,7 +772,7 @@
         }
 
         const definition = balance.getHabitatDefinition(habitat.id);
-        const tier = balance.getTierById(habitat.tierId);
+        const tier = balance.getTierById(habitat.tierId, habitat.id);
         const lastSyncAt = Math.max(0, Math.floor(Number(habitat.lastSyncAt) || safeNow));
         const elapsedSec = Math.max(0, Math.floor((safeNow - lastSyncAt) / 1000));
         if (elapsedSec <= 0) {
@@ -859,8 +881,8 @@
 
     function createHabitatSnapshot(habitat) {
         const definition = balance.getHabitatDefinition(habitat.id);
-        const tier = balance.getTierById(habitat.tierId);
-        const nextTier = balance.getNextTier(habitat.tierId);
+        const tier = balance.getTierById(habitat.tierId, habitat.id);
+        const nextTier = balance.getNextTier(habitat.tierId, habitat.id);
         const metrics = deriveHabitatMetrics(habitat);
         const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
         const constructionFlow = normalizeConstructionFlow(runtimeState.meta && runtimeState.meta.constructionFlow);
@@ -982,7 +1004,9 @@
             unlockedCount: species.filter((item) => item.unlocked).length,
             unlockedAtBySpeciesId: { ...collectionState.unlockedAtBySpeciesId },
             pendingGuideSpeciesId,
-            lastViewedSpeciesId
+            lastViewedSpeciesId,
+            pendingGuideRewardSpeciesId: collectionState.pendingGuideRewardSpeciesId || '',
+            guideRewardClaimedBySpeciesId: { ...(collectionState.guideRewardClaimedBySpeciesId || {}) }
         };
     }
 
@@ -1146,6 +1170,21 @@
         return true;
     }
 
+    function hasSeenSlotTutorial() {
+        syncAll(Date.now());
+        return Boolean(runtimeState.meta && runtimeState.meta.slotTutorialSeen);
+    }
+
+    function markSlotTutorialSeen() {
+        syncAll(Date.now());
+        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
+            runtimeState.meta = {};
+        }
+        runtimeState.meta.slotTutorialSeen = true;
+        emitChange('tutorial-flag');
+        return true;
+    }
+
     function unlockCollectionSpecies(speciesId, options = {}) {
         syncAll(Date.now());
         const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
@@ -1240,6 +1279,61 @@
 
         runtimeState.collection.lastViewedSpeciesId = normalizedSpeciesId;
         emitChange('collection-view');
+        return true;
+    }
+
+    function queueCollectionGuideReward(speciesId) {
+        syncAll(Date.now());
+        const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
+        if (!getCollectionSpeciesDefinition(normalizedSpeciesId) || normalizedSpeciesId !== 'red-panda') {
+            return false;
+        }
+
+        if (!runtimeState.collection || typeof runtimeState.collection !== 'object') {
+            runtimeState.collection = normalizeCollectionState(null);
+        }
+
+        if (!runtimeState.collection.guideRewardClaimedBySpeciesId || typeof runtimeState.collection.guideRewardClaimedBySpeciesId !== 'object') {
+            runtimeState.collection.guideRewardClaimedBySpeciesId = {};
+        }
+
+        if (runtimeState.collection.guideRewardClaimedBySpeciesId[normalizedSpeciesId]) {
+            return false;
+        }
+
+        if (runtimeState.collection.pendingGuideRewardSpeciesId === normalizedSpeciesId) {
+            return true;
+        }
+
+        runtimeState.collection.pendingGuideRewardSpeciesId = normalizedSpeciesId;
+        emitChange('collection-guide-reward-pending');
+        return true;
+    }
+
+    function claimCollectionGuideReward(speciesId = '') {
+        syncAll(Date.now());
+        if (!runtimeState.collection || typeof runtimeState.collection !== 'object') {
+            runtimeState.collection = normalizeCollectionState(null);
+        }
+
+        if (!runtimeState.collection.guideRewardClaimedBySpeciesId || typeof runtimeState.collection.guideRewardClaimedBySpeciesId !== 'object') {
+            runtimeState.collection.guideRewardClaimedBySpeciesId = {};
+        }
+
+        const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
+        const pendingRewardSpeciesId = normalizeCollectionSpeciesId(runtimeState.collection.pendingGuideRewardSpeciesId);
+        const targetSpeciesId = pendingRewardSpeciesId || normalizedSpeciesId;
+        if (!getCollectionSpeciesDefinition(targetSpeciesId)) {
+            return false;
+        }
+
+        if (pendingRewardSpeciesId && normalizedSpeciesId && pendingRewardSpeciesId !== normalizedSpeciesId) {
+            return false;
+        }
+
+        runtimeState.collection.pendingGuideRewardSpeciesId = '';
+        runtimeState.collection.guideRewardClaimedBySpeciesId[targetSpeciesId] = true;
+        emitChange('collection-guide-reward-claim');
         return true;
     }
 
@@ -1597,7 +1691,7 @@
             };
         }
 
-        const nextTier = balance.getNextTier(habitat.tierId);
+        const nextTier = balance.getNextTier(habitat.tierId, habitat.id);
         if (!nextTier) {
             return {
                 ok: false,
@@ -1687,9 +1781,13 @@
         applySlotSettlement,
         hasPlayedStory,
         markStoryPlayed,
+        hasSeenSlotTutorial,
+        markSlotTutorialSeen,
         unlockCollectionSpecies,
         clearCollectionGuide,
         markCollectionSpeciesViewed,
+        queueCollectionGuideReward,
+        claimCollectionGuideReward,
         getPendingReturnStory,
         setPendingReturnStory,
         markPendingReturnStoryReady,

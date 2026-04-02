@@ -1235,8 +1235,7 @@ body:not(.is-logged-in) .story-preview-panel {
 }
 
 .login-scene-bg,
-.login-scene-title,
-.login-scene-character {
+.login-scene-title {
     position: absolute;
     display: block;
     max-width: none;
@@ -1260,26 +1259,6 @@ body:not(.is-logged-in) .story-preview-panel {
     object-fit: contain;
     filter: drop-shadow(0 0.8rem 1.2rem rgba(91, 52, 24, 0.26));
     transform-origin: center top;
-}
-
-.login-scene-character-frame {
-    position: absolute;
-    left: 8.0342%;
-    top: 28.8302%;
-    width: 80.8547%;
-    height: 42.3381%;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.login-scene-character {
-    left: 0;
-    top: -47.3881%;
-    width: 100%;
-    height: 191.0448%;
-    object-fit: contain;
-    filter: drop-shadow(0 1.1rem 1.4rem rgba(98, 66, 31, 0.18));
-    transform-origin: center center;
 }
 
 .login-overlay {
@@ -1639,14 +1618,6 @@ body.is-login-open .login-scene-title {
     animation: loginSceneTitleEnter 0.65s cubic-bezier(0.18, 0.89, 0.32, 1.1) 0.1s both;
 }
 
-body.is-login-open .login-scene-character-frame {
-    animation: loginSceneCharacterEnter 1.1s cubic-bezier(0.18, 0.89, 0.32, 1.15) 0.3s both;
-}
-
-body.is-login-open .login-scene-character {
-    animation: none;
-}
-
 body.is-login-open .login-card {
     animation: loginCardEnter 0.8s cubic-bezier(0.18, 0.89, 0.32, 1.1) 0.5s both;
 }
@@ -1696,27 +1667,6 @@ body.is-login-open .login-debug-toggle {
         opacity: 1;
         transform: translateY(0) scale(1);
         filter: drop-shadow(0 0.8rem 1.2rem rgba(91, 52, 24, 0.26));
-    }
-}
-
-@keyframes loginSceneCharacterEnter {
-    from {
-        opacity: 0;
-        transform: translateY(12%) scale(0.9);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes loginSceneCharacterFloat {
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-1.4%);
     }
 }
 

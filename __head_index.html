@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -64,7 +64,7 @@
             </div>
         </section>
         <section id="zoo-home-screen" class="app-screen zoo-home-screen is-active" aria-label="&#21160;&#29289;&#22253;&#20027;&#30028;&#38754;">
-            <img id="zoo-home-bg" class="zoo-home-bg" src="./Texture/ZOO/UI_Zoo_MainBG.png" alt="&#21160;&#29289;&#22253;&#20027;&#22330;&#26223;&#32972;&#26223;">
+            <img id="zoo-home-bg" class="zoo-home-bg" src="./Texture/ZOO/UI_Zoo_MainBG.webp" alt="&#21160;&#29289;&#22253;&#20027;&#22330;&#26223;&#32972;&#26223;">
             <div class="zoo-home-topbar">
                 <div class="zoo-resource-chip is-ticket">
                     <img class="zoo-resource-chip-bg" src="./Texture/UI/Home_ResourceBarBG.png" alt="" aria-hidden="true">
@@ -422,6 +422,65 @@
                         <div class="modal-footer">
                             <button id="modal-restart-btn" class="btn btn-primary full-width" type="button">&#x518D;&#x6765;&#x4E00;&#x5C40;</button>
                         </div>
+                    </div>
+                </div>
+
+                <div id="slot-tutorial-overlay" class="slot-tutorial-overlay hidden">
+                    <div class="tutorial-card">
+                        <div class="tutorial-header">
+                            <span class="tutorial-decorator deco-left" aria-hidden="true">✨</span>
+                            <h2>盲盒商店玩法</h2>
+                            <span class="tutorial-decorator deco-right" aria-hidden="true">✨</span>
+                        </div>
+                        
+                        <div class="tutorial-body">
+                            <div class="tutorial-step">
+                                <div class="step-icon-group">
+                                    <img class="step-img" src="./Texture/UI/Icon_Ticket.png" alt="玩法券">
+                                    <svg class="step-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    <img class="step-img" src="./Texture/Icon/Icon_Box_UnOpen.webp" alt="盲盒">
+                                </div>
+                                <div class="step-text">
+                                    <h3>1. 盲开盲盒</h3>
+                                    <p>消耗<strong class="highlight-ticket">玩法券</strong>，随机翻开货架上的盲盒</p>
+                                </div>
+                            </div>
+                            
+                            <div class="tutorial-step">
+                                <div class="step-icon-group single-icon">
+                                    <img class="step-img-large" src="./Texture/Icon/Icon_Box_Open.webp" alt="开启">
+                                </div>
+                                <div class="step-text">
+                                    <h3>2. 连成一片</h3>
+                                    <p>开出相邻同类的物品，连成 <strong class="highlight-combo">3 个以上</strong> 即可消除得分！</p>
+                                </div>
+                            </div>
+
+                            <div class="tutorial-step">
+                                <div class="step-icon-group customer-group">
+                                    <div class="customer-avatar-wrap">
+                                        <img class="step-img-avatar" src="./Texture/story/立绘/游客-1.png" alt="顾客">
+                                        <div class="customer-heart">❤️</div>
+                                    </div>
+                                </div>
+                                <div class="step-text">
+                                    <h3>3. 满足顾客</h3>
+                                    <p>留意顾客的 <strong class="highlight-customer">心愿物品</strong>，开出对应可获得惊喜奖励！</p>
+                                </div>
+                            </div>
+
+                            <div class="tutorial-step">
+                                <div class="step-icon-group single-icon">
+                                    <span class="step-emoji">🌈</span>
+                                </div>
+                                <div class="step-text">
+                                    <h3>4. 万能百搭</h3>
+                                    <p><strong class="highlight-wild">百搭积木</strong>能跟任何物品相连，是凑成大连消的利器！</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="slot-tutorial-close-btn" class="tutorial-btn" type="button">开始寻宝 🚀</button>
                     </div>
                 </div>
 

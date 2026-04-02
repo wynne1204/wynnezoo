@@ -274,96 +274,96 @@ const BONUS_GAME_CONFIG = {
     stopColumnStaggerMs: 220,
     stopCellStaggerMs: 0,
     stopJitterMs: 16,
-    baseSpawnChance: 0.78,
-    minSpawnChance: 0.18,
+    baseSpawnChance: 0.8,
+    minSpawnChance: 0.22,
     maxNewCellsPerSpin: 3,
     newCellCountWeights: [
-        { count: 1, weight: 60 },
-        { count: 2, weight: 28 },
-        { count: 3, weight: 12 }
+        { count: 1, weight: 52 },
+        { count: 2, weight: 32 },
+        { count: 3, weight: 16 }
     ],
-    specialCellChance: 0.28,
-    triggerBlockChance: 0.22,
+    specialCellChance: 0.34,
+    triggerBlockChance: 0.26,
     triggerTypeWeights: {
-        add: 52,
-        chest: 48
+        add: 50,
+        chest: 50
     },
-    stackCollapseBaseChance: 0.04,
-    stackCollapsePerLayerChance: 0.08,
-    stackCollapseMaxChance: 0.38,
-    simultaneousUnlockChance: 0.14,
+    stackCollapseBaseChance: 0.08,
+    stackCollapsePerLayerChance: 0.14,
+    stackCollapseMaxChance: 0.62,
+    simultaneousUnlockChance: 0.22,
     maxStackPreviewLayers: 6,
     chestRewards: {
-        monkey: 12,
-        tiger: 36,
-        panda: 128
+        monkey: 16,
+        tiger: 48,
+        panda: 168
     },
     specialTypeWeights: {
-        magnet: 100,
-        add: 40,
-        chest: 70
+        magnet: 125,
+        add: 68,
+        chest: 92
     },
     diamondWeights: [
-        { value: 4, weight: 34 },
-        { value: 8, weight: 28 },
-        { value: 12, weight: 20 },
-        { value: 20, weight: 12 },
-        { value: 36, weight: 6 }
+        { value: 6, weight: 34 },
+        { value: 10, weight: 29 },
+        { value: 16, weight: 21 },
+        { value: 24, weight: 11 },
+        { value: 40, weight: 5 }
     ],
     addValueWeights: [
-        { value: 2, weight: 40 },
-        { value: 4, weight: 32 },
-        { value: 6, weight: 20 },
-        { value: 10, weight: 8 }
+        { value: 4, weight: 38 },
+        { value: 6, weight: 32 },
+        { value: 8, weight: 22 },
+        { value: 12, weight: 8 }
     ],
     frontLoadedChestSpins: 8,
-    earlySpecialCellChance: 0.42,
-    lateSpecialCellChance: 0.2,
-    earlyTriggerBlockChance: 0.08,
-    lateTriggerBlockChance: 0.18,
+    earlySpecialCellChance: 0.48,
+    lateSpecialCellChance: 0.28,
+    earlyTriggerBlockChance: 0.14,
+    lateTriggerBlockChance: 0.24,
     earlySpecialTypeWeights: {
-        magnet: 10,
-        add: 14,
-        chest: 320
+        magnet: 18,
+        add: 28,
+        chest: 260
     },
     lateSpecialTypeWeights: {
-        magnet: 108,
-        add: 54,
-        chest: 82
+        magnet: 160,
+        add: 100,
+        chest: 98
     },
     earlyChestProgressWeights: {
         0: 150,
-        1: 126,
-        2: 30
+        1: 130,
+        2: 42
     },
     earlyChestIdWeights: {
         monkey: 100,
-        tiger: 82,
-        panda: 72
+        tiger: 86,
+        panda: 78
     },
     earlyChestFinishPenaltyById: {
-        monkey: 0.72,
-        tiger: 0.24,
-        panda: 0.06
+        monkey: 0.8,
+        tiger: 0.34,
+        panda: 0.12
     },
     lateChestBaseWeights: {
-        monkey: 56,
-        tiger: 30,
-        panda: 20
+        monkey: 58,
+        tiger: 34,
+        panda: 24
     },
     lateChestFinishBoost: {
-        monkey: 110,
-        tiger: 20,
-        panda: 4
+        monkey: 120,
+        tiger: 34,
+        panda: 12
     },
     lateChestNearMissPenaltyById: {
         monkey: 1,
-        tiger: 0.26,
-        panda: 0.05
+        tiger: 0.4,
+        panda: 0.14
     },
     jackpotChestId: 'panda',
     jackpotNearMissProgress: 2,
-    jackpotNearMissPenalty: 0.18,
+    jackpotNearMissPenalty: 0.3,
     specialRevealMs: 760,
     specialResolveGapMs: 320
 };

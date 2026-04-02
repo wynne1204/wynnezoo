@@ -58,10 +58,10 @@ window.APP_CONFIG = {
         bonusTriggerProgressTarget: 8,
         customerSatisfactionTarget: 8,
         customerPortraits: [
-            './Texture/story/立绘/游客-1.png',
-            './Texture/story/立绘/游客-2.png',
-            './Texture/story/立绘/游客-3.png',
-            './Texture/story/立绘/游客-4.png'
+            './Texture/story/立绘/游客-1.webp',
+            './Texture/story/立绘/游客-2.webp',
+            './Texture/story/立绘/游客-3.webp',
+            './Texture/story/立绘/游客-4.webp'
         ],
         customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5'],
         customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5'],

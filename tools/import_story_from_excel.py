@@ -156,12 +156,58 @@ def build_story_id(sheet_name: str) -> str:
     return 'prologue' if sheet_name == PROLOGUE_TITLE else sheet_name
 
 
+def resolve_existing_asset_path(directory: Path, base_name: str) -> Path | None:
+    normalized_base_name = normalize_text(base_name).replace('\\', '/').strip()
+    if not normalized_base_name:
+        return None
+
+    direct_candidate = directory / normalized_base_name
+    if direct_candidate.suffix:
+        return direct_candidate if direct_candidate.exists() else None
+
+    for extension in ('.webp', '.png'):
+        asset_path = directory / f'{normalized_base_name}{extension}'
+        if asset_path.exists():
+            return asset_path
+
+    return None
+
+
+def build_story_asset_src(sheet_name: str, asset_name: str) -> str:
+    normalized_asset_name = normalize_text(asset_name).replace('\\', '/').strip()
+    if not normalized_asset_name:
+        return ''
+
+    asset_directory = STORY_ASSET_ROOT / sheet_name
+    asset_path = resolve_existing_asset_path(asset_directory, normalized_asset_name)
+    if asset_path:
+        return f'./Texture/story/{sheet_name}/{asset_path.name}'
+
+    if re.search(r'\.[A-Za-z0-9]+$', normalized_asset_name):
+        return f'./Texture/story/{sheet_name}/{normalized_asset_name}'
+    return f'./Texture/story/{sheet_name}/{normalized_asset_name}.png'
+
+
+def build_portrait_asset_src(portrait_label: str) -> str:
+    normalized_portrait_label = normalize_text(portrait_label).replace('\\', '/').strip()
+    if not normalized_portrait_label:
+        return ''
+
+    portrait_path = resolve_existing_asset_path(PORTRAIT_DIR, normalized_portrait_label)
+    if portrait_path:
+        return f'./Texture/story/{PORTRAIT_FOLDER}/{portrait_path.name}'
+
+    if re.search(r'\.[A-Za-z0-9]+$', normalized_portrait_label):
+        return f'./Texture/story/{PORTRAIT_FOLDER}/{normalized_portrait_label}'
+    return f'./Texture/story/{PORTRAIT_FOLDER}/{normalized_portrait_label}.png'
+
+
 def build_background_src(sheet_name: str, scene_name: str) -> str:
-    return f'./Texture/story/{sheet_name}/{scene_name}.png'
+    return build_story_asset_src(sheet_name, scene_name)
 
 
 def build_portrait_src(portrait_label: str) -> str:
-    return f'./Texture/story/{PORTRAIT_FOLDER}/{portrait_label}.png'
+    return build_portrait_asset_src(portrait_label)
 
 
 def is_cg_scene(scene_name: str) -> bool:
@@ -313,8 +359,9 @@ def resolve_item_reward_image_src(sheet_name: str, raw_image_value: str) -> str:
     if '/' in normalized:
         return normalized
 
-    file_name = normalized if has_extension else f'{normalized}.png'
-    return f'./Texture/story/{sheet_name}/{file_name}'
+    if has_extension:
+        return f'./Texture/story/{sheet_name}/{normalized}'
+    return build_story_asset_src(sheet_name, normalized)
 
 
 def get_item_reward_title(raw_image_value: str) -> str:
@@ -388,6 +435,9 @@ def resolve_cleaning_background_src(sheet_name: str, raw_value: str) -> str:
         return f'./{normalized}'
 
     if re.fullmatch(r'UI_Zoo_MainBG(?:\.[A-Za-z0-9]+)?', normalized):
+        zoo_asset_path = resolve_existing_asset_path(ROOT_DIR / 'Texture' / 'ZOO', normalized)
+        if zoo_asset_path:
+            return f'./Texture/ZOO/{zoo_asset_path.name}'
         file_name = normalized if re.search(r'\.[A-Za-z0-9]+$', normalized) else f'{normalized}.png'
         return f'./Texture/ZOO/{file_name}'
 
@@ -395,8 +445,9 @@ def resolve_cleaning_background_src(sheet_name: str, raw_value: str) -> str:
     if '/' in normalized:
         return normalized
 
-    file_name = normalized if has_extension else f'{normalized}.png'
-    return f'./Texture/story/{sheet_name}/{file_name}'
+    if has_extension:
+        return f'./Texture/story/{sheet_name}/{normalized}'
+    return build_story_asset_src(sheet_name, normalized)
 
 
 def get_derived_half_dirty_background(dirty_background: str) -> str:
@@ -446,7 +497,7 @@ def get_cleaning_interaction(
     else:
         dirty_background = normalize_text(background_src)
         mid_background = get_derived_half_dirty_background(dirty_background)
-        clean_background = '' if mid_background else './Texture/ZOO/UI_Zoo_MainBG.png'
+        clean_background = '' if mid_background else resolve_cleaning_background_src(sheet_name, 'UI_Zoo_MainBG')
         prompt1 = ''
         prompt2 = ''
 
@@ -522,7 +573,7 @@ def ensure_character(
     portraits = characters[character_name]['portraitsByLabel']
     if portrait_label not in portraits:
         portrait_src = build_portrait_src(portrait_label)
-        portrait_path = PORTRAIT_DIR / f'{portrait_label}.png'
+        portrait_path = ROOT_DIR / portrait_src[2:].replace('/', '\\')
         if not portrait_path.exists():
             warnings.add(f'Missing portrait asset: {portrait_path}')
 
@@ -587,7 +638,7 @@ def convert_sheet(sheet) -> tuple[dict[str, Any] | None, list[str]]:
         background_mode = get_configured_background_mode(supplement_type, extra, scene_name)
         background_src = '' if background_mode == 'zoo-home' else (build_background_src(sheet.title, scene_name) if scene_name else '')
         if background_src:
-            background_path = STORY_ASSET_ROOT / sheet.title / f'{scene_name}.png'
+            background_path = ROOT_DIR / background_src[2:].replace('/', '\\')
             if not background_path.exists():
                 warnings.add(f'Missing background asset: {background_path}')
         item_reward = get_item_reward(sheet.title, extra, warnings) if supplement_type == SUPPLEMENT_TYPE_ITEM_REWARD else None

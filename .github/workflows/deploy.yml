@@ -50,7 +50,6 @@ jobs:
             --exclude 'skills-lock.json' \
             --exclude '__head_index.html' \
             --exclude '.cloudbaseignore' \
-            --exclude 'Texture/story/第二章/破旧的小熊猫栏舍.png' \
             ./ .deploy-static/
 
       - name: Deploy root static files to hosting

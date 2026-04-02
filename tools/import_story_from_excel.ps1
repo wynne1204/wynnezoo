@@ -217,12 +217,71 @@ function Build-StoryId([string]$sheetName) {
     return $sheetName
 }
 
+function Resolve-ExistingAssetPath([string]$directory, [string]$baseName) {
+    $normalizedBaseName = (Normalize-Text $baseName).Replace('\', '/').Trim()
+    if (-not $normalizedBaseName) {
+        return ''
+    }
+
+    $directCandidate = Join-Path $directory $normalizedBaseName
+    if ([System.IO.Path]::GetExtension($normalizedBaseName)) {
+        if (Test-Path $directCandidate) {
+            return $directCandidate
+        }
+        return ''
+    }
+
+    foreach ($extension in @('.webp', '.png')) {
+        $assetPath = Join-Path $directory "$normalizedBaseName$extension"
+        if (Test-Path $assetPath) {
+            return $assetPath
+        }
+    }
+
+    return ''
+}
+
+function Build-StoryAssetSrc([string]$sheetName, [string]$assetName) {
+    $normalizedAssetName = (Normalize-Text $assetName).Replace('\', '/').Trim()
+    if (-not $normalizedAssetName) {
+        return ''
+    }
+
+    $assetDirectory = Join-Path $storyAssetRoot $sheetName
+    $assetPath = Resolve-ExistingAssetPath $assetDirectory $normalizedAssetName
+    if ($assetPath) {
+        return "./Texture/story/$sheetName/$([System.IO.Path]::GetFileName($assetPath))"
+    }
+
+    if ([System.IO.Path]::GetExtension($normalizedAssetName)) {
+        return "./Texture/story/$sheetName/$normalizedAssetName"
+    }
+    return "./Texture/story/$sheetName/$normalizedAssetName.png"
+}
+
+function Build-PortraitAssetSrc([string]$portraitLabel) {
+    $normalizedPortraitLabel = (Normalize-Text $portraitLabel).Replace('\', '/').Trim()
+    if (-not $normalizedPortraitLabel) {
+        return ''
+    }
+
+    $portraitPath = Resolve-ExistingAssetPath $portraitDir $normalizedPortraitLabel
+    if ($portraitPath) {
+        return "./Texture/story/$portraitFolder/$([System.IO.Path]::GetFileName($portraitPath))"
+    }
+
+    if ([System.IO.Path]::GetExtension($normalizedPortraitLabel)) {
+        return "./Texture/story/$portraitFolder/$normalizedPortraitLabel"
+    }
+    return "./Texture/story/$portraitFolder/$normalizedPortraitLabel.png"
+}
+
 function Build-BackgroundSrc([string]$sheetName, [string]$sceneName) {
-    return "./Texture/story/$sheetName/$sceneName.png"
+    return Build-StoryAssetSrc $sheetName $sceneName
 }
 
 function Build-PortraitSrc([string]$portraitLabel) {
-    return "./Texture/story/$portraitFolder/$portraitLabel.png"
+    return Build-PortraitAssetSrc $portraitLabel
 }
 
 function Test-CgScene([string]$sceneName) {
@@ -374,7 +433,12 @@ function Get-CameraEffect([string]$extraText) {
     return ''
 }
 
-function Get-BackgroundMode([string]$extraText) {
+function Get-BackgroundMode([string]$extraText, [string]$sceneName = '') {
+    $normalizedSceneName = (Normalize-Text $sceneName).Replace(' ', '').Trim().ToLowerInvariant()
+    if ($backgroundMainValues -contains $normalizedSceneName) {
+        return 'zoo-home'
+    }
+
     $normalized = Normalize-Text $extraText
     if (-not $normalized) {
         return 'story'
@@ -441,8 +505,10 @@ function Resolve-ItemRewardImageSrc([string]$sheetName, [string]$rawImageValue) 
         return $normalized
     }
 
-    $fileName = if ($hasExtension) { $normalized } else { "$normalized.png" }
-    return "./Texture/story/$sheetName/$fileName"
+    if ($hasExtension) {
+        return "./Texture/story/$sheetName/$normalized"
+    }
+    return Build-StoryAssetSrc $sheetName $normalized
 }
 
 function Get-ItemRewardTitle([string]$rawImageValue) {
@@ -573,12 +639,12 @@ function Get-ConfiguredCameraEffect([int]$supplementType, [string]$extraText) {
     return ''
 }
 
-function Get-ConfiguredBackgroundMode([int]$supplementType, [string]$extraText) {
+function Get-ConfiguredBackgroundMode([int]$supplementType, [string]$extraText, [string]$sceneName = '') {
     if ($supplementType -eq $supplementTypeZooHome) {
         return 'zoo-home'
     }
 
-    return Get-BackgroundMode $extraText
+    return Get-BackgroundMode $extraText $sceneName
 }
 
 function Resolve-CleaningBackgroundSrc([string]$sheetName, [string]$rawValue) {
@@ -600,6 +666,10 @@ function Resolve-CleaningBackgroundSrc([string]$sheetName, [string]$rawValue) {
     }
 
     if ($normalized -match '^UI_Zoo_MainBG(?:\.[A-Za-z0-9]+)?$') {
+        $zooAssetPath = Resolve-ExistingAssetPath (Join-Path $rootDir 'Texture\ZOO') $normalized
+        if ($zooAssetPath) {
+            return "./Texture/ZOO/$([System.IO.Path]::GetFileName($zooAssetPath))"
+        }
         $fileName = if ($normalized -match '\.[A-Za-z0-9]+$') { $normalized } else { "$normalized.png" }
         return "./Texture/ZOO/$fileName"
     }
@@ -609,8 +679,10 @@ function Resolve-CleaningBackgroundSrc([string]$sheetName, [string]$rawValue) {
         return $normalized
     }
 
-    $fileName = if ($hasExtension) { $normalized } else { "$normalized.png" }
-    return "./Texture/story/$sheetName/$fileName"
+    if ($hasExtension) {
+        return "./Texture/story/$sheetName/$normalized"
+    }
+    return Build-StoryAssetSrc $sheetName $normalized
 }
 
 function Get-DerivedHalfDirtyBackground([string]$dirtyBackground) {
@@ -672,7 +744,7 @@ function Get-CleaningInteraction([string]$sheetName, [string]$backgroundSrc, [st
     } else {
         $dirtyBackground = Normalize-Text $backgroundSrc
         $midBackground = Get-DerivedHalfDirtyBackground $dirtyBackground
-        $cleanBackground = if ($midBackground) { '' } else { './Texture/ZOO/UI_Zoo_MainBG.png' }
+        $cleanBackground = if ($midBackground) { '' } else { Resolve-CleaningBackgroundSrc $sheetName 'UI_Zoo_MainBG' }
         $prompt1 = ''
         $prompt2 = ''
     }
@@ -735,7 +807,8 @@ function Ensure-Character($characters, [string]$speakerLabel, [System.Collection
 
     $character = $characters[$characterName]
     if (-not $character.portraitsByLabel.Contains($portraitLabel)) {
-        $portraitPath = Join-Path $portraitDir "$portraitLabel.png"
+        $portraitSrc = Build-PortraitSrc $portraitLabel
+        $portraitPath = Join-Path $rootDir ($portraitSrc.Substring(2).Replace('/', '\'))
         if (-not (Test-Path $portraitPath)) {
             [void]$warnings.Add("Missing portrait asset: $portraitPath")
         }
@@ -743,7 +816,7 @@ function Ensure-Character($characters, [string]$speakerLabel, [System.Collection
         $character.portraitsByLabel[$portraitLabel] = [ordered]@{
             id = Get-StableId 'portrait' $portraitLabel
             label = $portraitLabel
-            src = Build-PortraitSrc $portraitLabel
+            src = $portraitSrc
         }
     }
 
@@ -929,9 +1002,10 @@ function Convert-SheetRows([string]$sheetName, $rows) {
             continue
         }
 
-        $backgroundSrc = if ($sceneName) { Build-BackgroundSrc $sheetName $sceneName } else { '' }
+        $backgroundMode = Get-ConfiguredBackgroundMode $supplementType $extra $sceneName
+        $backgroundSrc = if ($backgroundMode -eq 'zoo-home') { '' } elseif ($sceneName) { Build-BackgroundSrc $sheetName $sceneName } else { '' }
         if ($backgroundSrc) {
-            $backgroundPath = Join-Path (Join-Path $storyAssetRoot $sheetName) "$sceneName.png"
+            $backgroundPath = Join-Path $rootDir ($backgroundSrc.Substring(2).Replace('/', '\'))
             if (-not (Test-Path $backgroundPath)) {
                 [void]$warnings.Add("Missing background asset: $backgroundPath")
             }
@@ -940,7 +1014,6 @@ function Convert-SheetRows([string]$sheetName, $rows) {
         $presentation = if ($sceneName -and (Test-CgScene $sceneName)) { $illustrationMode } else { $standardMode }
         $effectClass = if ($supplementType -gt 0) { Get-ConfiguredEffectClass $supplementType $extra } else { Get-EffectClass $extra }
         $cameraEffect = if ($supplementType -gt 0) { Get-ConfiguredCameraEffect $supplementType $extra } else { Get-CameraEffect $extra }
-        $backgroundMode = Get-ConfiguredBackgroundMode $supplementType $extra
         $itemReward = if ($supplementType -eq $supplementTypeItemReward) { Get-ItemRewardSafe $sheetName $extra $warnings } else { $null }
         $interaction = if ($supplementType -eq $supplementTypeInteraction) { Get-CleaningInteraction $sheetName $backgroundSrc $extra $warnings } else { $null }
         $collectionUnlock = if ($supplementType -eq $supplementTypeCollection) { Get-CollectionUnlock $extra } else { $null }
