@@ -1765,7 +1765,7 @@
     transform: translate(-50%, -50%);
     width: var(--free-spin-box-width, var(--grid-cell-bg-size, 150%));
     height: var(--free-spin-box-height, 200%);
-    background: url('./Texture/Icon/Icon_Box_UnOpen.png') center bottom/contain no-repeat;
+    background: url('./Texture/Icon/Icon_Box_UnOpen.webp') center bottom/contain no-repeat;
     pointer-events: none;
     z-index: 1;
 }
