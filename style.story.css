@@ -1107,7 +1107,7 @@ body:not(.is-logged-in) .story-preview-panel {
     transform: translateY(18px);
 }
 
-.story-screen.is-illustration .story-actors-layer {
+.story-screen.is-illustration.is-narration-beat .story-actors-layer {
     display: none;
 }
 

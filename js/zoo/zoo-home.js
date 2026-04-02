@@ -1119,7 +1119,10 @@
         });
     }
 
-    function playBuildEffect(onComplete) {
+    function playBuildEffect(onComplete, options = {}) {
+        const text = typeof options.text === 'string' && options.text.trim()
+            ? options.text.trim()
+            : '栏舍施工中...';
         localState.buildEffectActive = true;
         var overlay = document.createElement('div');
         overlay.className = 'zoo-build-effect-overlay';
@@ -1150,6 +1153,10 @@
             </svg>
             <span style="display:inline-block; vertical-align:middle; color: #4ade80;">栏舍施工中...</span>
         `;
+        var buildTextLabel = buildingText.querySelector('span');
+        if (buildTextLabel) {
+            buildTextLabel.textContent = text;
+        }
         overlay.appendChild(buildingText);
         var container = refs.homeScreen || document.body;
         container.appendChild(overlay);
@@ -1164,7 +1171,10 @@
         }, 2200);
     }
 
-    function playConstructionCelebration(habitatId) {
+    function playConstructionCelebration(habitatId, options = {}) {
+        const successText = typeof options.text === 'string' && options.text.trim()
+            ? options.text.trim()
+            : '栏舍建造完成！';
         var container = refs.homeScreen || document.body;
         var celebration = document.createElement('div');
         celebration.className = 'zoo-construction-celebration';
@@ -1248,6 +1258,10 @@
             </svg>
             <span style="display:inline-block; vertical-align:middle; color: #4ade80; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">栏舍建造完成！</span>
         `;
+        var celebrationTextLabel = text.querySelector('span');
+        if (celebrationTextLabel) {
+            celebrationTextLabel.textContent = successText;
+        }
         celebration.appendChild(text);
 
         container.appendChild(celebration);
@@ -1278,6 +1292,19 @@
             }
         }
         return result;
+    }
+
+    function playHabitatUpgradeSuccessFeedback(habitatId) {
+        playBuildEffect(function () {
+            render();
+            playConstructionCelebration(habitatId, {
+                text: '栏舍升级成功！'
+            });
+        }, {
+            text: '栏舍升级中...'
+        });
+        closePanel();
+        closeStoryPreviewPanel();
     }
 
     function openPanelForTab(tabId = 'status') {
@@ -1673,6 +1700,12 @@
 
                 const action = actionButton.getAttribute('data-action');
                 let result = null;
+                const selectedSnapshot = typeof economy.getSnapshot === 'function'
+                    ? economy.getSnapshot()
+                    : null;
+                const selectedHabitatId = selectedSnapshot && selectedSnapshot.selectedHabitat
+                    ? selectedSnapshot.selectedHabitat.id
+                    : '';
 
                 if (action === 'unlock') {
                     result = typeof economy.unlockSelectedHabitat === 'function'
@@ -1693,6 +1726,10 @@
                 }
 
                 showToast(result.message, result.ok ? 'success' : 'warn');
+                if (action === 'upgrade' && result.ok && selectedHabitatId) {
+                    playHabitatUpgradeSuccessFeedback(selectedHabitatId);
+                    return;
+                }
                 render();
             });
         }

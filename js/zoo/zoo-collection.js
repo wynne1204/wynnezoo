@@ -608,15 +608,6 @@
                 return;
             }
         }
-
-        if (appShell && typeof appShell.showZooHome === 'function') {
-            globalScope.requestAnimationFrame(() => {
-                appShell.showZooHome();
-            });
-            return;
-        }
-
-        forceShowZooHome();
     }
 
     function showPage(nextPageIndex) {
