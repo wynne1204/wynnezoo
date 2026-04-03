@@ -1078,7 +1078,7 @@
             try {
                 listener(snapshot, { reason });
             } catch (error) {
-                return;
+                console.error('[ZooEconomy] Listener error on "' + reason + '":', error);
             }
         });
     }

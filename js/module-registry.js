@@ -94,6 +94,13 @@
          * @param {...*} args - 传给监听器的参数
          */
         emit(event) {
+            // Dev-mode: warn when emitting an event name not in EVENTS constants
+            if (Events.EVENTS) {
+                var knownValues = Object.values(Events.EVENTS);
+                if (knownValues.length > 0 && knownValues.indexOf(event) === -1) {
+                    console.warn('[WynneEvents] Emitting unregistered event "' + event + '". Consider adding it to Events.EVENTS.');
+                }
+            }
             const list = listeners[event];
             if (!list || list.length === 0) return;
             const args = Array.prototype.slice.call(arguments, 1);

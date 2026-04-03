@@ -48,7 +48,8 @@
         unlockPopupActive: false,
         lastConstructionHabitatId: '',
         buildEffectActive: false,
-        lastHabitatArtById: {}
+        lastHabitatArtById: {},
+        lastHabitatStageKey: ''
     };
     const assetPreloadCache = new Map();
     const HABITAT_ID_BY_SPECIES_ID = Object.freeze({
@@ -96,6 +97,11 @@
     }
 
     function escapeHtml(value) {
+        // Delegate to the shared utility in js/utils.js.
+        // Falls back to inline implementation if utils.js hasn't loaded.
+        if (typeof globalScope.escapeHtml === 'function') {
+            return globalScope.escapeHtml(value);
+        }
         return String(value || '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -1625,7 +1631,7 @@
         if (refs.resourceDiamond) refs.resourceDiamond.textContent = formatResourceNumber(snapshot.resources.diamond || 0);
         if (refs.resourceTicket) refs.resourceTicket.textContent = formatResourceNumber(snapshot.resources.playTicket || 0);
 
-        if (refs.homeBackground) {
+        if (refs.homeBackground && !refs.homeBackground.src.includes('UI_Zoo_MainBG')) {
             refs.homeBackground.src = './Texture/ZOO/UI_Zoo_MainBG.webp';
             refs.homeBackground.alt = '动物园主场景背景';
         }
@@ -1639,7 +1645,21 @@
         }
 
         if (refs.habitatStageList) {
-            refs.habitatStageList.innerHTML = renderHabitatStage(displayHabitat);
+            // Build a lightweight cache key to avoid destroying/recreating DOM on every tick.
+            var stageKey = displayHabitat
+                ? [
+                    displayHabitat.id,
+                    displayHabitat.unlocked ? '1' : '0',
+                    displayHabitat.isConstructing ? 'c' : '',
+                    displayHabitat.tier ? displayHabitat.tier.level : '',
+                    displayHabitat.hasClaimableTickets ? displayHabitat.claimableTickets : '0',
+                    displayHabitat.isStoryLocked ? 'sl' : ''
+                ].join(':')
+                : '';
+            if (stageKey !== localState.lastHabitatStageKey) {
+                localState.lastHabitatStageKey = stageKey;
+                refs.habitatStageList.innerHTML = renderHabitatStage(displayHabitat);
+            }
         }
 
         if (refs.mainTaskText) {
@@ -1687,7 +1707,11 @@
         }
 
         if (refs.tabContent) {
-            refs.tabContent.innerHTML = renderTabContent(snapshot);
+            // Only re-render tab content when the panel is actually open
+            var isPanelCurrentlyOpen = Boolean(snapshot.ui && snapshot.ui.panelOpen);
+            if (isPanelCurrentlyOpen) {
+                refs.tabContent.innerHTML = renderTabContent(snapshot);
+            }
         }
 
         if (refs.slotStatus) refs.slotStatus.textContent = slotCopy.status;

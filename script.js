@@ -3650,29 +3650,35 @@ async function startBombWheel(cell, index) {
     if (cashoutBtn) cashoutBtn.disabled = true;
     if (randomBtn) randomBtn.disabled = true;
 
-    removeBombWheel();
-    const segments = getBombWheelSegments();
-    const ui = createBombWheel(cell, segments);
-    const outcome = pickBombWheelOutcome();
-    const outcomeSegment = segments.find((segment) => segment.id === outcome.id) || segments[0];
-    const centerAngle = outcomeSegment.centerAngle;
-    const maxOffset = Math.max(0, Math.min(outcomeSegment.span * 0.4, 15));
-    const randomOffset = maxOffset > 0 ? (Math.random() - 0.5) * (maxOffset * 2) : 0;
-    const extraSpins = (5 + Math.floor(Math.random() * 2)) * 360;
-    const finalRotation = extraSpins + (360 - (centerAngle + randomOffset));
-    const spinMs = Math.max(600, Number(CONFIG.bombWheelSpinMs) || DEFAULT_CONFIG.bombWheelSpinMs);
-    const spinTransition = `transform ${spinMs}ms cubic-bezier(0.12, 0.8, 0.18, 1)`;
-    ui.wheel.style.setProperty('--spin-ms', `${spinMs}ms`);
-    ui.wheel.style.transition = 'none';
-    ui.wheel.style.transform = 'rotate(0deg)';
-    void ui.wheel.offsetWidth;
-    await waitRaf();
-    ui.wheel.style.transition = spinTransition;
-    void ui.wheel.offsetWidth;
-    await waitRaf();
-    ui.wheel.style.transform = `rotate(${finalRotation}deg)`;
-    await waitMs(spinMs + 120);
-    await resolveBombWheelOutcome(outcome, outcomeSegment, cell, index, ui);
+    try {
+        removeBombWheel();
+        const segments = getBombWheelSegments();
+        const ui = createBombWheel(cell, segments);
+        const outcome = pickBombWheelOutcome();
+        const outcomeSegment = segments.find((segment) => segment.id === outcome.id) || segments[0];
+        const centerAngle = outcomeSegment.centerAngle;
+        const maxOffset = Math.max(0, Math.min(outcomeSegment.span * 0.4, 15));
+        const randomOffset = maxOffset > 0 ? (Math.random() - 0.5) * (maxOffset * 2) : 0;
+        const extraSpins = (5 + Math.floor(Math.random() * 2)) * 360;
+        const finalRotation = extraSpins + (360 - (centerAngle + randomOffset));
+        const spinMs = Math.max(600, Number(CONFIG.bombWheelSpinMs) || DEFAULT_CONFIG.bombWheelSpinMs);
+        const spinTransition = `transform ${spinMs}ms cubic-bezier(0.12, 0.8, 0.18, 1)`;
+        ui.wheel.style.setProperty('--spin-ms', `${spinMs}ms`);
+        ui.wheel.style.transition = 'none';
+        ui.wheel.style.transform = 'rotate(0deg)';
+        void ui.wheel.offsetWidth;
+        await waitRaf();
+        ui.wheel.style.transition = spinTransition;
+        void ui.wheel.offsetWidth;
+        await waitRaf();
+        ui.wheel.style.transform = `rotate(${finalRotation}deg)`;
+        await waitMs(spinMs + 120);
+        await resolveBombWheelOutcome(outcome, outcomeSegment, cell, index, ui);
+    } catch (err) {
+        console.error('Bomb wheel failed:', err);
+        removeBombWheel();
+        continueAfterWheel();
+    }
 }
 
 function getGridSideLength(totalCells) {
@@ -4172,12 +4178,17 @@ async function settleFreeSpinRewardsForCurrentBoard() {
 
     FREE_SPIN_STATE.isSettling = true;
 
-    await playSettlementAnimationSequence(triggeredEvents, gridCells, {
-        centerGetter: getFreeSpinItemBoxCenterInViewport,
-        flyBlockFn: flyVisualBlockToStack
-    });
+    try {
+        await playSettlementAnimationSequence(triggeredEvents, gridCells, {
+            centerGetter: getFreeSpinItemBoxCenterInViewport,
+            flyBlockFn: flyVisualBlockToStack
+        });
+    } catch (err) {
+        console.error('Free spin settlement animation failed:', err);
+    } finally {
+        FREE_SPIN_STATE.isSettling = false;
+    }
 
-    FREE_SPIN_STATE.isSettling = false;
     updateStats();
     updateFreeSpinHud();
 }
@@ -4567,11 +4578,16 @@ async function settleRealtimeRewardsForCurrentBoard(centerX, centerY) {
 
         STATE.isSettling = true;
 
-        await playSettlementAnimationSequence(triggeredEvents, gridCells, {
-            centerGetter: getGridCellBoxCenterInViewport,
-            flyBlockFn: flyBlockToStack
-        });
-        STATE.isSettling = false;
+        try {
+            await playSettlementAnimationSequence(triggeredEvents, gridCells, {
+                centerGetter: getGridCellBoxCenterInViewport,
+                flyBlockFn: flyBlockToStack
+            });
+        } catch (err) {
+            console.error('Settlement animation failed:', err);
+        } finally {
+            STATE.isSettling = false;
+        }
 
         // Since isSettling is false now, we check if we should re-enable buttons
         if (STATE.pendingOpens === 0 && !STATE.isAnimating && !STATE.isGameOver && !STATE.isBonusGameActive && !STATE.bonusGamePendingStart && !FREE_SPIN_STATE.pendingStart && !FREE_SPIN_STATE.active) {

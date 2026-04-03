@@ -1,4 +1,8 @@
-/* Module entry point. Keep import order stable to preserve the existing cascade. */
+/* 
+ * DEPRECATED — This file is NOT loaded at runtime.
+ * index.html loads each stylesheet individually via writeStylesheet().
+ * Kept only as a reference for the intended cascade order.
+ */
 @import url("./style.base.css");
 @import url("./style.zoo-home.css");
 @import url("./style.slot-game.css");
