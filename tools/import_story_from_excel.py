@@ -103,7 +103,7 @@ def split_extra_parts(extra_text: Any) -> list[str]:
     extra = normalize_text(extra_text)
     if not extra:
         return []
-    return [part for part in re.split(r'[\s,，、/|；;]+', extra) if part]
+    return [part for part in re.split(r'[\s,\uFF0C\u3001/|\uFF1B;]+', extra) if part]
 
 
 def parse_option_choices(extra_text: Any) -> list[dict[str, Any]] | None:
@@ -136,6 +136,15 @@ def parse_option_choices(extra_text: Any) -> list[dict[str, Any]] | None:
             'label': label,
             'jump': jump
         })
+
+    if not choices and len(parts) == 1:
+        label = normalize_text(parts[0])
+        if label:
+            return [{
+                'id': '1',
+                'label': label,
+                'jump': 1
+            }]
 
     return choices or None
 

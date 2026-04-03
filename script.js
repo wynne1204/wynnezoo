@@ -4689,6 +4689,10 @@ function showSlotTutorial() {
     const overlay = document.getElementById('slot-tutorial-overlay');
     if (overlay) {
         overlay.classList.remove('hidden');
+        const zooEconomy = typeof getZooEconomy === 'function' ? getZooEconomy() : null;
+        if (zooEconomy && typeof zooEconomy.markSlotTutorialSeen === 'function') {
+            zooEconomy.markSlotTutorialSeen();
+        }
         updateSlotBackButtonVisibility();
     }
 }
@@ -4697,10 +4701,6 @@ function hideSlotTutorial() {
     const overlay = document.getElementById('slot-tutorial-overlay');
     if (overlay) {
         overlay.classList.add('hidden');
-        const zooEconomy = typeof getZooEconomy === 'function' ? getZooEconomy() : null;
-        if (zooEconomy && typeof zooEconomy.markSlotTutorialSeen === 'function') {
-            zooEconomy.markSlotTutorialSeen();
-        }
         updateSlotBackButtonVisibility();
     }
 }

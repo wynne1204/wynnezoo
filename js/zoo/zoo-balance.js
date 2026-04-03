@@ -8,7 +8,7 @@
         ticketHint: '由各栖息地根据小动物心情自动产出，用于拆开一次惊喜盲盒。普通局和 Free Spin 结算金币，Bonus 结算钻石。'
     };
 
-    const STARTER_PLAY_TICKETS = 20;
+    const STARTER_PLAY_TICKETS = 30;
 
     const HABITAT_TIER_ORDER = ['tier-1', 'tier-2', 'tier-3', 'tier-4', 'tier-5', 'tier-6'];
 

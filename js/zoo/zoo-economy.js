@@ -12,6 +12,10 @@
     const DEFAULT_USER_ID_PREFIX = 'guest';
     const ACTIVE_TABS = new Set(['status', 'animals', 'environment', 'appearance']);
     const HABITAT_BUILD_DURATION_MS = 2000;
+    const RED_PANDA_HABITAT_ID = 'red-panda-grove';
+    const RED_PANDA_POST_BUILD_STORY_ID = 'post-build-red-panda';
+    const RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1.webp';
+    const RED_PANDA_HABITAT_LEVEL1_POST_BUILD_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1-redpanda.webp';
     const listeners = new Set();
     let tickTimerId = 0;
     let visibilityHandlerBound = false;
@@ -443,6 +447,7 @@
             meta: {
                 lastSettlement: null,
                 lastTicketSpendAt: 0,
+                slotTutorialSeen: false,
                 storyFlags: {},
                 unlockedSystems: {},
                 storyFlow: normalizePendingReturnStoryFlow(null),
@@ -629,6 +634,7 @@
                     }
                     : null,
                 lastTicketSpendAt: Math.max(0, Math.floor(Number(rawState.meta && rawState.meta.lastTicketSpendAt) || 0)),
+                slotTutorialSeen: Boolean(rawState.meta && rawState.meta.slotTutorialSeen),
                 storyFlags: normalizeStoryFlags(rawState.meta && rawState.meta.storyFlags),
                 unlockedSystems: normalizeUnlockedSystems(rawState.meta && rawState.meta.unlockedSystems),
                 storyFlow: normalizePendingReturnStoryFlow(rawState.meta && rawState.meta.storyFlow),
@@ -879,12 +885,37 @@
         };
     }
 
+    function getHabitatStageAssets(definition, storyFlags) {
+        const stageAssets = definition && definition.stageAssets && typeof definition.stageAssets === 'object'
+            ? { ...definition.stageAssets }
+            : {};
+
+        if (definition && definition.id === RED_PANDA_HABITAT_ID) {
+            stageAssets.level1 = storyFlags && storyFlags[RED_PANDA_POST_BUILD_STORY_ID]
+                ? RED_PANDA_HABITAT_LEVEL1_POST_BUILD_IMAGE_SRC
+                : RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC;
+        }
+
+        return stageAssets;
+    }
+
+    function getHabitatSceneAsset(definition, stageAssets) {
+        if (definition && definition.id === RED_PANDA_HABITAT_ID && stageAssets.level1) {
+            return stageAssets.level1;
+        }
+
+        return definition && definition.sceneAsset
+            ? definition.sceneAsset
+            : '';
+    }
+
     function createHabitatSnapshot(habitat) {
         const definition = balance.getHabitatDefinition(habitat.id);
         const tier = balance.getTierById(habitat.tierId, habitat.id);
         const nextTier = balance.getNextTier(habitat.tierId, habitat.id);
         const metrics = deriveHabitatMetrics(habitat);
         const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
+        const stageAssets = getHabitatStageAssets(definition, storyFlags);
         const constructionFlow = normalizeConstructionFlow(runtimeState.meta && runtimeState.meta.constructionFlow);
         const storyRequirementMet = hasMetStoryRequirement(definition, storyFlags);
         const unlockStoryId = normalizeStoryId(definition.unlockStoryId);
@@ -917,11 +948,11 @@
             cardGlyph: definition.cardGlyph,
             cardSceneLabel: definition.cardSceneLabel,
             artTheme: definition.artTheme,
-            sceneAsset: definition.sceneAsset || '',
+            sceneAsset: getHabitatSceneAsset(definition, stageAssets),
             sceneAlt: definition.sceneAlt || '',
             sceneBadge: definition.sceneBadge || '',
             appearanceTitle: definition.appearanceTitle || definition.tagline,
-            stageAssets: definition.stageAssets || {},
+            stageAssets,
             unlocked: habitat.unlocked,
             isConstructing,
             constructionRemainingMs,
@@ -1025,6 +1056,7 @@
             ui: { ...runtimeState.ui },
             storyFlags: { ...(runtimeState.meta.storyFlags || {}) },
             unlockedSystems: JSON.parse(JSON.stringify(runtimeState.meta.unlockedSystems || {})),
+            slotTutorialSeen: Boolean(runtimeState.meta.slotTutorialSeen),
             slotTheme: { ...balance.SLOT_THEME },
             collection,
             habitats,

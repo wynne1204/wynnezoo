@@ -1576,6 +1576,11 @@
     height: 1.8rem;
 }
 
+.collection-screen .collection-card-guide.is-hand-only img {
+    width: 3.6rem;
+    height: 3.6rem;
+}
+
 .collection-screen .collection-footer {
     grid-template-columns: 6.8rem minmax(0, 1fr) 6.8rem;
     gap: 12px;

@@ -1400,7 +1400,7 @@
 .zoo-home-collection-guide-hand {
     display: block;
     width: 3.6rem;
-    margin: calc(0.15rem + 10px) -20px 0 0;
+    margin: calc(0.15rem + 30px) -20px 0 0;
     animation: collectionGuideHandTap 1s ease-in-out infinite;
 }
 

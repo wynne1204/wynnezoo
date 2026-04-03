@@ -158,6 +158,17 @@ function Parse-OptionChoices([string]$extraText) {
         }) | Out-Null
     }
 
+    if ($choices.Count -eq 0 -and $parts.Count -eq 1) {
+        $label = Normalize-Text $parts[0]
+        if ($label) {
+            return @([ordered]@{
+                id = '1'
+                label = $label
+                jump = 1
+            })
+        }
+    }
+
     if ($choices.Count -eq 0) {
         return $null
     }
@@ -315,7 +326,7 @@ function Split-ExtraParts([string]$extraText) {
     if (-not $normalized) {
         return @()
     }
-    return @([regex]::Split($normalized, '[\s,闁挎稑琚埀顑跨盃闁?]+') | Where-Object { $_ })
+    return @([regex]::Split($normalized, ('[\s,' + [char]0xFF0C + [char]0x3001 + '/|' + [char]0xFF1B + ';]+')) | Where-Object { $_ })
 }
 
 function Get-TaggedExtraValue([string]$part, [string]$tag) {

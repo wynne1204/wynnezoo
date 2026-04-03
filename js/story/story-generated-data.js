@@ -77,7 +77,11 @@
                                        "backgroundMode":  "story",
                                        "itemReward":  null,
                                        "interaction":  null,
-                                       "choices":  null,
+                                       "choices":  {
+                                                       "id":  "1",
+                                                       "label":  "从",
+                                                       "jump":  1
+                                                   },
                                        "collectionUnlock":  null
                                    },
                                    {
@@ -137,7 +141,11 @@
                                        "backgroundMode":  "story",
                                        "itemReward":  null,
                                        "interaction":  null,
-                                       "choices":  null,
+                                       "choices":  {
+                                                       "id":  "1",
+                                                       "label":  "画",
+                                                       "jump":  1
+                                                   },
                                        "collectionUnlock":  null
                                    },
                                    {
@@ -226,7 +234,11 @@
                                        "backgroundMode":  "story",
                                        "itemReward":  null,
                                        "interaction":  null,
-                                       "choices":  null,
+                                       "choices":  {
+                                                       "id":  "1",
+                                                       "label":  "画",
+                                                       "jump":  1
+                                                   },
                                        "collectionUnlock":  null
                                    },
                                    {
@@ -398,7 +410,11 @@
                                        "backgroundMode":  "story",
                                        "itemReward":  null,
                                        "interaction":  null,
-                                       "choices":  null,
+                                       "choices":  {
+                                                       "id":  "1",
+                                                       "label":  "镜",
+                                                       "jump":  1
+                                                   },
                                        "collectionUnlock":  null
                                    },
                                    {
@@ -697,7 +713,11 @@
                                   "backgroundMode":  "story",
                                   "itemReward":  null,
                                   "interaction":  null,
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "从",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -757,7 +777,11 @@
                                   "backgroundMode":  "story",
                                   "itemReward":  null,
                                   "interaction":  null,
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "震",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -891,7 +915,11 @@
                                                       "completionText":  "",
                                                       "buttonLabel":  ""
                                                   },
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "互",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -945,7 +973,11 @@
                                                       "completionText":  "",
                                                       "buttonLabel":  ""
                                                   },
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "互",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -1036,11 +1068,11 @@
                               },
                               {
                                   "id":  "beat-be4fbe9e74",
-                                  "title":  "我急忙打开箱子。",
+                                  "title":  "箱子里好像有什么东西在动",
                                   "background":  "./Texture/story/第一章/大福发现箱子.webp",
                                   "type":  "narration",
                                   "speakerName":  "",
-                                  "text":  "我急忙打开箱子。",
+                                  "text":  "箱子里好像有什么东西在动",
                                   "actorCount":  0,
                                   "actors":  [
 
@@ -1051,7 +1083,11 @@
                                   "backgroundMode":  "story",
                                   "itemReward":  null,
                                   "interaction":  null,
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "打开箱子",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -1071,7 +1107,11 @@
                                   "backgroundMode":  "story",
                                   "itemReward":  null,
                                   "interaction":  null,
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "震",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  null
                               },
                               {
@@ -1178,11 +1218,11 @@
                               },
                               {
                                   "id":  "beat-0828c17282",
-                                  "title":  "小熊猫慢慢放松下来……",
+                                  "title":  "【救助成功】你救下了第一...",
                                   "background":  "./Texture/story/第一章/第一章-小熊猫-干净.webp",
                                   "type":  "narration",
                                   "speakerName":  "",
-                                  "text":  "小熊猫慢慢放松下来……",
+                                  "text":  "【救助成功】你救下了第一只动物！",
                                   "actorCount":  0,
                                   "actors":  [
 
@@ -1236,7 +1276,11 @@
                                   "backgroundMode":  "story",
                                   "itemReward":  null,
                                   "interaction":  null,
-                                  "choices":  null,
+                                  "choices":  {
+                                                  "id":  "1",
+                                                  "label":  "小",
+                                                  "jump":  1
+                                              },
                                   "collectionUnlock":  {
                                                            "speciesName":  "小熊猫",
                                                            "speciesId":  "red-panda"
@@ -1343,11 +1387,11 @@
                                  "beats":  [
                                                {
                                                    "id":  "beat-44a305727b",
-                                                   "title":  "太好了",
+                                                   "title":  "入住前检查：安全度合格，...",
                                                    "background":  "",
                                                    "type":  "dialogue",
                                                    "speakerName":  "我",
-                                                   "text":  "太好了",
+                                                   "text":  "入住前检查：安全度合格，舒适度合格，清洁度基础，美观度一般",
                                                    "actorCount":  1,
                                                    "actors":  [
                                                                   {
@@ -1366,11 +1410,77 @@
                                                },
                                                {
                                                    "id":  "beat-2c65074404",
-                                                   "title":  "真棒",
+                                                   "title":  "栖息地已满足入住条件。",
+                                                   "background":  "",
+                                                   "type":  "dialogue",
+                                                   "speakerName":  "我",
+                                                   "text":  "栖息地已满足入住条件。",
+                                                   "actorCount":  1,
+                                                   "actors":  [
+                                                                  {
+                                                                      "characterId":  "character-1681525453",
+                                                                      "portraitId":  "portrait-9f33252b68"
+                                                                  }
+                                                              ],
+                                                   "presentation":  "standard",
+                                                   "effectClass":  "",
+                                                   "cameraEffect":  "",
+                                                   "backgroundMode":  "zoo-home",
+                                                   "itemReward":  null,
+                                                   "interaction":  null,
+                                                   "choices":  null,
+                                                   "collectionUnlock":  null
+                                               },
+                                               {
+                                                   "id":  "beat-32c5d2e004",
+                                                   "title":  "现在，让红豆回家吧。",
+                                                   "background":  "",
+                                                   "type":  "dialogue",
+                                                   "speakerName":  "我",
+                                                   "text":  "现在，让红豆回家吧。",
+                                                   "actorCount":  1,
+                                                   "actors":  [
+                                                                  {
+                                                                      "characterId":  "character-1681525453",
+                                                                      "portraitId":  "portrait-9f33252b68"
+                                                                  }
+                                                              ],
+                                                   "presentation":  "standard",
+                                                   "effectClass":  "",
+                                                   "cameraEffect":  "",
+                                                   "backgroundMode":  "zoo-home",
+                                                   "itemReward":  null,
+                                                   "interaction":  null,
+                                                   "choices":  null,
+                                                   "collectionUnlock":  null
+                                               },
+                                               {
+                                                   "id":  "beat-4edd4c6d5a",
+                                                   "title":  "小熊猫栖息地剧情CG",
+                                                   "background":  "./Texture/story/post-build-red-panda/小熊猫栖息地剧情CG.webp",
+                                                   "type":  "narration",
+                                                   "speakerName":  "",
+                                                   "text":  "",
+                                                   "actorCount":  0,
+                                                   "actors":  [
+
+                                                              ],
+                                                   "presentation":  "illustration",
+                                                   "effectClass":  "",
+                                                   "cameraEffect":  "",
+                                                   "backgroundMode":  "story",
+                                                   "itemReward":  null,
+                                                   "interaction":  null,
+                                                   "choices":  null,
+                                                   "collectionUnlock":  null
+                                               },
+                                               {
+                                                   "id":  "beat-c06ed54950",
+                                                   "title":  "【红豆已入住】",
                                                    "background":  "",
                                                    "type":  "narration",
                                                    "speakerName":  "",
-                                                   "text":  "真棒",
+                                                   "text":  "【红豆已入住】",
                                                    "actorCount":  0,
                                                    "actors":  [
 
@@ -1389,9 +1499,9 @@
 };
     globalScope.WynneImportedStoryMeta = {
     "source":  "剧情.xlsx",
-    "generatedAt":  "2026-04-03T01:26:53+08:00",
+    "generatedAt":  "2026-04-03T16:11:38+08:00",
     "storyCount":  4,
-    "beatCount":  56,
+    "beatCount":  59,
     "warnings":  [
 
                  ]

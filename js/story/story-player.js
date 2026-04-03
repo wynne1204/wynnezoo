@@ -18,10 +18,25 @@
     const CLEANING_BRUSH_RADIUS = 56;
     const CLEANING_STAGE_TARGETS = [0.4, 0.4533333333333333];
     const CLEANING_CELEBRATION_SPARKLES = 16;
+    const SPECIAL_SCENE_TREATMENTS = Object.freeze([
+        Object.freeze({
+            storyId: 'post-build-red-panda',
+            backgroundMatch: '/post-build-red-panda/小熊猫栖息地剧情CG',
+            screenClass: 'has-special-cg-red-panda',
+            durationMs: 4200,
+            scaleEnd: 1.15,
+            focusX: '56%',
+            focusY: '42%'
+        })
+    ]);
+    const SPECIAL_SCENE_SCREEN_CLASSES = Object.freeze(
+        SPECIAL_SCENE_TREATMENTS.map((config) => config.screenClass)
+    );
 
     const refs = {
         screen: document.getElementById('story-screen'),
         background: document.getElementById('story-scene-background'),
+        cinematicOverlay: document.getElementById('story-scene-cinematic-overlay'),
         title: document.getElementById('story-title'),
         progress: document.getElementById('story-progress'),
         beatTitle: document.getElementById('story-beat-title'),
@@ -74,6 +89,7 @@
     let itemRewardOpen = false;
     let choiceOpen = false;
     let collectionUnlockPending = null;
+    let activeSpecialSceneKey = '';
 
     // --------------- Image Preload System ---------------
     const PRELOAD_CACHE = new Map();
@@ -282,6 +298,81 @@
         return runtimeStoryData && typeof runtimeStoryData.getNextStoryId === 'function'
             ? runtimeStoryData
             : null;
+    }
+
+    function normalizeSceneAssetKey(value) {
+        return String(value || '')
+            .trim()
+            .replace(/\\/g, '/')
+            .replace(/\.(png|webp)(?=$|\?)/i, '');
+    }
+
+    function resolveSpecialSceneTreatment(beat) {
+        const storyId = String(PLAYER_STATE.storyId || '').trim();
+        const backgroundKey = normalizeSceneAssetKey(beat && beat.background);
+        if (!storyId || !backgroundKey) {
+            return null;
+        }
+
+        for (let i = 0; i < SPECIAL_SCENE_TREATMENTS.length; i += 1) {
+            const config = SPECIAL_SCENE_TREATMENTS[i];
+            if (config.storyId === storyId && backgroundKey.includes(config.backgroundMatch)) {
+                return config;
+            }
+        }
+
+        return null;
+    }
+
+    function getSpecialSceneTreatmentKey(beat, config) {
+        if (!config) {
+            return '';
+        }
+
+        const storyId = String(PLAYER_STATE.storyId || '').trim();
+        const backgroundKey = normalizeSceneAssetKey(beat && beat.background);
+        return storyId && backgroundKey
+            ? `${storyId}::${backgroundKey}`
+            : '';
+    }
+
+    function clearSpecialSceneTreatment() {
+        SPECIAL_SCENE_SCREEN_CLASSES.forEach((className) => {
+            refs.screen.classList.remove(className);
+        });
+        refs.screen.style.removeProperty('--story-special-cg-duration');
+        refs.screen.style.removeProperty('--story-special-cg-scale-end');
+        refs.screen.style.removeProperty('--story-special-cg-focus-x');
+        refs.screen.style.removeProperty('--story-special-cg-focus-y');
+
+        if (refs.cinematicOverlay) {
+            refs.cinematicOverlay.classList.remove('is-visible');
+            refs.cinematicOverlay.hidden = true;
+        }
+    }
+
+    function applySpecialSceneTreatment(config) {
+        clearSpecialSceneTreatment();
+
+        if (!config) {
+            return;
+        }
+
+        refs.screen.style.setProperty('--story-special-cg-duration', `${Math.max(1200, Math.floor(Number(config.durationMs) || 0))}ms`);
+        refs.screen.style.setProperty('--story-special-cg-scale-end', String(config.scaleEnd || 1.08));
+        refs.screen.style.setProperty('--story-special-cg-focus-x', String(config.focusX || '50%'));
+        refs.screen.style.setProperty('--story-special-cg-focus-y', String(config.focusY || '50%'));
+
+        if (refs.cinematicOverlay) {
+            refs.cinematicOverlay.hidden = false;
+        }
+
+        void refs.screen.offsetWidth;
+        refs.screen.classList.add(config.screenClass);
+
+        if (refs.cinematicOverlay) {
+            refs.cinematicOverlay.classList.add('is-visible');
+        }
     }
 
     function updateSkipButton() {
@@ -1327,6 +1418,8 @@
 
         if (!beat) {
             clearBeatEffects();
+            clearSpecialSceneTreatment();
+            activeSpecialSceneKey = '';
             resetBeatClasses();
             setBackdropMode(BACKDROP_MODE_STORY);
             setSceneBackground('', { immediate: true });
@@ -1353,6 +1446,8 @@
         const previousBackdropMode = PLAYER_STATE.backdropMode;
         const backdropMode = normalizeBackdropMode(beat.backgroundMode);
         const useZooHomeBackdrop = backdropMode === BACKDROP_MODE_ZOO_HOME;
+        const specialSceneTreatment = useZooHomeBackdrop ? null : resolveSpecialSceneTreatment(beat);
+        const specialSceneKey = getSpecialSceneTreatmentKey(beat, specialSceneTreatment);
 
         refs.screen.classList.toggle('is-illustration', isIllustration);
         refs.screen.classList.toggle('is-narration-beat', !isDialogue);
@@ -1363,6 +1458,10 @@
         setSceneBackground(useZooHomeBackdrop ? '' : beat.background, {
             immediate: !hasRenderedBeat || previousBackdropMode !== backdropMode || useZooHomeBackdrop
         });
+        if (specialSceneKey !== activeSpecialSceneKey) {
+            applySpecialSceneTreatment(specialSceneTreatment);
+            activeSpecialSceneKey = specialSceneKey;
+        }
         setText(refs.title, PLAYER_STATE.story && PLAYER_STATE.story.title ? PLAYER_STATE.story.title : '剧情');
         setText(refs.progress, `${PLAYER_STATE.beatIndex + 1} / ${Math.max(1, storyLength)}`);
         setText(refs.beatTitle, beat.title || `第 ${PLAYER_STATE.beatIndex + 1} 幕`);
@@ -1443,6 +1542,8 @@
         hideCleaningInteraction();
         hideChoices();
         resetBeatClasses();
+        clearSpecialSceneTreatment();
+        activeSpecialSceneKey = '';
         setBackdropMode(BACKDROP_MODE_STORY);
         setSceneBackground('', { immediate: true });
         hasRenderedBeat = false;
@@ -1574,6 +1675,8 @@
     function leaveView() {
         PLAYER_STATE.active = false;
         clearBeatEffects();
+        clearSpecialSceneTreatment();
+        activeSpecialSceneKey = '';
         clearTypewriter();
         hideItemReward();
         hideCleaningInteraction();
