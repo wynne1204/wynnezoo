@@ -47,12 +47,16 @@
         unlockNotificationQueue: [],
         unlockPopupActive: false,
         lastConstructionHabitatId: '',
-        buildEffectActive: false
+        buildEffectActive: false,
+        lastHabitatArtById: {}
     };
+    const assetPreloadCache = new Map();
     const HABITAT_ID_BY_SPECIES_ID = Object.freeze({
         'red-panda': 'red-panda-grove'
     });
     const DIRECT_BUILD_HABITAT_ID = 'red-panda-grove';
+    const RED_PANDA_POST_BUILD_STORY_ID = 'post-build-red-panda';
+    const RED_PANDA_POST_BUILD_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1-redpanda.webp';
 
     function cacheDom() {
         refs.homeScreen = document.getElementById('zoo-home-screen');
@@ -116,6 +120,65 @@
         localState.toastTimerId = globalScope.setTimeout(() => {
             refs.toast.classList.remove('is-visible');
         }, 2200);
+    }
+
+    function preloadImageAsset(src) {
+        const normalizedSrc = String(src || '').trim();
+        if (!normalizedSrc) {
+            return Promise.resolve(null);
+        }
+
+        if (assetPreloadCache.has(normalizedSrc)) {
+            return assetPreloadCache.get(normalizedSrc);
+        }
+
+        const preloadPromise = new Promise((resolve) => {
+            const image = new Image();
+            let settled = false;
+
+            const finish = () => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                resolve(image);
+            };
+
+            image.decoding = 'async';
+            image.loading = 'eager';
+            image.onload = () => {
+                if (typeof image.decode === 'function') {
+                    image.decode().catch(() => null).finally(finish);
+                    return;
+                }
+                finish();
+            };
+            image.onerror = finish;
+            image.src = normalizedSrc;
+        });
+
+        assetPreloadCache.set(normalizedSrc, preloadPromise);
+        return preloadPromise;
+    }
+
+    function warmRedPandaPostBuildImage(snapshot) {
+        if (!snapshot || !Array.isArray(snapshot.habitats)) {
+            return;
+        }
+
+        const storyFlags = snapshot.storyFlags && typeof snapshot.storyFlags === 'object'
+            ? snapshot.storyFlags
+            : {};
+        if (storyFlags[RED_PANDA_POST_BUILD_STORY_ID]) {
+            return;
+        }
+
+        const redPandaHabitat = snapshot.habitats.find((habitat) => habitat && habitat.id === DIRECT_BUILD_HABITAT_ID);
+        if (!redPandaHabitat || !redPandaHabitat.unlocked) {
+            return;
+        }
+
+        preloadImageAsset(RED_PANDA_POST_BUILD_IMAGE_SRC);
     }
 
     function hasUnfinishedRound(snapshot) {
@@ -640,6 +703,18 @@
         return `查看${habitatLabel}`;
     }
 
+    function shouldAnimateHabitatArtSwap(habitat, art) {
+        const habitatId = String(habitat && habitat.id || '').trim();
+        if (!habitatId) {
+            return false;
+        }
+
+        const normalizedArt = String(art || '').trim();
+        const previousArt = String(localState.lastHabitatArtById[habitatId] || '').trim();
+        localState.lastHabitatArtById[habitatId] = normalizedArt;
+        return Boolean(normalizedArt && previousArt && previousArt !== normalizedArt);
+    }
+
     function renderHabitatStage(habitat) {
         if (!habitat) {
             return '';
@@ -654,6 +729,7 @@
         }
 
         const art = getHabitatArt(habitat);
+        const shouldAnimateArtSwap = shouldAnimateHabitatArtSwap(habitat, art);
         const layout = getHabitatStageLayout(habitat);
         const snapshot = economy && typeof economy.getSnapshot === 'function'
             ? economy.getSnapshot()
@@ -693,7 +769,7 @@
                     aria-label="${escapeHtml(primaryAction.label)}"
                     ${habitat.isConstructing ? 'disabled' : ''}
                 >
-                    ${art ? `<img class="zoo-habitat-scene" src="${escapeHtml(art)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : ''}
+                    ${art ? `<img class="zoo-habitat-scene${shouldAnimateArtSwap ? ' is-art-transitioning' : ''}" src="${escapeHtml(art)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : ''}
                     ${showBuildGuide && !art ? `
                         <div class="zoo-build-guide-zone" aria-hidden="true">
                             <div class="zoo-build-guide-ring"></div>
@@ -1282,6 +1358,9 @@
         const result = economy.beginHabitatConstruction(habitatId);
         if (result) {
             if (result.ok) {
+                if (habitatId === DIRECT_BUILD_HABITAT_ID) {
+                    preloadImageAsset(RED_PANDA_POST_BUILD_IMAGE_SRC);
+                }
                 playBuildEffect(function () {
                     render();
                     playConstructionCelebration(habitatId);
@@ -1534,6 +1613,8 @@
         if (!snapshot || !snapshot.selectedHabitat) {
             return;
         }
+
+        warmRedPandaPostBuildImage(snapshot);
 
         const homeHabitat = getHomeHabitat(snapshot);
         const selectedHabitat = getInfoHabitat(snapshot);

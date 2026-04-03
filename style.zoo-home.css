@@ -1811,6 +1811,12 @@
     pointer-events: none;
 }
 
+.zoo-habitat-scene.is-art-transitioning {
+    animation: zooHabitatSceneSwapIn 180ms ease-out both;
+    transform-origin: center center;
+    will-change: opacity, transform;
+}
+
 .zoo-habitat-caption {
     display: none;
 }
@@ -2392,6 +2398,23 @@
     user-select: none;
     -webkit-user-drag: none;
     pointer-events: none;
+}
+
+.zoo-habitat-scene.is-art-transitioning {
+    animation: zooHabitatSceneSwapIn 180ms ease-out both;
+    transform-origin: center center;
+    will-change: opacity, transform;
+}
+
+@keyframes zooHabitatSceneSwapIn {
+    from {
+        opacity: 0.82;
+        transform: scale(1.018);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* --- Build Guide Zone (highlighted click area) --- */
