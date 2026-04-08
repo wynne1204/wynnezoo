@@ -1646,12 +1646,14 @@
 
         if (refs.habitatStageList) {
             // Build a lightweight cache key to avoid destroying/recreating DOM on every tick.
+            var currentHabitatArt = displayHabitat ? getHabitatArt(displayHabitat) : '';
             var stageKey = displayHabitat
                 ? [
                     displayHabitat.id,
                     displayHabitat.unlocked ? '1' : '0',
                     displayHabitat.isConstructing ? 'c' : '',
                     displayHabitat.tier ? displayHabitat.tier.level : '',
+                    currentHabitatArt,
                     displayHabitat.hasClaimableTickets ? displayHabitat.claimableTickets : '0',
                     displayHabitat.isStoryLocked ? 'sl' : ''
                 ].join(':')
