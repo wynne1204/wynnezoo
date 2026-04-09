@@ -12,6 +12,7 @@
     const DEFAULT_USER_ID_PREFIX = 'guest';
     const ACTIVE_TABS = new Set(['status', 'animals', 'environment', 'appearance']);
     const HABITAT_BUILD_DURATION_MS = 2000;
+    const SAVE_THROTTLE_MS = 5000;
     const RED_PANDA_HABITAT_ID = 'red-panda-grove';
     const RED_PANDA_POST_BUILD_STORY_ID = 'post-build-red-panda';
     const RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1.webp';
@@ -19,6 +20,10 @@
     const listeners = new Set();
     let tickTimerId = 0;
     let visibilityHandlerBound = false;
+    let saveTimerId = 0;
+    let lastSaveAt = 0;
+    let pendingSaveUserId = '';
+    let pendingSaveState = null;
     const COLLECTION_REDPANDA_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_小熊猫.webp';
     const COLLECTION_NORTHEAST_TIGER_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_东北虎.webp';
     const COLLECTION_ASIAN_ELEPHANT_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_亚洲象.webp';
@@ -679,6 +684,76 @@
         }
     }
 
+    function clearPendingSaveTimer() {
+        if (!saveTimerId) {
+            return;
+        }
+
+        globalScope.clearTimeout(saveTimerId);
+        saveTimerId = 0;
+    }
+
+    function persistStateNow(userId, state) {
+        const targetUserId = normalizeUserId(userId);
+        if (!targetUserId || !state) {
+            return false;
+        }
+
+        clearPendingSaveTimer();
+        pendingSaveUserId = '';
+        pendingSaveState = null;
+        saveStateForUser(targetUserId, state);
+        lastSaveAt = Date.now();
+        return true;
+    }
+
+    function scheduleStateSave(userId, state, options = {}) {
+        const targetUserId = normalizeUserId(userId);
+        if (!targetUserId || !state) {
+            return false;
+        }
+
+        if (pendingSaveUserId && pendingSaveUserId !== targetUserId) {
+            flushPendingSave();
+        }
+
+        pendingSaveUserId = targetUserId;
+        pendingSaveState = state;
+
+        const immediate = Boolean(options.immediate);
+        const now = Date.now();
+        const remainingMs = Math.max(0, SAVE_THROTTLE_MS - (now - lastSaveAt));
+
+        if (immediate || lastSaveAt === 0 || remainingMs <= 0) {
+            return persistStateNow(targetUserId, state);
+        }
+
+        if (saveTimerId) {
+            return true;
+        }
+
+        saveTimerId = globalScope.setTimeout(() => {
+            const queuedUserId = pendingSaveUserId;
+            const queuedState = pendingSaveState;
+            saveTimerId = 0;
+            if (!queuedUserId || !queuedState) {
+                return;
+            }
+            persistStateNow(queuedUserId, queuedState);
+        }, remainingMs);
+
+        return true;
+    }
+
+    function flushPendingSave() {
+        if (!pendingSaveUserId || !pendingSaveState) {
+            clearPendingSaveTimer();
+            return false;
+        }
+
+        return persistStateNow(pendingSaveUserId, pendingSaveState);
+    }
+
     function getHabitatById(habitatId) {
         const targetId = String(habitatId || runtimeState.ui.activeHabitatId || '');
         return runtimeState.habitats.find((habitat) => habitat.id === targetId) || runtimeState.habitats[0];
@@ -1070,9 +1145,11 @@
         };
     }
 
-    function emitChange(reason) {
+    function emitChange(reason, options = {}) {
         syncAll(Date.now());
-        saveStateForUser(activeUserId, runtimeState);
+        scheduleStateSave(activeUserId, runtimeState, {
+            immediate: Boolean(options.immediateSave)
+        });
         const snapshot = getSnapshot();
         listeners.forEach((listener) => {
             try {
@@ -1603,11 +1680,12 @@
             };
         }
 
+        flushPendingSave();
         activeUserId = normalized;
         persistActiveUserId(activeUserId);
         runtimeState = loadStateForUser(activeUserId);
         syncAll(Date.now());
-        emitChange('login');
+        emitChange('login', { immediateSave: true });
 
         return {
             ok: true,
@@ -1768,11 +1846,17 @@
 
         if (!visibilityHandlerBound) {
             document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'hidden') {
+                    flushPendingSave();
+                    return;
+                }
+
                 if (document.visibilityState === 'visible') {
                     syncAll(Date.now());
-                    emitChange('visibility');
+                    emitChange('visibility', { immediateSave: true });
                 }
             });
+            globalScope.addEventListener('pagehide', flushPendingSave);
             visibilityHandlerBound = true;
         }
     }

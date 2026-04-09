@@ -584,6 +584,8 @@
         refs.choiceList.innerHTML = '';
     }
 
+    /*
+
     function showChoices(choices) {
         const normalizedChoices = Array.isArray(choices)
             ? choices.filter((choice) => choice && typeof choice === 'object')
@@ -626,6 +628,8 @@
         refs.screen.classList.add('has-choice-overlay');
         choiceOpen = true;
     }
+
+    */
 
     function showItemReward(itemReward) {
         if (!refs.itemRewardOverlay) {

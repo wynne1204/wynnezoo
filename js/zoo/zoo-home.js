@@ -44,6 +44,7 @@
         toastTimerId: 0,
         storyPreviewOpen: false,
         storyEntryCount: 0,
+        storyPreviewSignature: '',
         unlockNotificationQueue: [],
         unlockPopupActive: false,
         lastConstructionHabitatId: '',
@@ -257,18 +258,38 @@
         setStoryPreviewOpen(false);
     }
 
+    function createStoryPreviewSignature(stories) {
+        const safeStories = Array.isArray(stories) ? stories : [];
+        if (safeStories.length <= 0) {
+            return 'empty';
+        }
+
+        return safeStories.map((story) => [
+            String(story && story.id || '').trim(),
+            String(story && story.title || '').trim(),
+            Math.max(0, Math.floor(Number(story && story.beatCount) || 0))
+        ].join('|')).join('||');
+    }
+
     function renderStoryPreviewList() {
         if (!refs.storyPreviewList) {
             return;
         }
 
         const stories = getStoryEntries();
+        const nextSignature = createStoryPreviewSignature(stories);
         localState.storyEntryCount = stories.length;
 
         if (refs.storyPreviewTrigger) {
             refs.storyPreviewTrigger.disabled = false;
             refs.storyPreviewTrigger.dataset.empty = stories.length <= 0 ? 'true' : 'false';
         }
+
+        if (localState.storyPreviewSignature === nextSignature) {
+            return;
+        }
+
+        localState.storyPreviewSignature = nextSignature;
 
         if (stories.length <= 0) {
             refs.storyPreviewList.innerHTML = `
@@ -1732,7 +1753,6 @@
         }
 
         updateTabButtons(snapshot.ui ? snapshot.ui.activeTab : 'status');
-        renderStoryPreviewList();
     }
 
     function bindEvents() {
@@ -2121,7 +2141,6 @@
         renderStoryPreviewList();
         closeStoryPreviewPanel();
         setSlotSnapshot(snapshot);
-        render();
         processUnlockNotifications();
     }
 
