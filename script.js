@@ -9,6 +9,8 @@ const STATE = {
     grid: new Uint8Array(0),
     revealed: new Uint8Array(0),
     cellBlocks: [],
+    boardCellStates: [],
+    boardResolvedFlags: new Uint8Array(0),
     stackHeight: 0,
     currentMultiplier: 1.0,
     rewardRetentionRatio: 1.0,
@@ -38,6 +40,13 @@ const STATE = {
     unrevealedIndices: [],
     unrevealedPosByIndex: new Int32Array(0),
     gridCells: [],
+    wishSymbolKey: '',
+    remainingBlindBoxes: 0,
+    restockPoolCount: 0,
+    queuedBlindBoxes: 0,
+    selectedIndexes: [],
+    selectionMode: 'none',
+    pendingPlacementIndexes: [],
     currentCustomer: null,
     customerVisitCount: 0,
     lastCustomerSignature: ''
@@ -132,6 +141,11 @@ const bonusResultOverlay = document.getElementById('bonus-result-overlay');
 const bonusResultReward = document.getElementById('bonus-result-reward');
 const bonusResultCollectBtn = document.getElementById('bonus-result-collect-btn');
 const bonusParticlesCanvas = document.getElementById('bonus-particles-canvas');
+let slotWishOverlay = document.getElementById('slot-wish-overlay');
+let slotWishOptions = document.getElementById('slot-wish-options');
+const restockTray = document.getElementById('restock-tray');
+const restockTrayBoxes = document.getElementById('restock-tray-boxes');
+const gridSelectionHint = document.getElementById('grid-selection-hint');
 const bonusChestCards = Array.from(document.querySelectorAll('.bonus-chest[data-chest-id]'));
 const bonusChestCardMap = new Map(
     bonusChestCards
@@ -183,6 +197,20 @@ const SLOT_GAME_RUNTIME = {
 };
 const CUSTOMER_SWITCH_DELAY_MS = 320;
 const CUSTOMER_SATISFIED_FEEDBACK_MS = 420;
+const SIMPLE_SLOT_MODE = Boolean(CONFIG.simpleCoreMode);
+const SIMPLE_SYMBOL_KEYS = Array.isArray(CONFIG.normalSymbolKeys) && CONFIG.normalSymbolKeys.length > 0
+    ? CONFIG.normalSymbolKeys.slice()
+    : [...NORMAL_SYMBOL_ORDER];
+const SIMPLE_TRIPLE_LINES = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
 
 function getZooEconomy() {
     return (window.WynneRegistry && window.WynneRegistry.get('WynneZooEconomy')) || window.WynneZooEconomy || null;
@@ -220,9 +248,485 @@ function requestFreshRoundTicket() {
     return zooEconomy.consumePlayTicket();
 }
 
+function ensureSimpleBlindBoxCounterElements() {
+    if (!SIMPLE_SLOT_MODE || !customerSatisfaction) return null;
+    if (document.getElementById('blindbox-meter-value')) {
+        return null;
+    }
+    let counter = customerSatisfaction.querySelector('.simple-blindbox-counter');
+    if (!counter) {
+        counter = document.createElement('div');
+        counter.className = 'simple-blindbox-counter';
+
+        const value = document.createElement('strong');
+        value.className = 'simple-blindbox-counter-value';
+        value.textContent = '0';
+
+        const label = document.createElement('span');
+        label.className = 'simple-blindbox-counter-label';
+        label.textContent = '盲盒';
+
+        counter.appendChild(value);
+        counter.appendChild(label);
+        customerSatisfaction.appendChild(counter);
+    }
+    return counter;
+}
+
+function updateSimpleBlindBoxCounterUi() {
+    if (!SIMPLE_SLOT_MODE) return;
+    const meterValue = document.getElementById('blindbox-meter-value');
+    if (meterValue) {
+        meterValue.textContent = String(Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0)));
+    }
+    const counter = ensureSimpleBlindBoxCounterElements();
+    if (!counter) return;
+    const value = counter.querySelector('.simple-blindbox-counter-value');
+    if (value) {
+        value.textContent = String(Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0)));
+    }
+}
+
+function ensureSimpleWishOverlay() {
+    if (!SIMPLE_SLOT_MODE || !gameContainer) return null;
+    if (slotWishOverlay && slotWishOverlay.isConnected) {
+        slotWishOptions = slotWishOverlay.querySelector('#slot-wish-options');
+        if (slotWishOverlay.dataset.bound !== '1') {
+            slotWishOverlay.dataset.bound = '1';
+            slotWishOverlay.addEventListener('click', (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                const option = target.closest('.slot-wish-option');
+                if (!option || !slotWishOverlay.contains(option)) return;
+                const symbolKey = String(option.dataset.symbolKey || '');
+                if (!SIMPLE_SYMBOL_KEYS.includes(symbolKey)) return;
+                STATE.wishSymbolKey = symbolKey;
+                renderCurrentCustomer();
+                hideSimpleWishOverlay();
+                refreshSimpleModeUi();
+            });
+        }
+        return slotWishOverlay;
+    }
+
+    slotWishOverlay = document.createElement('div');
+    slotWishOverlay.id = 'slot-wish-overlay';
+    slotWishOverlay.className = 'slot-wish-overlay hidden';
+    slotWishOverlay.innerHTML = `
+        <div class="slot-wish-card" role="dialog" aria-modal="true" aria-labelledby="slot-wish-title">
+            <div class="slot-wish-badge">WISH PICK</div>
+            <h2 id="slot-wish-title" class="slot-wish-title">选择本局许愿积木</h2>
+            <p id="slot-wish-subtitle" class="slot-wish-subtitle">翻到许愿积木立即 +1 盲盒</p>
+            <div id="slot-wish-options" class="slot-wish-options"></div>
+        </div>
+    `;
+    gameContainer.appendChild(slotWishOverlay);
+    slotWishOptions = slotWishOverlay.querySelector('#slot-wish-options');
+    if (slotWishOptions) {
+        slotWishOptions.innerHTML = '';
+        SIMPLE_SYMBOL_KEYS.forEach((symbolKey) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'slot-wish-option';
+            button.dataset.symbolKey = symbolKey;
+            button.innerHTML = `
+                <img src="${getNormalSymbolImage(symbolKey)}" alt="${symbolKey}">
+                <span>${symbolKey}</span>
+            `;
+            slotWishOptions.appendChild(button);
+        });
+    }
+
+    slotWishOverlay.dataset.bound = '1';
+    slotWishOverlay.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const option = target.closest('.slot-wish-option');
+        if (!option || !slotWishOverlay.contains(option)) return;
+        const symbolKey = String(option.dataset.symbolKey || '');
+        if (!SIMPLE_SYMBOL_KEYS.includes(symbolKey)) return;
+        STATE.wishSymbolKey = symbolKey;
+        renderCurrentCustomer();
+        hideSimpleWishOverlay();
+        refreshSimpleModeUi();
+    });
+
+    return slotWishOverlay;
+}
+
+function hideSimpleWishOverlay() {
+    if (!slotWishOverlay) return;
+    slotWishOverlay.classList.add('hidden');
+    updateSlotBackButtonVisibility();
+}
+
+function showSimpleWishOverlay() {
+    const overlay = ensureSimpleWishOverlay();
+    if (!overlay) return;
+    stopAutoOpen();
+    overlay.classList.remove('hidden');
+    if (cashoutBtn) cashoutBtn.disabled = true;
+    if (randomBtn) randomBtn.disabled = true;
+    updateSlotBackButtonVisibility();
+}
+
+function hasSimpleWishSelection() {
+    return !SIMPLE_SLOT_MODE || SIMPLE_SYMBOL_KEYS.includes(String(STATE.wishSymbolKey || ''));
+}
+
+function pickSimpleModeSymbolKey() {
+    return pickRandomItem(SIMPLE_SYMBOL_KEYS) || SIMPLE_SYMBOL_KEYS[0] || 'S1';
+}
+
+function createSimpleModeBlockData() {
+    return createNormalBlockData(pickSimpleModeSymbolKey());
+}
+
+function applyGridCellLayoutVars(cell, index, size) {
+    if (!cell) return;
+    const safeSize = Math.max(1, Math.floor(Number(size) || CONFIG.gridSize || 1));
+    const side = Math.max(1, Math.round(Math.sqrt(safeSize)));
+    const col = index % side;
+    const row = Math.floor(index / side);
+    const center = (side - 1) / 2;
+    const overlapFactorX = center - col;
+    const overlapFactorY = center - row;
+    cell.style.setProperty('--grid-cell-overlap-x-offset', `calc(var(--grid-cell-overlap-x, 0px) * ${overlapFactorX})`);
+    cell.style.setProperty('--grid-cell-overlap-y-offset', `calc(var(--grid-cell-overlap-y, 0px) * ${overlapFactorY})`);
+}
+
+function getSimpleModeEmptyIndexes() {
+    const indexes = [];
+    for (let index = 0; index < STATE.boardCellStates.length; index++) {
+        if (STATE.boardCellStates[index] === 'empty') {
+            indexes.push(index);
+        }
+    }
+    return indexes;
+}
+
+function syncSimpleModeStockState() {
+    STATE.queuedBlindBoxes = Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0));
+}
+
+function updateSimpleModePlacementState() {
+    const emptyIndexes = getSimpleModeEmptyIndexes();
+    STATE.pendingPlacementIndexes = emptyIndexes.slice();
+    syncSimpleModeStockState();
+    return emptyIndexes;
+}
+
+function addUnrevealedIndex(index) {
+    const safeIndex = Math.floor(Number(index));
+    if (!Number.isFinite(safeIndex) || safeIndex < 0) return;
+    if (safeIndex >= STATE.unrevealedPosByIndex.length) return;
+    if (STATE.unrevealedPosByIndex[safeIndex] >= 0) return;
+    const nextPos = STATE.unrevealedIndices.length;
+    STATE.unrevealedIndices.push(safeIndex);
+    STATE.unrevealedPosByIndex[safeIndex] = nextPos;
+}
+
+function markCellAsUnrevealed(index) {
+    const safeIndex = Math.floor(Number(index));
+    if (!Number.isFinite(safeIndex) || safeIndex < 0) return;
+    if (!STATE.revealed[safeIndex]) return;
+    STATE.revealed[safeIndex] = 0;
+    STATE.revealedCount = Math.max(0, STATE.revealedCount - 1);
+    addUnrevealedIndex(safeIndex);
+}
+
+function clearSafeOpenBoxImage(cell) {
+    if (!cell) return;
+    const img = cell.querySelector('.safe-open-box-frame');
+    if (img) {
+        img.remove();
+    }
+}
+
+function setSimpleModeCellSealed(index) {
+    const cell = getGridCellElement(index);
+    if (!cell) return;
+    resetGridCellElement(cell, index);
+    STATE.cellBlocks[index] = null;
+    STATE.boardCellStates[index] = 'sealed';
+    STATE.boardResolvedFlags[index] = 0;
+    markCellAsUnrevealed(index);
+}
+
+function setSimpleModeCellEmpty(index) {
+    const cell = getGridCellElement(index);
+    if (!cell) return;
+    resetGridCellElement(cell, index);
+    cell.classList.add('revealed', 'empty-slot');
+    clearSafeOpenBoxImage(cell);
+    clearStickyWildRoundBadge(cell);
+    clearBombAnimImage(cell);
+    STATE.cellBlocks[index] = null;
+    STATE.boardCellStates[index] = 'empty';
+    STATE.boardResolvedFlags[index] = 1;
+    let plusButton = cell.querySelector('.cell-plus');
+    if (!plusButton) {
+        plusButton = document.createElement('button');
+        plusButton.type = 'button';
+        plusButton.className = 'cell-plus';
+        plusButton.textContent = '+';
+        cell.appendChild(plusButton);
+    }
+    plusButton.dataset.index = String(index);
+    positionSimpleModeCellPlusButton(cell, plusButton);
+}
+
+function renderSimpleModeRevealedCell(index, blockData) {
+    const cell = getGridCellElement(index);
+    if (!cell) return;
+    cell.classList.add('revealed', 'safe');
+    cell.classList.remove('empty-slot');
+    const rewardImg = ensureSafeOpenBoxImage(cell, blockData.imageSrc, 'stack block');
+    if (rewardImg) {
+        rewardImg.classList.remove('bonus-reward-glow', 'sticky-wild-reward-glow');
+    }
+}
+
+function clearSimpleModeSelectionState() {
+    STATE.selectedIndexes = [];
+    STATE.selectionMode = 'none';
+}
+
+function getSimpleModeRevealedIndexes() {
+    const indexes = [];
+    for (let index = 0; index < STATE.boardCellStates.length; index++) {
+        if (STATE.boardCellStates[index] === 'revealed') {
+            indexes.push(index);
+        }
+    }
+    return indexes;
+}
+
+function getSimpleModeSameSymbolIndexes(symbolKey) {
+    const safeSymbolKey = String(symbolKey || '');
+    if (!safeSymbolKey) return [];
+    const indexes = [];
+    for (let index = 0; index < STATE.boardCellStates.length; index++) {
+        if (getSimpleModeCellSymbolKey(index) === safeSymbolKey) {
+            indexes.push(index);
+        }
+    }
+    return indexes;
+}
+
+function hasSimpleModeTripleOpportunity(symbolKey) {
+    const sameSymbolIndexes = getSimpleModeSameSymbolIndexes(symbolKey);
+    if (sameSymbolIndexes.length < 3) return false;
+    const indexSet = new Set(sameSymbolIndexes);
+    return SIMPLE_TRIPLE_LINES.some((line) => line.every((lineIndex) => indexSet.has(lineIndex)));
+}
+
+function getSimpleModeTargetSelectionCount(symbolKey) {
+    const sameSymbolIndexes = getSimpleModeSameSymbolIndexes(symbolKey);
+    if (sameSymbolIndexes.length < 2) return 0;
+    if (sameSymbolIndexes.length === 2) return 2;
+    if (!hasSimpleModeTripleOpportunity(symbolKey)) {
+        return 2;
+    }
+    return Math.min(sameSymbolIndexes.length, Math.max(3, Math.floor(Number(CONFIG.maxSelectableSameSymbolCount) || 3)));
+}
+
+function isSimpleModeTripleLine(indexes) {
+    if (!Array.isArray(indexes) || indexes.length !== 3) return false;
+    const indexSet = new Set(indexes.map((value) => Math.floor(Number(value))));
+    if (indexSet.size !== 3) return false;
+    return SIMPLE_TRIPLE_LINES.some((line) => line.every((lineIndex) => indexSet.has(lineIndex)));
+}
+
+function isSimpleModeFullSetAvailable() {
+    if (!SIMPLE_SLOT_MODE || STATE.boardCellStates.length !== 9) return false;
+    const revealedIndexes = getSimpleModeRevealedIndexes();
+    if (revealedIndexes.length !== 9) return false;
+    const symbolKeys = revealedIndexes.map((index) => getSimpleModeCellSymbolKey(index));
+    if (symbolKeys.some((symbolKey) => !symbolKey)) return false;
+    return new Set(symbolKeys).size === 9;
+}
+
+function getSimpleModeSelectableIndexes() {
+    if (!SIMPLE_SLOT_MODE) return [];
+    const selectedSet = new Set(STATE.selectedIndexes);
+    if (STATE.selectionMode === 'full-set') {
+        return getSimpleModeRevealedIndexes().filter((index) => !selectedSet.has(index));
+    }
+    if (STATE.selectionMode === 'same-symbol' && STATE.selectedIndexes.length > 0) {
+        const symbolKey = getSimpleModeCellSymbolKey(STATE.selectedIndexes[0]);
+        return getSimpleModeSameSymbolIndexes(symbolKey).filter((index) => !selectedSet.has(index));
+    }
+    return [];
+}
+
+function getSimpleModeSelectionHintText() {
+    if (!SIMPLE_SLOT_MODE) return '';
+    if (!hasSimpleWishSelection()) {
+        return '先选择本局许愿积木';
+    }
+    if (STATE.selectionMode === 'full-set') {
+        const remaining = Math.max(0, 9 - STATE.selectedIndexes.length);
+        return remaining > 0 ? `全家福进行中，再选 ${remaining} 个不同积木` : '全家福已满足';
+    }
+    if (STATE.selectionMode === 'same-symbol' && STATE.selectedIndexes.length > 0) {
+        const symbolKey = getSimpleModeCellSymbolKey(STATE.selectedIndexes[0]);
+        const targetCount = getSimpleModeTargetSelectionCount(symbolKey);
+        if (targetCount <= 0) {
+            return '当前没有可碰的同色积木';
+        }
+        if (targetCount === 2) {
+            const remaining = Math.max(0, 2 - STATE.selectedIndexes.length);
+            return remaining > 0 ? `再选 ${remaining} 个同色可对碰` : '已满足对子';
+        }
+        if (STATE.selectedIndexes.length >= 3 && !isSimpleModeTripleLine(STATE.selectedIndexes)) {
+            return '三连需要横/竖/斜成线';
+        }
+        const remaining = Math.max(0, 3 - STATE.selectedIndexes.length);
+        return remaining > 0 ? `再选 ${remaining} 个同色尝试三连` : '已满足三连';
+    }
+    if (isSimpleModeFullSetAvailable()) {
+        return '全家福可选，点任意积木开始';
+    }
+    return '点已翻开的积木开始手动对碰';
+}
+
+function renderSimpleModeRestockTray() {
+    if (!SIMPLE_SLOT_MODE || !restockTrayBoxes) return;
+    const emptyIndexes = updateSimpleModePlacementState();
+    const canFill = emptyIndexes.length > 0 && STATE.restockPoolCount > 0;
+    restockTrayBoxes.innerHTML = '';
+    for (let i = 0; i < STATE.restockPoolCount; i++) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'restock-tray-box';
+        button.dataset.stockIndex = String(i);
+        button.disabled = !canFill;
+        if (!canFill) {
+            button.classList.add('disabled');
+        }
+        button.setAttribute('aria-label', canFill ? '点击补满空格' : '当前没有可补的空格');
+        restockTrayBoxes.appendChild(button);
+    }
+    if (restockTray) {
+        restockTray.classList.toggle('disabled', !canFill);
+        restockTray.setAttribute('aria-disabled', canFill ? 'false' : 'true');
+    }
+}
+
+function refreshSimpleModeSelectionUi() {
+    if (!SIMPLE_SLOT_MODE) return;
+    const selectedSet = new Set(STATE.selectedIndexes);
+    const selectableSet = new Set(getSimpleModeSelectableIndexes());
+    const isFullSetMode = STATE.selectionMode === 'full-set';
+    STATE.gridCells.forEach((cell, index) => {
+        if (!cell) return;
+        cell.classList.remove('selected', 'selectable', 'full-set', 'disabled');
+        if (STATE.boardCellStates[index] === 'empty') {
+            const plusButton = cell.querySelector('.cell-plus');
+            if (plusButton) {
+                positionSimpleModeCellPlusButton(cell, plusButton);
+                const canPlace = STATE.restockPoolCount > 0;
+                plusButton.classList.toggle('disabled', !canPlace);
+                plusButton.disabled = !canPlace;
+                plusButton.setAttribute('aria-label', canPlace ? '补 1 个盲盒' : '暂无盲盒可补');
+            }
+            return;
+        }
+        if (STATE.boardCellStates[index] !== 'revealed') {
+            return;
+        }
+        if (isFullSetMode) {
+            cell.classList.add('full-set');
+        }
+        if (selectedSet.has(index)) {
+            cell.classList.add('selected');
+        } else if (selectableSet.has(index)) {
+            cell.classList.add('selectable');
+        } else if (STATE.selectionMode !== 'none') {
+            cell.classList.add('disabled');
+        }
+    });
+    if (gridSelectionHint) {
+        gridSelectionHint.textContent = getSimpleModeSelectionHintText();
+    }
+}
+
+function updateSimpleModeActionButtons() {
+    if (!SIMPLE_SLOT_MODE) return;
+    const canReveal = hasSimpleWishSelection()
+        && !STATE.isGameOver
+        && !STATE.isBoardEntering
+        && !STATE.isAnimating
+        && !STATE.isSettling
+        && !STATE.isBonusGameActive
+        && !STATE.bonusGamePendingStart
+        && STATE.pendingOpens <= 0
+        && STATE.selectionMode === 'none'
+        && STATE.selectedIndexes.length <= 0
+        && STATE.unrevealedIndices.length > 0;
+    if (cashoutBtn) {
+        cashoutBtn.disabled = !canReveal;
+    }
+    if (randomBtn) {
+        randomBtn.disabled = !canReveal;
+    }
+}
+
+function refreshSimpleModeUi() {
+    if (!SIMPLE_SLOT_MODE) return;
+    renderSimpleModeRestockTray();
+    refreshSimpleModeSelectionUi();
+    updateSimpleModeActionButtons();
+    updateStats();
+}
+
+function hasAnySimpleModeResolvableAction() {
+    if (!SIMPLE_SLOT_MODE) return false;
+    if (isSimpleModeFullSetAvailable()) {
+        return true;
+    }
+    const groups = new Map();
+    for (let index = 0; index < STATE.boardCellStates.length; index++) {
+        const symbolKey = getSimpleModeCellSymbolKey(index);
+        if (!symbolKey) continue;
+        if (!groups.has(symbolKey)) {
+            groups.set(symbolKey, []);
+        }
+        groups.get(symbolKey).push(index);
+    }
+    for (const indexes of groups.values()) {
+        if (indexes.length >= 2) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function rewardSimpleModeBlindBoxes(count) {
+    const safeCount = Math.max(0, Math.floor(Number(count) || 0));
+    if (safeCount <= 0) return 0;
+    STATE.remainingBlindBoxes += safeCount;
+    STATE.roundReward += safeCount;
+    STATE.restockPoolCount += safeCount;
+    syncSimpleModeStockState();
+    refreshSimpleModeUi();
+    return safeCount;
+}
+
+function renderSimpleModeWishSymbol() {
+    if (!SIMPLE_SLOT_MODE || !customerPreferenceBlockDisplay) return;
+    const symbolKey = hasSimpleWishSelection() ? STATE.wishSymbolKey : (SIMPLE_SYMBOL_KEYS[0] || 'S1');
+    customerPreferenceBlockDisplay.src = getNormalSymbolImage(symbolKey);
+    customerPreferenceBlockDisplay.alt = `本局许愿积木 ${symbolKey}`;
+}
+
 function applyRoundRewardsToZooEconomy() {
     if (STATE.rewardsAppliedToZoo) return;
     STATE.rewardsAppliedToZoo = true;
+    if (SIMPLE_SLOT_MODE) {
+        return;
+    }
 
     const zooEconomy = getZooEconomy();
     if (!zooEconomy || typeof zooEconomy.applySlotSettlement !== 'function') {
@@ -246,6 +750,21 @@ function clearCompletedRoundRuntime() {
 }
 
 function applyModeTexts() {
+    if (SIMPLE_SLOT_MODE) {
+        if (statusLabels[0]) {
+            statusLabels[0].textContent = '对碰规则';
+        }
+        if (statusLabels[1]) {
+            statusLabels[1].textContent = '剩余盲盒';
+        }
+        if (cashoutBtn) {
+            cashoutBtn.textContent = '全部开箱';
+        }
+        if (randomBtn) {
+            randomBtn.textContent = '开一个盲盒';
+        }
+        return;
+    }
     if (statusLabels[0]) {
         statusLabels[0].textContent = 'Match Threshold';
     }
@@ -264,6 +783,10 @@ function updatePrimaryActionButtonState() {
     if (!randomBtn) return;
     randomBtn.classList.toggle('is-auto-running', AUTO_OPEN_STATE.active);
     randomBtn.setAttribute('aria-pressed', AUTO_OPEN_STATE.active ? 'true' : 'false');
+    if (SIMPLE_SLOT_MODE) {
+        randomBtn.textContent = AUTO_OPEN_STATE.active ? '自动开箱…' : '开一个盲盒';
+        return;
+    }
     randomBtn.textContent = AUTO_OPEN_STATE.active ? '自动开箱…' : '随机翻开';
 }
 
@@ -293,6 +816,10 @@ function stopAutoOpen({ clearButtonSuppression = true } = {}) {
 
 function performPrimaryOpenAction() {
     if (randomBtn?.disabled) {
+        return false;
+    }
+    if (SIMPLE_SLOT_MODE && !hasSimpleWishSelection()) {
+        showSimpleWishOverlay();
         return false;
     }
 
@@ -690,6 +1217,8 @@ function resetGridState(size) {
     STATE.grid = new Uint8Array(safeSize);
     STATE.revealed = new Uint8Array(safeSize);
     STATE.cellBlocks = new Array(safeSize).fill(null);
+    STATE.boardCellStates = new Array(safeSize).fill('sealed');
+    STATE.boardResolvedFlags = new Uint8Array(safeSize);
     STATE.pendingOpens = 0;
     STATE.revealedCount = 0;
     STATE.isBoardEntering = false;
@@ -712,6 +1241,15 @@ function resetGridState(size) {
     for (let i = 0; i < safeSize; i++) {
         STATE.unrevealedPosByIndex[i] = i;
     }
+    STATE.wishSymbolKey = '';
+    STATE.remainingBlindBoxes = SIMPLE_SLOT_MODE
+        ? Math.max(0, Math.floor(Number(CONFIG.initialBlindBoxCount) || safeSize))
+        : safeSize;
+    STATE.restockPoolCount = 0;
+    STATE.queuedBlindBoxes = 0;
+    STATE.selectedIndexes = [];
+    STATE.selectionMode = 'none';
+    STATE.pendingPlacementIndexes = [];
     resetFreeSpinRuntimeState();
 }
 
@@ -770,11 +1308,18 @@ function getCarriedStickyWildIndex(size = CONFIG.gridSize) {
 }
 
 function getNormalSymbolImage(symbolKey) {
-    const index = NORMAL_SYMBOL_ORDER.indexOf(String(symbolKey || ''));
+    const resolvedKey = String(symbolKey || '');
+    const configuredOrder = Array.isArray(CONFIG.normalSymbolKeys) && CONFIG.normalSymbolKeys.length > 0
+        ? CONFIG.normalSymbolKeys
+        : NORMAL_SYMBOL_ORDER;
+    let index = configuredOrder.indexOf(resolvedKey);
+    if (index < 0) {
+        index = NORMAL_SYMBOL_ORDER.indexOf(resolvedKey);
+    }
     if (index >= 0 && Array.isArray(CONFIG.blockPool.normalImages) && CONFIG.blockPool.normalImages[index]) {
         return CONFIG.blockPool.normalImages[index];
     }
-    return SYMBOL_IMAGE_FALLBACKS[symbolKey] || CONFIG.blockPool.normalImages[0] || DEFAULT_CONFIG.blockPool.normalImages[0];
+    return SYMBOL_IMAGE_FALLBACKS[resolvedKey] || CONFIG.blockPool.normalImages[0] || DEFAULT_CONFIG.blockPool.normalImages[0];
 }
 
 function createNormalBlockData(symbolKey) {
@@ -861,6 +1406,9 @@ function getCustomerPreferenceSymbolId(symbolKey) {
 }
 
 function getCurrentCustomerPreferenceKey() {
+    if (SIMPLE_SLOT_MODE && hasSimpleWishSelection()) {
+        return normalizeCustomerPreferenceKey(STATE.wishSymbolKey);
+    }
     return STATE.currentCustomer ? normalizeCustomerPreferenceKey(STATE.currentCustomer.preferenceKey) : null;
 }
 
@@ -912,6 +1460,10 @@ function renderCurrentCustomer() {
     }
 
     if (customerPreferenceBlockDisplay) {
+        if (SIMPLE_SLOT_MODE) {
+            renderSimpleModeWishSymbol();
+            return;
+        }
         const symbolId = getCustomerPreferenceSymbolId(currentCustomer.preferenceKey);
         customerPreferenceBlockDisplay.src = getNormalSymbolImage(symbolId);
         customerPreferenceBlockDisplay.alt = `当前顾客喜欢的积木 ${symbolId}`;
@@ -1488,6 +2040,19 @@ function bindGridBoardClickHandler() {
             return;
         }
 
+        if (SIMPLE_SLOT_MODE) {
+            const plusButton = target.closest('.cell-plus');
+            if (plusButton && gridBoard.contains(plusButton)) {
+                event.preventDefault();
+                event.stopPropagation();
+                const rawIndex = Number(plusButton.dataset.index || plusButton.closest('.grid-cell')?.dataset.index);
+                if (Number.isFinite(rawIndex)) {
+                    placeSimpleModeBlindBoxAt(rawIndex);
+                }
+                return;
+            }
+        }
+
         const cell = target.closest('.grid-cell');
         if (!cell || !gridBoard.contains(cell)) return;
         const rawIndex = Number(cell.dataset.index);
@@ -1495,6 +2060,18 @@ function bindGridBoardClickHandler() {
         handleCellClick(rawIndex);
     });
     isGridBoardClickBound = true;
+}
+
+function bindSimpleModeRestockTrayHandler() {
+    if (!SIMPLE_SLOT_MODE || !restockTray || restockTray.dataset.bound === '1') return;
+    restockTray.dataset.bound = '1';
+    restockTray.addEventListener('click', (event) => {
+        const target = event.target;
+        if (!(target instanceof Element)) return;
+        const trayBox = target.closest('.restock-tray-box');
+        if (!trayBox || !restockTray.contains(trayBox)) return;
+        placeSimpleModeBlindBoxesToAllEmpty();
+    });
 }
 
 function seedBombs() {
@@ -1511,14 +2088,24 @@ function seedBombs() {
     }
 }
 
+function applyGridBoardLayout(size) {
+    if (!gridBoard) return;
+    const side = getGridSideLength(size);
+    gridBoard.style.gridTemplateColumns = `repeat(${side}, 1fr)`;
+    gridBoard.style.gridTemplateRows = `repeat(${side}, 1fr)`;
+    gridBoard.dataset.gridSide = String(side);
+}
+
 function renderGridBoardCells(size) {
     if (!gridBoard) return;
     const safeSize = Math.max(1, Number(size) || 16);
+    applyGridBoardLayout(safeSize);
     const fragment = document.createDocumentFragment();
     for (let i = 0; i < safeSize; i++) {
         const cell = document.createElement('div');
         cell.classList.add('grid-cell');
         cell.dataset.index = i;
+        applyGridCellLayoutVars(cell, i, safeSize);
         const boxImg = document.createElement('img');
         boxImg.className = 'grid-cell-box-img';
         boxImg.src = GRID_BOX_UNOPEN_IMAGE_SRC;
@@ -1536,6 +2123,7 @@ function resetGridCellElement(cell, index) {
     if (!cell) return;
     cell.className = 'grid-cell';
     cell.dataset.index = String(index);
+    applyGridCellLayoutVars(cell, index, STATE.gridCells.length || CONFIG.gridSize);
     // 保留箱子图片元素，清除其他子元素
     const existingBoxImg = cell.querySelector('.grid-cell-box-img');
     cell.textContent = '';
@@ -1557,10 +2145,13 @@ function prepareGridBoardForNewRound(size) {
     if (!gridBoard) return;
     const safeSize = Math.max(1, Number(size) || 16);
     const currentCells = STATE.gridCells;
+    applyGridBoardLayout(safeSize);
 
     if (!Array.isArray(currentCells) || currentCells.length !== safeSize || gridBoard.children.length !== safeSize) {
         renderGridBoardCells(safeSize);
-        applyCarriedStickyWildCells(safeSize);
+        if (!SIMPLE_SLOT_MODE) {
+            applyCarriedStickyWildCells(safeSize);
+        }
         animateMainBoardEntrance();
         return;
     }
@@ -1569,7 +2160,9 @@ function prepareGridBoardForNewRound(size) {
         resetGridCellElement(currentCells[i], i);
     }
 
-    applyCarriedStickyWildCells(safeSize);
+    if (!SIMPLE_SLOT_MODE) {
+        applyCarriedStickyWildCells(safeSize);
+    }
     animateMainBoardEntrance();
 }
 
@@ -1821,6 +2414,7 @@ function getFreeSpinTriggerEffectiveIndexes() {
 }
 
 function shouldTriggerFreeSpinGameNow(stats = getFreeSpinTriggerStats()) {
+    if (SIMPLE_SLOT_MODE || !(CONFIG.featureFlags && CONFIG.featureFlags.freeSpinEnabled)) return false;
     if (FREE_SPIN_STATE.active || FREE_SPIN_STATE.pendingStart || STATE.isGameOver || STATE.isBonusGameActive || STATE.bonusGamePendingStart) return false;
     return stats.isTriggered && STATE.freeSpinTriggersUsed <= 0;
 }
@@ -2322,6 +2916,16 @@ function scheduleNextRoundTransition(delayMs = 220) {
 }
 
 function handleAllBoxesOpened() {
+    if (SIMPLE_SLOT_MODE) {
+        if (STATE.pendingOpens > 0 || STATE.isSettling) return false;
+        if (STATE.remainingBlindBoxes > 0) return false;
+        if (STATE.unrevealedIndices.length > 0) return false;
+        if (STATE.restockPoolCount > 0) return false;
+        if (STATE.selectedIndexes.length > 0 || STATE.selectionMode !== 'none') return false;
+        if (hasAnySimpleModeResolvableAction()) return false;
+        scheduleNextRoundTransition();
+        return true;
+    }
     if (STATE.pendingOpens > 0 || STATE.unrevealedIndices.length > 0) return false;
     if (FREE_SPIN_STATE.active || FREE_SPIN_STATE.pendingStart || STATE.isBonusGameActive || STATE.bonusGamePendingStart) return false;
     scheduleNextRoundTransition();
@@ -2368,11 +2972,21 @@ function getGridCellBoxCenter(cell) {
         cellHeight,
         -0.15 * cellHeight
     );
+    const overlapOffsetPx = parseLengthPx(
+        style.getPropertyValue('--grid-cell-overlap-x-offset'),
+        cellWidth,
+        0
+    );
+    const overlapOffsetYPx = parseLengthPx(
+        style.getPropertyValue('--grid-cell-overlap-y-offset'),
+        cellHeight,
+        0
+    );
 
     const pseudoWidth = cellWidth * bgSizeScale;
     const pseudoHeight = cellHeight * 2;
     const pseudoBottom = cellHeight - bottomOffsetPx;
-    const centerX = cellWidth / 2;
+    const centerX = (cellWidth / 2) + overlapOffsetPx;
 
     const naturalWidth = GRID_BOX_UNOPEN_IMAGE.naturalWidth;
     const naturalHeight = GRID_BOX_UNOPEN_IMAGE.naturalHeight;
@@ -2387,8 +3001,16 @@ function getGridCellBoxCenter(cell) {
         ? pseudoHeight
         : (pseudoWidth / safeSpriteAspect);
 
-    const centerY = pseudoBottom - (boxSpriteHeight / 2);
+    const centerY = pseudoBottom - (boxSpriteHeight / 2) + overlapOffsetYPx;
     return { x: centerX, y: centerY };
+}
+
+function positionSimpleModeCellPlusButton(cell, plusButton) {
+    if (!cell || !plusButton) return;
+    const center = getGridCellBoxCenter(cell);
+    if (!Number.isFinite(center.x) || !Number.isFinite(center.y)) return;
+    plusButton.style.left = `${center.x.toFixed(2)}px`;
+    plusButton.style.top = `${center.y.toFixed(2)}px`;
 }
 
 function getGridCellBoxCenterInViewport(cell) {
@@ -2623,15 +3245,21 @@ function initGame() {
     resetBonusGameUI();
     scheduleDeferredPreload();
     bindGridBoardClickHandler();
+    bindSimpleModeRestockTrayHandler();
     applyModeTexts();
     ensureCurrentCustomer();
+    if (SIMPLE_SLOT_MODE && customerSatisfaction) {
+        customerSatisfaction.classList.add('blindbox-meter');
+    }
 
     // Reset State
     resetGridState(CONFIG.gridSize);
-    prepareStickyWildForNextRound(CONFIG.gridSize);
-    const generatedBoard = generateBoardPlan(CONFIG.gridSize);
-    STATE.boardPlan = generatedBoard.plan;
-    STATE.boardMeta = generatedBoard.meta;
+    if (!SIMPLE_SLOT_MODE) {
+        prepareStickyWildForNextRound(CONFIG.gridSize);
+        const generatedBoard = generateBoardPlan(CONFIG.gridSize);
+        STATE.boardPlan = generatedBoard.plan;
+        STATE.boardMeta = generatedBoard.meta;
+    }
     STATE.currentMultiplier = CONFIG.baseMultiplier;
     STATE.rewardRetentionRatio = 1.0;
     STATE.isGameOver = false;
@@ -2655,11 +3283,15 @@ function initGame() {
     }
     updateStats();
     updateBombDisplay();
+    renderCurrentCustomer();
+    if (SIMPLE_SLOT_MODE) {
+        showSimpleWishOverlay();
+    }
     if (cashoutBtn) {
-        cashoutBtn.disabled = false;
+        cashoutBtn.disabled = SIMPLE_SLOT_MODE ? !hasSimpleWishSelection() : false;
     }
     if (randomBtn) {
-        randomBtn.disabled = false;
+        randomBtn.disabled = SIMPLE_SLOT_MODE && !hasSimpleWishSelection();
     }
     updatePrimaryActionButtonState();
     modalOverlay.classList.add('hidden');
@@ -2667,10 +3299,33 @@ function initGame() {
 
     // Create Grid UI
     prepareGridBoardForNewRound(CONFIG.gridSize);
+    if (SIMPLE_SLOT_MODE) {
+        refreshSimpleModeUi();
+    }
     return true;
 }
 
 function handleCellClick(index, isAuto = false) {
+    if (SIMPLE_SLOT_MODE && !hasSimpleWishSelection()) {
+        showSimpleWishOverlay();
+        return;
+    }
+    if (SIMPLE_SLOT_MODE) {
+        if (STATE.boardCellStates[index] === 'revealed') {
+            if (STATE.isGameOver || STATE.isBoardEntering || STATE.isAnimating || STATE.isBonusGameActive || STATE.bonusGamePendingStart || STATE.pendingOpens > 0 || STATE.isSettling) {
+                return;
+            }
+            handleSimpleModeSelectionClick(index);
+            return;
+        }
+        if (STATE.selectionMode !== 'none' || STATE.selectedIndexes.length > 0) {
+            refreshSimpleModeSelectionUi();
+            return;
+        }
+        if (STATE.boardCellStates[index] !== 'sealed') {
+            return;
+        }
+    }
     if (STATE.isGameOver || STATE.isBoardEntering || STATE.revealed[index] || STATE.isAnimating || STATE.isBonusGameActive || STATE.bonusGamePendingStart || (STATE.isSettling && !isAuto)) return;
 
     // Consume ticket on first cell click of the round
@@ -2685,6 +3340,12 @@ function handleCellClick(index, isAuto = false) {
     if (!cell) return;
     const openCenter = getGridCellBoxCenterInViewport(cell);
     markCellAsRevealed(index);
+    if (SIMPLE_SLOT_MODE) {
+        STATE.remainingBlindBoxes = Math.max(0, STATE.remainingBlindBoxes - 1);
+        STATE.boardCellStates[index] = 'revealed';
+        STATE.boardResolvedFlags[index] = 0;
+        refreshSimpleModeUi();
+    }
     STATE.pendingOpens++;
     if (cashoutBtn) cashoutBtn.disabled = true;
     if (randomBtn) randomBtn.disabled = true;
@@ -2710,8 +3371,13 @@ function handleCellClick(index, isAuto = false) {
             STATE.pendingOpens = Math.max(0, STATE.pendingOpens - 1);
             if (STATE.pendingOpens === 0 && !STATE.isAnimating && !STATE.isGameOver && !STATE.isSettling && !STATE.isBonusGameActive && !STATE.bonusGamePendingStart && !FREE_SPIN_STATE.pendingStart && !FREE_SPIN_STATE.active) {
                 if (STATE.unrevealedIndices.length === 0) {
-                    handleAllBoxesOpened();
-                    return;
+                    if (handleAllBoxesOpened()) {
+                        return;
+                    }
+                    if (SIMPLE_SLOT_MODE) {
+                        refreshSimpleModeUi();
+                        return;
+                    }
                 }
                 if (cashoutBtn) cashoutBtn.disabled = false;
                 if (randomBtn) randomBtn.disabled = false;
@@ -3228,6 +3894,10 @@ function getRandomStackOffsetPx() {
 
 function updateBombDisplay() {
     if (bombCountDisplay) {
+        if (SIMPLE_SLOT_MODE) {
+            bombCountDisplay.textContent = '许愿+1 / 对碰+1 / 三连+2 / 全家福+2';
+            return;
+        }
         bombCountDisplay.textContent = `${CONFIG.clusterPayout.minClusterSize}+`;
     }
 }
@@ -3273,6 +3943,17 @@ function ensureStackProgressBar() {
 }
 
 function updateStackProgressBar() {
+    if (SIMPLE_SLOT_MODE) {
+        updateSimpleBlindBoxCounterUi();
+        if (multiplierBubble) {
+            multiplierBubble.textContent = `盲盒 ${Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0))}`;
+        }
+        if (customerHeartRows.length > 0) {
+            customerHeartRows.forEach((row) => row.classList.remove('active'));
+        }
+        lastRenderedSatisfactionValue = 0;
+        return;
+    }
     ensureStackProgressBar();
 
     const steps = getCustomerSatisfactionTarget();
@@ -3325,6 +4006,13 @@ function calculateCurrentReward() {
 }
 
 function updateStats() {
+    if (SIMPLE_SLOT_MODE) {
+        updateStackProgressBar();
+        if (currentRewardDisplay) {
+            currentRewardDisplay.textContent = String(Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0)));
+        }
+        return;
+    }
     const currentReward = calculateCurrentReward();
     updateStackProgressBar();
     if (currentRewardDisplay) {
@@ -3355,7 +4043,273 @@ function triggerGlobalEffects(type) {
     }, flashFadeDuration);
 }
 
+function getSimpleModeCellSymbolKey(index) {
+    if (!SIMPLE_SLOT_MODE) return '';
+    if (STATE.boardCellStates[index] !== 'revealed') return '';
+    const blockData = STATE.cellBlocks[index];
+    if (!blockData || blockData.type !== 'normal') return '';
+    return String(blockData.normalKey || '');
+}
+
+function hasPendingSimpleModeMatches() {
+    return hasAnySimpleModeResolvableAction();
+}
+
+function getSimpleModeMatchCenter(indexes) {
+    const points = indexes
+        .map((index) => getGridCellElement(index))
+        .filter(Boolean)
+        .map((cell) => getGridCellBoxCenterInViewport(cell));
+    if (points.length <= 0) {
+        return { x: 0, y: 0 };
+    }
+    const sum = points.reduce((acc, point) => ({
+        x: acc.x + point.x,
+        y: acc.y + point.y
+    }), { x: 0, y: 0 });
+    return {
+        x: sum.x / points.length,
+        y: sum.y / points.length
+    };
+}
+
+function clearSimpleModeMatchHighlight(indexes) {
+    indexes.forEach((index) => {
+        const cell = getGridCellElement(index);
+        if (!cell) return;
+        cell.classList.remove('win-cluster', 'win-jackpot');
+    });
+}
+
+async function settleSimpleModeMatches() {
+    if (!SIMPLE_SLOT_MODE || STATE.isSettling) return;
+    STATE.isSettling = true;
+    try {
+        while (true) {
+            const tripleMatch = CONFIG.triplePriorityOverPair ? findSimpleModeTripleMatch() : null;
+            const nextMatch = tripleMatch || findSimpleModePairMatch();
+            if (!nextMatch) {
+                break;
+            }
+
+            STATE.totalSettlements += 1;
+            const center = getSimpleModeMatchCenter(nextMatch.indexes);
+            const highlightedIndexes = highlightRealtimeSettlementEvent({
+                indexes: nextMatch.indexes,
+                jackpot: nextMatch.type === 'triple'
+            }, STATE.gridCells);
+            createFloatingText(
+                center.x,
+                center.y - 28,
+                nextMatch.type === 'triple' ? `+${nextMatch.rewardCount}盲盒` : `+${nextMatch.rewardCount}盲盒`
+            );
+            await waitMs(nextMatch.type === 'triple' ? 280 : 220);
+
+            nextMatch.indexes.forEach((index) => {
+                setSimpleModeCellEmpty(index);
+            });
+            rewardSimpleModeBlindBoxes(nextMatch.rewardCount);
+            clearRealtimeSettlementHighlight(highlightedIndexes, STATE.gridCells);
+            clearSimpleModeMatchHighlight(nextMatch.indexes);
+            await waitMs(120);
+        }
+    } finally {
+        STATE.isSettling = false;
+    }
+}
+
+function canPlaceSimpleModeBlindBoxAt(index) {
+    const safeIndex = Math.floor(Number(index));
+    if (!Number.isFinite(safeIndex) || safeIndex < 0) return false;
+    if (STATE.restockPoolCount <= 0) return false;
+    return STATE.boardCellStates[safeIndex] === 'empty';
+}
+
+function placeSimpleModeBlindBoxAt(index) {
+    if (!SIMPLE_SLOT_MODE || !canPlaceSimpleModeBlindBoxAt(index)) return false;
+    setSimpleModeCellSealed(index);
+    STATE.restockPoolCount = Math.max(0, STATE.restockPoolCount - 1);
+    refreshSimpleModeUi();
+    return true;
+}
+
+function placeSimpleModeBlindBoxesToAllEmpty() {
+    if (!SIMPLE_SLOT_MODE || STATE.restockPoolCount <= 0) return 0;
+    const emptyIndexes = updateSimpleModePlacementState();
+    if (emptyIndexes.length <= 0) {
+        refreshSimpleModeUi();
+        return 0;
+    }
+    let placedCount = 0;
+    for (let i = 0; i < emptyIndexes.length && STATE.restockPoolCount > 0; i++) {
+        const index = emptyIndexes[i];
+        if (!canPlaceSimpleModeBlindBoxAt(index)) continue;
+        setSimpleModeCellSealed(index);
+        STATE.restockPoolCount = Math.max(0, STATE.restockPoolCount - 1);
+        placedCount += 1;
+    }
+    refreshSimpleModeUi();
+    return placedCount;
+}
+
+async function resolveSimpleModeSelection(match) {
+    if (!SIMPLE_SLOT_MODE || STATE.isSettling || !match || !Array.isArray(match.indexes) || match.indexes.length <= 0) {
+        return false;
+    }
+    STATE.isSettling = true;
+    stopAutoOpen();
+    clearAutoOpenHoldTimer();
+    clearAutoOpenLoopTimer();
+    if (cashoutBtn) cashoutBtn.disabled = true;
+    if (randomBtn) randomBtn.disabled = true;
+    try {
+        STATE.totalSettlements += 1;
+        const center = getSimpleModeMatchCenter(match.indexes);
+        const highlightedIndexes = highlightRealtimeSettlementEvent({
+            indexes: match.indexes,
+            jackpot: match.type !== 'pair'
+        }, STATE.gridCells);
+        const label = match.type === 'full-set'
+            ? `全家福 +${match.rewardCount}盲盒`
+            : (match.type === 'triple'
+                ? `三连 +${match.rewardCount}盲盒`
+                : `对碰 +${match.rewardCount}盲盒`);
+        createFloatingText(center.x, center.y - 28, label);
+        await waitMs(match.type === 'full-set' ? 320 : 260);
+        clearSimpleModeSelectionState();
+        match.indexes.forEach((resolvedIndex) => {
+            setSimpleModeCellEmpty(resolvedIndex);
+        });
+        rewardSimpleModeBlindBoxes(match.rewardCount);
+        clearRealtimeSettlementHighlight(highlightedIndexes, STATE.gridCells);
+        clearSimpleModeMatchHighlight(match.indexes);
+        await waitMs(120);
+    } finally {
+        STATE.isSettling = false;
+        refreshSimpleModeUi();
+        handleAllBoxesOpened();
+    }
+    return true;
+}
+
+async function maybeResolveSimpleModeSelection() {
+    if (!SIMPLE_SLOT_MODE || STATE.isSettling) return false;
+    if (STATE.selectionMode === 'full-set') {
+        if (STATE.selectedIndexes.length < 9 || !isSimpleModeFullSetAvailable()) {
+            return false;
+        }
+        return resolveSimpleModeSelection({
+            type: 'full-set',
+            indexes: STATE.selectedIndexes.slice(),
+            rewardCount: Math.max(0, Math.floor(Number(CONFIG.fullSetRewardBlindBoxes) || 0))
+        });
+    }
+    if (STATE.selectionMode !== 'same-symbol' || STATE.selectedIndexes.length <= 0) {
+        return false;
+    }
+    const symbolKey = getSimpleModeCellSymbolKey(STATE.selectedIndexes[0]);
+    const targetCount = getSimpleModeTargetSelectionCount(symbolKey);
+    if (targetCount <= 0 || STATE.selectedIndexes.length < targetCount) {
+        return false;
+    }
+    if (targetCount === 2) {
+        return resolveSimpleModeSelection({
+            type: 'pair',
+            indexes: STATE.selectedIndexes.slice(0, 2),
+            rewardCount: Math.max(0, Math.floor(Number(CONFIG.pairRewardBlindBoxes) || 0))
+        });
+    }
+    if (!isSimpleModeTripleLine(STATE.selectedIndexes)) {
+        refreshSimpleModeSelectionUi();
+        return false;
+    }
+    return resolveSimpleModeSelection({
+        type: 'triple',
+        indexes: STATE.selectedIndexes.slice(0, 3),
+        rewardCount: Math.max(0, Math.floor(Number(CONFIG.tripleRewardBlindBoxes) || 0))
+    });
+}
+
+function handleSimpleModeSelectionClick(index) {
+    if (!SIMPLE_SLOT_MODE || STATE.boardCellStates[index] !== 'revealed') return;
+    const safeIndex = Math.floor(Number(index));
+    if (!Number.isFinite(safeIndex) || safeIndex < 0) return;
+    const symbolKey = getSimpleModeCellSymbolKey(safeIndex);
+    if (!symbolKey) return;
+
+    if (STATE.selectedIndexes.includes(safeIndex)) {
+        STATE.selectedIndexes = STATE.selectedIndexes.filter((value) => value !== safeIndex);
+        if (STATE.selectedIndexes.length <= 0) {
+            clearSimpleModeSelectionState();
+        }
+        refreshSimpleModeSelectionUi();
+        return;
+    }
+
+    if (STATE.selectionMode === 'none') {
+        if (isSimpleModeFullSetAvailable()) {
+            STATE.selectionMode = 'full-set';
+            STATE.selectedIndexes = [safeIndex];
+        } else {
+            const targetCount = getSimpleModeTargetSelectionCount(symbolKey);
+            if (targetCount <= 0) {
+                refreshSimpleModeSelectionUi();
+                return;
+            }
+            STATE.selectionMode = 'same-symbol';
+            STATE.selectedIndexes = [safeIndex];
+        }
+        refreshSimpleModeSelectionUi();
+        void maybeResolveSimpleModeSelection();
+        return;
+    }
+
+    if (STATE.selectionMode === 'full-set') {
+        if (!isSimpleModeFullSetAvailable()) {
+            clearSimpleModeSelectionState();
+            refreshSimpleModeSelectionUi();
+            return;
+        }
+        STATE.selectedIndexes = [...STATE.selectedIndexes, safeIndex];
+        refreshSimpleModeSelectionUi();
+        void maybeResolveSimpleModeSelection();
+        return;
+    }
+
+    const activeSymbolKey = getSimpleModeCellSymbolKey(STATE.selectedIndexes[0]);
+    if (!activeSymbolKey || symbolKey !== activeSymbolKey) {
+        refreshSimpleModeSelectionUi();
+        return;
+    }
+
+    const targetCount = getSimpleModeTargetSelectionCount(symbolKey);
+    if (targetCount <= 0 || STATE.selectedIndexes.length >= targetCount) {
+        refreshSimpleModeSelectionUi();
+        return;
+    }
+
+    STATE.selectedIndexes = [...STATE.selectedIndexes, safeIndex];
+    refreshSimpleModeSelectionUi();
+    void maybeResolveSimpleModeSelection();
+}
+
 async function applySafeReward(cell, index) {
+    if (SIMPLE_SLOT_MODE) {
+        const { x: centerX, y: centerY } = getGridCellBoxCenterInViewport(cell);
+        const blockData = createSimpleModeBlockData();
+        STATE.cellBlocks[index] = blockData;
+        STATE.boardCellStates[index] = 'revealed';
+        STATE.boardResolvedFlags[index] = 0;
+        renderSimpleModeRevealedCell(index, blockData);
+
+        if (hasSimpleWishSelection() && blockData.normalKey === STATE.wishSymbolKey) {
+            rewardSimpleModeBlindBoxes(CONFIG.wishRewardBlindBoxes);
+            createFloatingText(centerX, centerY - 20, '许愿 +1盲盒');
+        }
+
+        refreshSimpleModeUi();
+        return;
+    }
     const { x: centerX, y: centerY } = getGridCellBoxCenterInViewport(cell);
 
     const isForcedStickyWild = isStickyWildForcedAt(index);
@@ -3812,6 +4766,7 @@ function getBonusTriggerCounts() {
 }
 
 function shouldTriggerBonusGameNow() {
+    if (SIMPLE_SLOT_MODE || !(CONFIG.featureFlags && CONFIG.featureFlags.bonusGameEnabled)) return false;
     if (STATE.hasTriggeredBonusGame || STATE.isBonusGameActive || STATE.bonusGamePendingStart || STATE.isGameOver || FREE_SPIN_STATE.pendingStart) return false;
     const target = getCustomerSatisfactionTarget();
     return STATE.stackHeight >= target;
@@ -4644,6 +5599,10 @@ function endGame(result) {
 }
 
 function openAllBoxes() {
+    if (SIMPLE_SLOT_MODE && !hasSimpleWishSelection()) {
+        showSimpleWishOverlay();
+        return;
+    }
     if (FREE_SPIN_STATE.active) {
         openAllFreeSpinBoxes();
         return;
@@ -4677,6 +5636,7 @@ function updateSlotBackButtonVisibility() {
 
     const hasBlockingOverlay = Boolean(
         (modalOverlay && !modalOverlay.classList.contains('hidden'))
+        || (slotWishOverlay && !slotWishOverlay.classList.contains('hidden'))
         || (freeSpinTriggerOverlay && !freeSpinTriggerOverlay.classList.contains('hidden'))
         || (freeSpinResultOverlay && !freeSpinResultOverlay.classList.contains('hidden'))
         || (bonusTriggerOverlay && !bonusTriggerOverlay.classList.contains('hidden'))
@@ -4731,6 +5691,12 @@ function enterSlotGameView() {
     ensureCurrentCustomer();
     renderCurrentCustomer();
     updatePrimaryActionButtonState();
+    if (SIMPLE_SLOT_MODE && !hasSimpleWishSelection()) {
+        showSimpleWishOverlay();
+    }
+    if (SIMPLE_SLOT_MODE) {
+        refreshSimpleModeUi();
+    }
     updateTowerViewportScrollState();
     maybeAutoScrollTowerViewport({ force: STACK_VIEWPORT_STATE.autoFollow, smooth: false });
     updateSlotBackButtonVisibility();
@@ -4857,7 +5823,13 @@ function getSlotGameSnapshot() {
         satisfaction: Math.max(0, Math.floor(Number(STATE.stackHeight) || 0)),
         satisfactionTarget: getCustomerSatisfactionTarget(),
         currentCustomerPreferenceKey: getCurrentCustomerPreferenceKey(),
-        currentMultiplier: Number(STATE.currentMultiplier || CONFIG.baseMultiplier || 1)
+        currentMultiplier: Number(STATE.currentMultiplier || CONFIG.baseMultiplier || 1),
+        remainingBlindBoxes: Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0)),
+        restockPoolCount: Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0)),
+        queuedBlindBoxes: Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0)),
+        wishSymbolKey: hasSimpleWishSelection() ? STATE.wishSymbolKey : null,
+        selectionMode: STATE.selectionMode,
+        selectedIndexes: Array.isArray(STATE.selectedIndexes) ? STATE.selectedIndexes.slice() : []
     };
 }
 
@@ -4934,6 +5906,9 @@ if (towerViewport) {
     }, { passive: true });
     window.addEventListener('resize', () => {
         maybeAutoScrollTowerViewport({ force: STACK_VIEWPORT_STATE.autoFollow, smooth: false });
+        if (SIMPLE_SLOT_MODE) {
+            refreshSimpleModeSelectionUi();
+        }
     });
     updateTowerViewportScrollState();
 }

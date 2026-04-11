@@ -1,8 +1,21 @@
 // 今天也要开园呀 — 运行时配置
 window.APP_CONFIG = {
     game: {
-        gridSize: 16,
+        simpleCoreMode: true,
+        gridSize: 9,
         bombCount: 0,
+        featureFlags: {
+            freeSpinEnabled: false,
+            bonusGameEnabled: false
+        },
+        initialBlindBoxCount: 9,
+        normalSymbolKeys: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
+        wishRewardBlindBoxes: 1,
+        pairRewardBlindBoxes: 1,
+        tripleRewardBlindBoxes: 2,
+        fullSetRewardBlindBoxes: 2,
+        maxSelectableSameSymbolCount: 3,
+        triplePriorityOverPair: true,
         blockPool: {
             normalWeight: 90,
             wildWeight: 8,
@@ -12,18 +25,23 @@ window.APP_CONFIG = {
             // 黏性百搭权重（本体按百搭参与结算，并可跨轮停留）
             stickyWildWeight: 2,
             normalImages: [
-                './Texture/BlockImg/Block_1.png',
-                './Texture/BlockImg/Block_2.png',
-                './Texture/BlockImg/Block_3.png',
-                './Texture/BlockImg/Block_4.png',
-                './Texture/BlockImg/Block_5.png'
+                './Texture/BlockImg/Block_1.webp',
+                './Texture/BlockImg/Block_2.webp',
+                './Texture/BlockImg/Block_3.webp',
+                './Texture/BlockImg/Block_4.webp',
+                './Texture/BlockImg/Block_5.webp',
+                './Texture/BlockImg/Block_6.webp',
+                './Texture/BlockImg/Block_7.webp',
+                './Texture/BlockImg/Block_8.webp',
+                './Texture/BlockImg/Block_9.webp',
+                './Texture/BlockImg/Block_10.webp'
             ],
-            wildImage: './Texture/BlockImg/Block_Wild.png',
-            bonusImage: './Texture/BlockImg/Block_Bonus.png',
+            wildImage: './Texture/BlockImg/Block_Wild.webp',
+            bonusImage: './Texture/BlockImg/Block_Bonus.webp',
             // 猴子符号素材（当前复用 Block_Bomb 资源）
-            monkeyImage: './Texture/BlockImg/Block_Bomb.png',
+            monkeyImage: './Texture/BlockImg/Block_Bomb.webp',
             // 黏性百搭素材
-            stickyWildImage: './Texture/BlockImg/Block_StickWild.png'
+            stickyWildImage: './Texture/BlockImg/Block_StickWild.webp'
         },
         clusterPayout: {
             minClusterSize: 3,
@@ -63,8 +81,8 @@ window.APP_CONFIG = {
             './Texture/story/立绘/游客-3.webp',
             './Texture/story/立绘/游客-4.webp'
         ],
-        customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5'],
-        customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5'],
+        customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
+        customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
         // 黏性百搭“额外停留”轮数：出现后仅下一轮继续在同坐标出现
         stickyWildExtraRounds: 1,
         stackHorizontalOffsetRange: {
@@ -167,12 +185,16 @@ window.APP_CONFIG = {
             '--stack-clip-bottom-offset': '10px',
             '--mine-scale': '0.9',
             // 盲盒网格 UI 调整参数
-            '--grid-board-center-y': '41%', // 整个 4x4 网格的纵向位置
-            '--grid-board-gap-x': '9%',    // 箱子之间的水平间距
-            '--grid-board-gap-y': '2%',   // 箱子之间的垂直间距
-            '--grid-cell-bg-size': '185%', // 单个箱子底图缩放
-            '--grid-cell-reward-scale': '0.92', // 开箱后格子内奖励图标缩放
-            '--grid-cell-bottom-offset': '25%', // 单个箱子纵向偏移（用于对齐货架）
+            '--grid-board-center-y': '55.4%', // 整个盘面的纵向位置
+            '--grid-board-gap-x': '0%',    // 箱子之间的水平间距
+            '--grid-board-gap-y': '0%',   // 箱子之间的垂直间距
+            '--grid-cell-bg-size': '130%', // 单个箱子底图缩放
+            '--grid-cell-reward-scale': '0.90', // 开箱后格子内奖励图标缩放
+            '--grid-cell-bottom-offset': '8%', // 单个箱子纵向偏移（用于对齐货架）
+            '--grid-cell-overlap-x': '-7px', // 负间距效果：每列箱子向中间靠拢
+            '--grid-cell-overlap-y': '7px', // 负间距效果：每行箱子向中间靠拢
+            '--restock-tray-top': '-22%',
+            '--selection-hint-top': '-4.2rem',
             '--top-bg-left': '-5px', // 上半区背景 X 偏移
             '--top-bg-top': '0px', // 上半区背景 Y 偏移
             '--tower-offset-y': '-40px', // 上方叠叠乐整体纵向偏移（负值上移）

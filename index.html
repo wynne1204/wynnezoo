@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -239,7 +239,7 @@
             <div class="game-container">
                 <!-- New Figma BG layers -->
                 <img class="slot-bg-upper" src="./Texture/UI/NewSlot/upper_bg-716086.png" alt="" aria-hidden="true">
-                <img class="slot-bg-shelf" src="./Texture/UI/NewSlot/shelf-445378.png" alt="" aria-hidden="true">
+                <img class="slot-bg-shelf" src="./Texture/UI/FigmaSlot/shelf-new-trimmed.webp" alt="" aria-hidden="true">
                 <img class="slot-bg-shelf-freespin" src="./Texture/UI/NewSlot/shelf_freespin.png" alt="" aria-hidden="true">
                 <img class="slot-deco-flower-left" src="./Texture/UI/NewSlot/flower_left-6d0179.png" alt="" aria-hidden="true">
                 <img class="slot-deco-flower-right" src="./Texture/UI/NewSlot/flower_right-922736.png" alt="" aria-hidden="true">
@@ -275,8 +275,10 @@
                     </div>
                 </div>
 
-                <aside class="customer-satisfaction" id="customer-satisfaction" aria-label="顾客满意度">
-                    <div class="customer-satisfaction-label">满意度</div>
+                <aside class="customer-satisfaction blindbox-meter" id="customer-satisfaction" aria-label="盲盒数量">
+                    <div class="customer-satisfaction-label">盲盒剩余</div>
+                    <div class="blindbox-meter-value" id="blindbox-meter-value">9</div>
+                    <div class="blindbox-meter-note" id="blindbox-meter-note">3x3 盲盒对碰</div>
                     <div class="heart-row" data-heart-index="1"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
                     <div class="heart-row" data-heart-index="2"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
                     <div class="heart-row" data-heart-index="3"><span class="heart-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.27 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.77-3.4 6.86-8.55 11.54Z"/></svg></span></div>
@@ -295,7 +297,7 @@
                         <div class="customer-bubble" id="customer-preference-bubble">
                             <img src="./Texture/UI/NewSlot/bubble_bg.png" alt="喜爱积木气泡" class="bubble-bg">
                             <div class="bubble-content">
-                                <img src="./Texture/BlockImg/Block_1.png" alt="当前顾客喜欢的积木" id="customer-preference-block">
+                                <img src="./Texture/BlockImg/Block_1.webp" alt="当前顾客喜欢的积木" id="customer-preference-block">
                             </div>
                         </div>
                     </section>
@@ -303,13 +305,68 @@
 
                 <div class="control-panel">
                     <div class="shelf-container">
+                        <div class="restock-tray" id="restock-tray">
+                            <div class="restock-tray-heading">未放置盲盒</div>
+                            <div class="restock-tray-boxes" id="restock-tray-boxes" aria-live="polite"></div>
+                            <div class="restock-tray-note">点击补满空格</div>
+                        </div>
+                        <div class="grid-selection-hint" id="grid-selection-hint">选择积木触发操作</div>
                         <div class="grid-board" id="grid-board"></div>
                     </div>
 
                     <div class="action-buttons">
                         <button id="cashout-btn" class="btn slot-legacy-anchor is-hidden" type="button">Open All</button>
-                        <button id="random-btn" class="btn" type="button">盲开一箱</button>
-                        <button id="longpress-btn" class="btn" type="button" style="display:none;">&#38271;&#25353;&#36830;&#24320;</button>
+                        <button id="random-btn" class="btn" type="button">开一个盲盒</button>
+                        <button id="longpress-btn" class="btn" type="button" style="display:none;">强按提示</button>
+                    </div>
+                </div>
+
+                <div id="slot-wish-overlay" class="slot-wish-overlay hidden" aria-label="选择许愿积木">
+                    <div class="slot-wish-card">
+                        <h2>许愿积木</h2>
+                        <p id="slot-wish-subtitle" class="slot-wish-subtitle">选中它就立即+1盲盒</p>
+                        <div id="slot-wish-options" class="slot-wish-options">
+                            <button type="button" class="slot-wish-option" data-symbol-key="S1">
+                                <img src="./Texture/BlockImg/Block_1.webp" alt="S1">
+                                <span>S1</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S2">
+                                <img src="./Texture/BlockImg/Block_2.webp" alt="S2">
+                                <span>S2</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S3">
+                                <img src="./Texture/BlockImg/Block_3.webp" alt="S3">
+                                <span>S3</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S4">
+                                <img src="./Texture/BlockImg/Block_4.webp" alt="S4">
+                                <span>S4</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S5">
+                                <img src="./Texture/BlockImg/Block_5.webp" alt="S5">
+                                <span>S5</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S6">
+                                <img src="./Texture/BlockImg/Block_6.webp" alt="S6">
+                                <span>S6</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S7">
+                                <img src="./Texture/BlockImg/Block_7.webp" alt="S7">
+                                <span>S7</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S8">
+                                <img src="./Texture/BlockImg/Block_8.webp" alt="S8">
+                                <span>S8</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S9">
+                                <img src="./Texture/BlockImg/Block_9.webp" alt="S9">
+                                <span>S9</span>
+                            </button>
+                            <button type="button" class="slot-wish-option" data-symbol-key="S10">
+                                <img src="./Texture/BlockImg/Block_10.webp" alt="S10">
+                                <span>S10</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

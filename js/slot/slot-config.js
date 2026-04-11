@@ -6,8 +6,21 @@
 
 // --------------- Default Game Config ---------------
 const DEFAULT_CONFIG = {
+    simpleCoreMode: true,
     gridSize: 16, // 4x4
     bombCount: 0,
+    featureFlags: {
+        freeSpinEnabled: false,
+        bonusGameEnabled: false
+    },
+    initialBlindBoxCount: 9,
+    normalSymbolKeys: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
+    wishRewardBlindBoxes: 1,
+    pairRewardBlindBoxes: 1,
+    tripleRewardBlindBoxes: 2,
+    fullSetRewardBlindBoxes: 2,
+    maxSelectableSameSymbolCount: 3,
+    triplePriorityOverPair: true,
     blockPool: {
         normalWeight: 70,
         wildWeight: 20,
@@ -17,18 +30,23 @@ const DEFAULT_CONFIG = {
         // 黏性百搭权重（本体是百搭，并会在同位置额外停留若干轮）
         stickyWildWeight: 4,
         normalImages: [
-            './Texture/BlockImg/Block_1.png',
-            './Texture/BlockImg/Block_2.png',
-            './Texture/BlockImg/Block_3.png',
-            './Texture/BlockImg/Block_4.png',
-            './Texture/BlockImg/Block_5.png'
+            './Texture/BlockImg/Block_1.webp',
+            './Texture/BlockImg/Block_2.webp',
+            './Texture/BlockImg/Block_3.webp',
+            './Texture/BlockImg/Block_4.webp',
+            './Texture/BlockImg/Block_5.webp',
+            './Texture/BlockImg/Block_6.webp',
+            './Texture/BlockImg/Block_7.webp',
+            './Texture/BlockImg/Block_8.webp',
+            './Texture/BlockImg/Block_9.webp',
+            './Texture/BlockImg/Block_10.webp'
         ],
-        wildImage: './Texture/BlockImg/Block_Wild.png',
-        bonusImage: './Texture/BlockImg/Block_Bonus.png',
+        wildImage: './Texture/BlockImg/Block_Wild.webp',
+        bonusImage: './Texture/BlockImg/Block_Bonus.webp',
         // 复用原炸弹素材作为猴子符号显示图
-        monkeyImage: './Texture/BlockImg/Block_Bomb.png',
+        monkeyImage: './Texture/BlockImg/Block_Bomb.webp',
         // 黏性百搭素材
-        stickyWildImage: './Texture/BlockImg/Block_StickWild.png'
+        stickyWildImage: './Texture/BlockImg/Block_StickWild.webp'
     },
     clusterPayout: {
         minClusterSize: 3,
@@ -69,8 +87,8 @@ const DEFAULT_CONFIG = {
         './Texture/story/立绘/游客-3.webp',
         './Texture/story/立绘/游客-4.webp'
     ],
-    customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5'],
-    customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5'],
+    customerPreferencePool: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
+    customerPreferenceSymbols: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
     // 黏性百搭出现后，仅下一轮继续在同位置出现（共额外1轮）
     stickyWildExtraRounds: 1,
     stackHorizontalOffsetRange: {
@@ -161,12 +179,16 @@ const DEFAULT_UI_CONFIG = {
         '--stack-start-lift': '18px',
         '--stack-clip-bottom-offset': '10px',
         '--mine-scale': '0.9',
-        '--grid-board-center-y': '54%',
-        '--grid-board-gap-x': '5%',
-        '--grid-board-gap-y': '12%',
-        '--grid-cell-bg-size': '150%',
+        '--grid-board-center-y': '52.5%',
+        '--grid-board-gap-x': '0%',
+        '--grid-board-gap-y': '0%',
+        '--grid-cell-bg-size': '118%',
         '--grid-cell-reward-scale': '0.9',
-        '--grid-cell-bottom-offset': '-15%',
+        '--grid-cell-bottom-offset': '8%',
+        '--grid-cell-overlap-x': '0px',
+        '--grid-cell-overlap-y': '0px',
+        '--restock-tray-top': '-22%',
+        '--selection-hint-top': '-4.2rem',
         '--top-bg-left': '-5px',
         '--top-bg-top': '0px',
         '--tower-offset-y': '-80px'
@@ -181,7 +203,7 @@ const externalBlockPool = externalGameConfig.blockPool || {};
 const externalClusterPayout = externalGameConfig.clusterPayout || {};
 const externalBlueprintWeights = externalGameConfig.blueprintWeights || {};
 const fallbackExternalNormalImages = Array.isArray(externalGameConfig.blockImages)
-    ? externalGameConfig.blockImages.slice(0, 5)
+    ? externalGameConfig.blockImages.slice(0, 10)
     : [];
 
 const CONFIG = {
@@ -254,6 +276,10 @@ const CONFIG = {
     destructionSpeeds: {
         ...DEFAULT_CONFIG.destructionSpeeds,
         ...(externalGameConfig.destructionSpeeds || {})
+    },
+    featureFlags: {
+        ...DEFAULT_CONFIG.featureFlags,
+        ...(externalGameConfig.featureFlags || {})
     }
 };
 
@@ -272,6 +298,45 @@ CONFIG.bonusTriggerProgressTarget = resolvedSatisfactionTarget;
 
 // --------------- Config Sanitization ---------------
 CONFIG.gridSize = Math.max(1, Math.floor(Number(CONFIG.gridSize) || DEFAULT_CONFIG.gridSize));
+CONFIG.simpleCoreMode = CONFIG.simpleCoreMode !== false;
+CONFIG.initialBlindBoxCount = Math.max(
+    0,
+    Math.floor(Number(CONFIG.initialBlindBoxCount) || DEFAULT_CONFIG.initialBlindBoxCount)
+);
+CONFIG.normalSymbolKeys = (Array.isArray(CONFIG.normalSymbolKeys) && CONFIG.normalSymbolKeys.length > 0
+    ? CONFIG.normalSymbolKeys
+    : DEFAULT_CONFIG.normalSymbolKeys
+)
+    .map((value) => String(value || '').trim())
+    .filter((value, index, array) => value && array.indexOf(value) === index);
+if (CONFIG.normalSymbolKeys.length <= 0) {
+    CONFIG.normalSymbolKeys = [...DEFAULT_CONFIG.normalSymbolKeys];
+}
+CONFIG.wishRewardBlindBoxes = Math.max(
+    0,
+    Math.floor(Number(CONFIG.wishRewardBlindBoxes) || DEFAULT_CONFIG.wishRewardBlindBoxes)
+);
+CONFIG.pairRewardBlindBoxes = Math.max(
+    0,
+    Math.floor(Number(CONFIG.pairRewardBlindBoxes) || DEFAULT_CONFIG.pairRewardBlindBoxes)
+);
+CONFIG.tripleRewardBlindBoxes = Math.max(
+    0,
+    Math.floor(Number(CONFIG.tripleRewardBlindBoxes) || DEFAULT_CONFIG.tripleRewardBlindBoxes)
+);
+CONFIG.fullSetRewardBlindBoxes = Math.max(
+    0,
+    Math.floor(Number(CONFIG.fullSetRewardBlindBoxes) || DEFAULT_CONFIG.fullSetRewardBlindBoxes)
+);
+CONFIG.maxSelectableSameSymbolCount = Math.max(
+    2,
+    Math.floor(Number(CONFIG.maxSelectableSameSymbolCount) || DEFAULT_CONFIG.maxSelectableSameSymbolCount)
+);
+CONFIG.triplePriorityOverPair = CONFIG.triplePriorityOverPair !== false;
+CONFIG.featureFlags = {
+    freeSpinEnabled: Boolean(CONFIG.featureFlags && CONFIG.featureFlags.freeSpinEnabled),
+    bonusGameEnabled: Boolean(CONFIG.featureFlags && CONFIG.featureFlags.bonusGameEnabled)
+};
 CONFIG.bombCount = Math.min(
     CONFIG.gridSize,
     Math.max(0, Math.floor(Number(CONFIG.bombCount) || DEFAULT_CONFIG.bombCount))
@@ -398,11 +463,16 @@ const NORMAL_SYMBOL_VALUE_ORDER = ['S5', 'S4', 'S3', 'S2', 'S1'];
 const MAX_STACK_BLOCKS_PER_SETTLEMENT_EVENT = 30;
 const STACK_BLOCK_MULTI_FLY_STAGGER_MS = 35;
 const SYMBOL_IMAGE_FALLBACKS = {
-    S1: './Texture/BlockImg/Block_1.png',
-    S2: './Texture/BlockImg/Block_2.png',
-    S3: './Texture/BlockImg/Block_3.png',
-    S4: './Texture/BlockImg/Block_4.png',
-    S5: './Texture/BlockImg/Block_5.png'
+    S1: './Texture/BlockImg/Block_1.webp',
+    S2: './Texture/BlockImg/Block_2.webp',
+    S3: './Texture/BlockImg/Block_3.webp',
+    S4: './Texture/BlockImg/Block_4.webp',
+    S5: './Texture/BlockImg/Block_5.webp',
+    S6: './Texture/BlockImg/Block_6.webp',
+    S7: './Texture/BlockImg/Block_7.webp',
+    S8: './Texture/BlockImg/Block_8.webp',
+    S9: './Texture/BlockImg/Block_9.webp',
+    S10: './Texture/BlockImg/Block_10.webp'
 };
 const MAIN_BOARD_PAYOUTS = {
     S1: { 3: 120, 4: 180, 5: 300, 6: 460, 7: 660, 8: 940, 9: 1200, 10: 1500 },
@@ -606,7 +676,7 @@ const BOMB_MONKEY_ANIM_FRAMES = [
 ];
 
 // --------------- Grid Box Assets ---------------
-const GRID_BOX_UNOPEN_IMAGE_SRC = './Texture/Icon/Icon_Box_UnOpen.png';
+const GRID_BOX_UNOPEN_IMAGE_SRC = './Texture/UI/FigmaSlot/blind-box-stock.webp';
 const GRID_BOX_OPEN_IMAGE_SRC = './Texture/Icon/Icon_Box_Open.png';
 const GRID_BOX_FALLBACK_ASPECT = 1; // Icon_Box_UnOpen/Open are square assets (512x512).
 
