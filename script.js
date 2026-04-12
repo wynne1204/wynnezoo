@@ -23,6 +23,7 @@ const STATE = {
     remainingBombs: CONFIG.bombCount,
     pendingOpens: 0,
     revealedCount: 0,
+    openedBlindBoxesThisRound: 0,
     roundReward: 0,
     bonusDiamondReward: 0,
     rewardsAppliedToZoo: false,
@@ -113,6 +114,7 @@ const bombCountDisplay = document.getElementById('bomb-count');
 const cashoutBtn = document.getElementById('cashout-btn');
 const randomBtn = document.getElementById('random-btn');
 const slotBackBtn = document.getElementById('slot-back-btn');
+const multiOpenCountDisplay = document.getElementById('multi-open-count');
 const statusLabels = Array.from(document.querySelectorAll('.status-info-group .status-label'));
 const modalOverlay = document.getElementById('modal-overlay');
 const modalTitle = document.getElementById('modal-title');
@@ -195,6 +197,7 @@ const SLOT_GAME_RUNTIME = {
 };
 const CUSTOMER_SWITCH_DELAY_MS = 320;
 const CUSTOMER_SATISFIED_FEEDBACK_MS = 420;
+const SIMPLE_RESTOCK_FLIGHT_MS = 240;
 const SIMPLE_SLOT_MODE = Boolean(CONFIG.simpleCoreMode);
 const SIMPLE_MATCH_CORE = (() => {
     if (!SIMPLE_SLOT_MODE) {
@@ -233,9 +236,13 @@ const SIMPLE_MATCH_CORE = (() => {
             positionSimpleModeCellPlusButton,
             ensureSafeOpenBoxImage,
             getGridCellBoxCenterInViewport,
+            getRestockTrayBoxCenterInViewport,
             highlightRealtimeSettlementEvent,
             createFloatingText,
             waitMs,
+            playSimpleModeRestockFlight,
+            playSimpleModeRestockLandingFeedback,
+            playSimpleModeSelectedCellFeedback,
             clearRealtimeSettlementHighlight,
             handleAllBoxesOpened,
             updateStats,
@@ -321,7 +328,7 @@ function applyModeTexts() {
             cashoutBtn.textContent = '全部开箱';
         }
         if (randomBtn) {
-            randomBtn.textContent = '开一个盲盒';
+            randomBtn.textContent = '盲开一箱';
         }
         return;
     }
@@ -344,7 +351,7 @@ function updatePrimaryActionButtonState() {
     randomBtn.classList.toggle('is-auto-running', AUTO_OPEN_STATE.active);
     randomBtn.setAttribute('aria-pressed', AUTO_OPEN_STATE.active ? 'true' : 'false');
     if (SIMPLE_SLOT_MODE) {
-        randomBtn.textContent = AUTO_OPEN_STATE.active ? '自动开箱…' : '开一个盲盒';
+        randomBtn.textContent = AUTO_OPEN_STATE.active ? '连开中…' : '盲开一箱';
         return;
     }
     randomBtn.textContent = AUTO_OPEN_STATE.active ? '自动开箱…' : '随机翻开';
@@ -781,6 +788,7 @@ function resetGridState(size) {
     STATE.boardResolvedFlags = new Uint8Array(safeSize);
     STATE.pendingOpens = 0;
     STATE.revealedCount = 0;
+    STATE.openedBlindBoxesThisRound = 0;
     STATE.isBoardEntering = false;
     STATE.roundReward = 0;
     STATE.bonusDiamondReward = 0;
@@ -977,6 +985,29 @@ function getCurrentCustomerPreferenceKey() {
 function animateUiElement(element, keyframes, options) {
     if (!element || typeof element.animate !== 'function') return null;
     return element.animate(keyframes, options);
+}
+
+function restartCssClassAnimation(element, className) {
+    if (!element || !className) return;
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+}
+
+function clearCssClassAnimation(element, className, delayMs) {
+    if (!element || !className) return;
+    window.setTimeout(() => {
+        if (!element.isConnected) return;
+        element.classList.remove(className);
+    }, Math.max(0, Math.floor(Number(delayMs) || 0)));
+}
+
+function playSimpleModeSelectedCellFeedback(cell) {
+    if (!cell) return;
+    const highlightTarget = cell.querySelector('.safe-open-box-frame') || cell.querySelector('.free-spin-reward-grid');
+    if (!highlightTarget) return;
+    restartCssClassAnimation(highlightTarget, 'settle-enlarge-glow');
+    clearCssClassAnimation(highlightTarget, 'settle-enlarge-glow', 1220);
 }
 
 function pulseCustomerHeartRange(startValue, endValue) {
@@ -1607,10 +1638,7 @@ function bindGridBoardClickHandler() {
             if (plusButton && gridBoard.contains(plusButton)) {
                 event.preventDefault();
                 event.stopPropagation();
-                const rawIndex = Number(plusButton.dataset.index || plusButton.closest('.grid-cell')?.dataset.index);
-                if (Number.isFinite(rawIndex)) {
-                    placeSimpleModeBlindBoxAt(rawIndex);
-                }
+                void playSimpleModeRestockSequence();
                 return;
             }
         }
@@ -1632,7 +1660,7 @@ function bindSimpleModeRestockTrayHandler() {
         if (!(target instanceof Element)) return;
         const trayBox = target.closest('.restock-tray-box');
         if (!trayBox || !restockTray.contains(trayBox)) return;
-        placeSimpleModeBlindBoxesToAllEmpty();
+        void playSimpleModeRestockSequence();
     });
 }
 
@@ -2655,6 +2683,84 @@ function getElementCenterInViewport(element) {
     };
 }
 
+function getRestockTrayBoxCenterInViewport(element) {
+    return getElementCenterInViewport(element);
+}
+
+function playSimpleModeRestockFlight(sourceElement, targetCell, {
+    durationMs = SIMPLE_RESTOCK_FLIGHT_MS
+} = {}) {
+    return new Promise((resolve) => {
+        if (!gameContainer || !targetCell) {
+            resolve();
+            return;
+        }
+
+        const containerRect = gameContainer.getBoundingClientRect();
+        const targetCenter = getGridCellBoxCenterInContainer(targetCell, gameContainer);
+        const sourceCenter = sourceElement
+            ? getRestockTrayBoxCenterInViewport(sourceElement)
+            : getGridCellBoxCenterInViewport(targetCell);
+        const startX = sourceCenter.x - containerRect.left;
+        const startY = sourceCenter.y - containerRect.top;
+        const deltaX = targetCenter.x - startX;
+        const deltaY = targetCenter.y - startY;
+        const sourceRect = sourceElement ? sourceElement.getBoundingClientRect() : null;
+        const flyEl = document.createElement('div');
+
+        flyEl.className = 'restock-fly-box';
+        flyEl.style.left = `${startX}px`;
+        flyEl.style.top = `${startY}px`;
+        flyEl.style.width = `${Math.max(72, Math.round(sourceRect?.width || 110))}px`;
+        flyEl.style.height = `${Math.max(72, Math.round(sourceRect?.height || 110))}px`;
+        gameContainer.appendChild(flyEl);
+
+        const animation = animateUiElement(flyEl, [
+            {
+                transform: 'translate(-50%, -50%) translate(0px, -8px) scale(1.08)',
+                opacity: 1,
+                filter: 'brightness(1.03) drop-shadow(0 10px 16px rgba(133, 75, 18, 0.28))'
+            },
+            {
+                transform: `translate(-50%, -50%) translate(${(deltaX * 0.46).toFixed(2)}px, ${(deltaY * 0.46 - 14).toFixed(2)}px) scale(1.02)`,
+                opacity: 1,
+                filter: 'brightness(1.08) drop-shadow(0 14px 20px rgba(133, 75, 18, 0.32))',
+                offset: 0.42
+            },
+            {
+                transform: `translate(-50%, -50%) translate(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px) scale(0.94)`,
+                opacity: 0.98,
+                filter: 'brightness(1.02) drop-shadow(0 8px 12px rgba(133, 75, 18, 0.22))'
+            }
+        ], {
+            duration: Math.max(120, Math.floor(Number(durationMs) || SIMPLE_RESTOCK_FLIGHT_MS)),
+            easing: 'cubic-bezier(0.18, 0.84, 0.22, 1)',
+            fill: 'forwards'
+        });
+
+        const finish = () => {
+            flyEl.remove();
+            resolve();
+        };
+
+        if (animation && typeof animation.finished?.then === 'function') {
+            animation.finished.then(finish).catch(finish);
+            return;
+        }
+
+        window.setTimeout(finish, Math.max(120, Math.floor(Number(durationMs) || SIMPLE_RESTOCK_FLIGHT_MS)) + 32);
+    });
+}
+
+function playSimpleModeRestockLandingFeedback(cell) {
+    if (!cell) return;
+    const boxImg = cell.querySelector('.grid-cell-box-img');
+    if (boxImg) {
+        restartCssClassAnimation(boxImg, 'restock-land-hit');
+        clearCssClassAnimation(boxImg, 'restock-land-hit', 320);
+    }
+}
+
 function positionImageToGridBoxCenter(cell, img) {
     if (!cell || !img) return;
     const center = getGridCellBoxCenter(cell);
@@ -2904,6 +3010,7 @@ function handleCellClick(index, isAuto = false) {
     markCellAsRevealed(index);
     if (SIMPLE_SLOT_MODE) {
         STATE.remainingBlindBoxes = Math.max(0, STATE.remainingBlindBoxes - 1);
+        STATE.openedBlindBoxesThisRound += 1;
         STATE.boardCellStates[index] = 'revealed';
         STATE.boardResolvedFlags[index] = 0;
         refreshSimpleModeUi();
@@ -3563,6 +3670,14 @@ function getMultiplierBySuccessCount(successCount) {
     return SUCCESS_MULTIPLIER_TABLE[boundedCount] || SUCCESS_MULTIPLIER_TABLE[MAX_SUCCESS_FOR_MULTIPLIER];
 }
 
+function getSimpleModeRestockDisplayCount() {
+    return Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0));
+}
+
+function getSimpleModeOpenedBlindBoxesCount() {
+    return Math.max(0, Math.floor(Number(STATE.openedBlindBoxesThisRound) || 0));
+}
+
 function calculateCurrentReward() {
     return Math.floor(STATE.roundReward);
 }
@@ -3570,8 +3685,13 @@ function calculateCurrentReward() {
 function updateStats() {
     if (SIMPLE_SLOT_MODE) {
         updateStackProgressBar();
+        const restockDisplayCount = getSimpleModeRestockDisplayCount();
+        const openedBlindBoxesCount = getSimpleModeOpenedBlindBoxesCount();
+        if (multiOpenCountDisplay) {
+            multiOpenCountDisplay.textContent = `${openedBlindBoxesCount}个`;
+        }
         if (currentRewardDisplay) {
-            currentRewardDisplay.textContent = String(Math.max(0, Math.floor(Number(STATE.remainingBlindBoxes) || 0)));
+            currentRewardDisplay.textContent = String(restockDisplayCount);
         }
         return;
     }
@@ -3704,6 +3824,10 @@ function placeSimpleModeBlindBoxAt(index) {
 
 function placeSimpleModeBlindBoxesToAllEmpty() {
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.placeSimpleModeBlindBoxesToAllEmpty() : 0;
+}
+
+function playSimpleModeRestockSequence() {
+    return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.playSimpleModeRestockSequence() : Promise.resolve(0);
 }
 
 async function resolveSimpleModeSelection(match) {
@@ -5232,6 +5356,7 @@ function getSlotGameSnapshot() {
         isBonusGameActive: STATE.isBonusGameActive || STATE.bonusGamePendingStart,
         isFreeSpinActive: FREE_SPIN_STATE.active || FREE_SPIN_STATE.pendingStart,
         revealedCount: Math.max(0, Math.floor(Number(STATE.revealedCount) || 0)),
+        openedBlindBoxesThisRound: Math.max(0, Math.floor(Number(STATE.openedBlindBoxesThisRound) || 0)),
         totalCells: Math.max(0, Math.floor(Number(CONFIG.gridSize) || 0)),
         remainingHidden: Array.isArray(STATE.unrevealedIndices) ? STATE.unrevealedIndices.length : 0,
         roundReward: Math.max(0, Math.floor(Number(STATE.roundReward) || 0)),

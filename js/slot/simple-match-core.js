@@ -21,9 +21,69 @@
             [0, 4, 8],
             [2, 4, 6]
         ];
+        const SIMPLE_RESTOCK_FLIGHT_MS = 240;
+        const SIMPLE_RESTOCK_STAGGER_MS = 70;
 
         let slotWishOverlay = elements.slotWishOverlay || null;
         let slotWishOptions = elements.slotWishOptions || null;
+        let celebrationTimerId = 0;
+        let rewardPulseTimerId = 0;
+        let isRestockSequenceActive = false;
+
+        function getSimpleModeSymbolLabel(symbolKey) {
+            const safeKey = String(symbolKey || '').trim();
+            return safeKey || '未选择';
+        }
+
+        function getSimpleModeRewardCopy(type) {
+            if (type === 'full-set') {
+                return `全家福 +${Math.max(0, Math.floor(Number(config.fullSetRewardBlindBoxes) || 0))} 盲盒`;
+            }
+            if (type === 'triple') {
+                return `三连 +${Math.max(0, Math.floor(Number(config.tripleRewardBlindBoxes) || 0))} 盲盒`;
+            }
+            if (type === 'pair') {
+                return `对碰 +${Math.max(0, Math.floor(Number(config.pairRewardBlindBoxes) || 0))} 盲盒`;
+            }
+            return `命中许愿 +${Math.max(0, Math.floor(Number(config.wishRewardBlindBoxes) || 0))} 盲盒`;
+        }
+
+        function pulseSimpleModeRewardSurfaces() {
+            if (!simpleSlotMode) return;
+            if (rewardPulseTimerId) {
+                clearTimeout(rewardPulseTimerId);
+            }
+            if (elements.customerSatisfaction) {
+                elements.customerSatisfaction.classList.remove('reward-pop');
+                void elements.customerSatisfaction.offsetWidth;
+                elements.customerSatisfaction.classList.add('reward-pop');
+            }
+            if (elements.restockTray) {
+                elements.restockTray.classList.remove('reward-pop');
+                void elements.restockTray.offsetWidth;
+                elements.restockTray.classList.add('reward-pop');
+            }
+            rewardPulseTimerId = setTimeout(() => {
+                if (elements.customerSatisfaction) {
+                    elements.customerSatisfaction.classList.remove('reward-pop');
+                }
+                if (elements.restockTray) {
+                    elements.restockTray.classList.remove('reward-pop');
+                }
+                rewardPulseTimerId = 0;
+            }, 560);
+        }
+
+        function clearSimpleMatchCelebration() {
+            if (celebrationTimerId) {
+                clearTimeout(celebrationTimerId);
+                celebrationTimerId = 0;
+            }
+        }
+
+        function showSimpleMatchCelebration(match) {
+            return;
+        }
 
         function ensureSimpleBlindBoxCounterElements() {
             if (!simpleSlotMode || !elements.customerSatisfaction) return null;
@@ -152,6 +212,7 @@
 
         function resetSimpleModeState(size) {
             const safeSize = Math.max(1, Math.floor(Number(size) || config.gridSize || 1));
+            clearSimpleMatchCelebration();
             state.wishSymbolKey = '';
             state.remainingBlindBoxes = Math.max(0, Math.floor(Number(config.initialBlindBoxCount) || safeSize));
             state.restockPoolCount = 0;
@@ -201,6 +262,17 @@
             state.pendingPlacementIndexes = emptyIndexes.slice();
             syncSimpleModeStockState();
             return emptyIndexes;
+        }
+
+        function getSimpleModeAutoFillTargets() {
+            return updateSimpleModePlacementState().slice();
+        }
+
+        function getVisibleRestockTrayBoxes() {
+            if (!elements.restockTrayBoxes) return [];
+            return Array.from(elements.restockTrayBoxes.querySelectorAll('.restock-tray-box'))
+                .filter((button) => !button.classList.contains('is-hidden'))
+                .sort((a, b) => Number(a.dataset.stockIndex || 0) - Number(b.dataset.stockIndex || 0));
         }
 
         function addUnrevealedIndex(index) {
@@ -386,25 +458,85 @@
             return '点击已翻开的积木进行对碰';
         }
 
+        function updateSimpleModeStatusPanel() {
+            if (!simpleSlotMode) return;
+            const revealedCount = getSimpleModeRevealedIndexes().length;
+            let stageText = '翻盲盒中';
+            let rewardText = getSimpleModeRewardCopy('wish');
+            let targetText = hasSimpleWishSelection()
+                ? `许愿 ${getSimpleModeSymbolLabel(state.wishSymbolKey)}`
+                : '请选择许愿积木';
+            let progressText = `${revealedCount} 已翻开`;
+
+            if (!hasSimpleWishSelection()) {
+                stageText = '等待许愿';
+                rewardText = getSimpleModeRewardCopy('wish');
+                progressText = '0 / 1';
+            } else if (state.selectionMode === 'full-set') {
+                stageText = '全家福机会';
+                rewardText = getSimpleModeRewardCopy('full-set');
+                targetText = '集齐 9 种不同积木';
+                progressText = `${state.selectedIndexes.length} / 9`;
+            } else if (state.selectionMode === 'same-symbol' && state.selectedIndexes.length > 0) {
+                const activeSymbolKey = getSimpleModeCellSymbolKey(state.selectedIndexes[0]);
+                const targetCount = Math.max(2, getSimpleModeTargetSelectionCount(activeSymbolKey) || 0);
+                stageText = targetCount >= 3 ? '冲刺三连' : '准备对碰';
+                rewardText = getSimpleModeRewardCopy(targetCount >= 3 ? 'triple' : 'pair');
+                targetText = `${getSimpleModeSymbolLabel(activeSymbolKey)} x ${targetCount}`;
+                progressText = `${state.selectedIndexes.length} / ${targetCount}`;
+            } else if (isSimpleModeFullSetAvailable()) {
+                stageText = '全家福机会';
+                rewardText = getSimpleModeRewardCopy('full-set');
+                targetText = '9 种都在场';
+                progressText = `${revealedCount} / 9`;
+            }
+
+            if (elements.simpleMatchStageTag) {
+                elements.simpleMatchStageTag.textContent = stageText;
+            }
+            if (elements.simpleMatchRewardTag) {
+                elements.simpleMatchRewardTag.textContent = rewardText;
+            }
+            if (elements.simpleMatchTargetChip) {
+                elements.simpleMatchTargetChip.textContent = targetText;
+            }
+            if (elements.simpleMatchProgressChip) {
+                elements.simpleMatchProgressChip.textContent = progressText;
+            }
+            if (elements.simpleMatchStockChip) {
+                elements.simpleMatchStockChip.textContent = String(Math.max(0, Math.floor(Number(state.restockPoolCount) || 0)));
+            }
+        }
+
         function renderSimpleModeRestockTray() {
             if (!simpleSlotMode || !elements.restockTrayBoxes) return;
             const emptyIndexes = updateSimpleModePlacementState();
-            const canFill = emptyIndexes.length > 0 && state.restockPoolCount > 0;
-            elements.restockTrayBoxes.innerHTML = '';
-            for (let i = 0; i < state.restockPoolCount; i++) {
+            const restockCount = Math.max(0, Math.floor(Number(state.restockPoolCount) || 0));
+            const canFill = emptyIndexes.length > 0 && restockCount > 0 && !isRestockSequenceActive;
+            const stableRows = Math.max(1, Math.ceil(restockCount / 5));
+            const fragment = document.createDocumentFragment();
+            elements.restockTrayBoxes.style.setProperty('--restock-tray-rows', String(stableRows));
+            for (let index = 0; index < restockCount; index++) {
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'restock-tray-box';
-                button.dataset.stockIndex = String(i);
+                button.dataset.stockIndex = String(index);
+                button.style.setProperty('--stock-col', String(index % 5));
+                button.style.setProperty('--stock-row', String(Math.floor(index / 5)));
+                button.style.zIndex = String(index + 1);
                 button.disabled = !canFill;
-                if (!canFill) {
-                    button.classList.add('disabled');
-                }
-                button.setAttribute('aria-label', canFill ? '点击补满空格' : '当前没有可补的空格');
-                elements.restockTrayBoxes.appendChild(button);
+                button.classList.toggle('disabled', !canFill);
+                button.classList.toggle('is-restock-locked', isRestockSequenceActive);
+                button.setAttribute('aria-hidden', 'false');
+                button.setAttribute('tabindex', canFill ? '0' : '-1');
+                button.setAttribute('aria-label', canFill ? '点击补齐所有盲盒' : '当前没有可补的空格');
+                fragment.appendChild(button);
             }
+            elements.restockTrayBoxes.replaceChildren(fragment);
             if (elements.restockTray) {
                 elements.restockTray.classList.toggle('disabled', !canFill);
+                elements.restockTray.classList.toggle('ready-to-fill', canFill);
+                elements.restockTray.classList.toggle('is-restock-sequence', isRestockSequenceActive);
                 elements.restockTray.setAttribute('aria-disabled', canFill ? 'false' : 'true');
             }
         }
@@ -421,10 +553,11 @@
                     const plusButton = cell.querySelector('.cell-plus');
                     if (plusButton) {
                         helpers.positionSimpleModeCellPlusButton(cell, plusButton);
-                        const canPlace = state.restockPoolCount > 0;
+                        const canPlace = state.restockPoolCount > 0 && !isRestockSequenceActive;
                         plusButton.classList.toggle('disabled', !canPlace);
+                        plusButton.classList.toggle('is-ready', canPlace);
                         plusButton.disabled = !canPlace;
-                        plusButton.setAttribute('aria-label', canPlace ? '补 1 个盲盒' : '暂无盲盒可补');
+                        plusButton.setAttribute('aria-label', canPlace ? '补齐全部盲盒' : '暂无盲盒可补');
                     }
                     return;
                 }
@@ -507,6 +640,7 @@
             state.roundReward += safeCount;
             state.restockPoolCount += safeCount;
             syncSimpleModeStockState();
+            pulseSimpleModeRewardSurfaces();
             refreshSimpleModeUi();
             return safeCount;
         }
@@ -529,26 +663,92 @@
             if (!simpleSlotMode || !canPlaceSimpleModeBlindBoxAt(index)) return false;
             setSimpleModeCellSealed(index);
             state.restockPoolCount = Math.max(0, state.restockPoolCount - 1);
+            syncSimpleModeStockState();
             refreshSimpleModeUi();
             return true;
         }
 
         function placeSimpleModeBlindBoxesToAllEmpty() {
-            if (!simpleSlotMode || state.restockPoolCount <= 0) return 0;
-            const emptyIndexes = updateSimpleModePlacementState();
-            if (emptyIndexes.length <= 0) {
+            return playSimpleModeRestockSequence();
+        }
+
+        async function playSimpleModeRestockSequence() {
+            if (!simpleSlotMode) return 0;
+            if (state.restockPoolCount <= 0) return 0;
+            if (state.isGameOver || state.isBoardEntering || state.isAnimating || state.isSettling || state.isBonusGameActive || state.bonusGamePendingStart) {
+                return 0;
+            }
+
+            const targets = getSimpleModeAutoFillTargets();
+            if (targets.length <= 0) {
                 refreshSimpleModeUi();
                 return 0;
             }
+
+            const totalPlacements = Math.min(targets.length, Math.max(0, Math.floor(Number(state.restockPoolCount) || 0)));
+            const sourceBoxes = getVisibleRestockTrayBoxes().slice(0, totalPlacements);
             let placedCount = 0;
-            for (let i = 0; i < emptyIndexes.length && state.restockPoolCount > 0; i++) {
-                const index = emptyIndexes[i];
-                if (!canPlaceSimpleModeBlindBoxAt(index)) continue;
-                setSimpleModeCellSealed(index);
-                state.restockPoolCount = Math.max(0, state.restockPoolCount - 1);
-                placedCount += 1;
+
+            if (typeof helpers.stopAutoOpen === 'function') {
+                helpers.stopAutoOpen();
             }
-            refreshSimpleModeUi();
+            if (typeof helpers.clearAutoOpenHoldTimer === 'function') {
+                helpers.clearAutoOpenHoldTimer();
+            }
+            if (typeof helpers.clearAutoOpenLoopTimer === 'function') {
+                helpers.clearAutoOpenLoopTimer();
+            }
+
+            isRestockSequenceActive = true;
+            state.isAnimating = true;
+            if (elements.restockTray) {
+                elements.restockTray.classList.add('is-restock-sequence');
+                elements.restockTray.setAttribute('aria-disabled', 'true');
+            }
+            refreshSimpleModeSelectionUi();
+            updateSimpleModeActionButtons();
+
+            try {
+                const tasks = targets.slice(0, totalPlacements).map((targetIndex, order) => (async () => {
+                    if (order > 0) {
+                        await helpers.waitMs(order * SIMPLE_RESTOCK_STAGGER_MS);
+                    }
+
+                    const targetCell = helpers.getGridCellElement(targetIndex);
+                    if (!targetCell || state.boardCellStates[targetIndex] !== 'empty') {
+                        return 0;
+                    }
+
+                    const sourceBox = sourceBoxes[order] || sourceBoxes[sourceBoxes.length - 1] || null;
+                    if (sourceBox) {
+                        sourceBox.classList.add('is-source-flying');
+                    }
+
+                    await helpers.playSimpleModeRestockFlight(sourceBox, targetCell, {
+                        durationMs: SIMPLE_RESTOCK_FLIGHT_MS
+                    });
+
+                    setSimpleModeCellSealed(targetIndex);
+                    state.restockPoolCount = Math.max(0, state.restockPoolCount - 1);
+                    syncSimpleModeStockState();
+                    if (typeof helpers.updateStats === 'function') {
+                        helpers.updateStats();
+                    }
+                    if (typeof helpers.playSimpleModeRestockLandingFeedback === 'function') {
+                        helpers.playSimpleModeRestockLandingFeedback(targetCell);
+                    }
+                    placedCount += 1;
+                    return 1;
+                })());
+
+                await Promise.all(tasks);
+            } finally {
+                isRestockSequenceActive = false;
+                state.isAnimating = false;
+                syncSimpleModeStockState();
+                refreshSimpleModeUi();
+            }
+
             return placedCount;
         }
 
@@ -694,6 +894,10 @@
                     state.selectedIndexes = [safeIndex];
                 }
                 refreshSimpleModeSelectionUi();
+                const selectedCell = helpers.getGridCellElement(safeIndex);
+                if (selectedCell && typeof helpers.playSimpleModeSelectedCellFeedback === 'function') {
+                    helpers.playSimpleModeSelectedCellFeedback(selectedCell);
+                }
                 void maybeResolveSimpleModeSelection();
                 return;
             }
@@ -764,8 +968,10 @@
             rewardSimpleModeBlindBoxes,
             renderSimpleModeWishSymbol,
             getSimpleModeCellSymbolKey,
+            getSimpleModeAutoFillTargets,
             placeSimpleModeBlindBoxAt,
             placeSimpleModeBlindBoxesToAllEmpty,
+            playSimpleModeRestockSequence,
             resolveSimpleModeSelection,
             maybeResolveSimpleModeSelection,
             handleSimpleModeSelectionClick,
