@@ -6,11 +6,11 @@
 .vscode/**
 tools/**
 Doc/**
+tests/**
+output/**
 *.cmd
 *.xlsx
 *.py
-progress.md
-PERFORMANCE_PARTITION.md
+css/style.css
 README.md
-skills-lock.json
-__head_index.html
+.cloudbaseignore

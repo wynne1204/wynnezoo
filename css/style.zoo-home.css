@@ -2,7 +2,7 @@
     z-index: 1;
     background:
         linear-gradient(180deg, rgba(9, 20, 19, 0.08) 0%, rgba(9, 20, 19, 0.54) 56%, rgba(9, 20, 19, 0.86) 100%),
-        url('./Texture/ZOO/UI_Zoo_MainBG.webp') center center / cover no-repeat;
+        url('../Texture/ZOO/UI_Zoo_MainBG.webp') center center / cover no-repeat;
     color: #f7f6ea;
 }
 

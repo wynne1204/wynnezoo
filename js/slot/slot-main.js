@@ -12,7 +12,7 @@ const SIMPLE_MATCH_CORE = (() => {
         return null;
     }
     if (!window.WynneSimpleMatchCore || typeof window.WynneSimpleMatchCore.create !== 'function') {
-        throw new Error('js/slot/simple-match-core.js must be loaded before script.js');
+        throw new Error('js/slot/simple-match-core.js must be loaded before slot-main.js');
     }
     return window.WynneSimpleMatchCore.create({
         config: CONFIG,

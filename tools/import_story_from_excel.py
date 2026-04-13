@@ -14,7 +14,7 @@ from openpyxl import load_workbook
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_EXCEL_PATH = ROOT_DIR / '\u5267\u60c5.xlsx'
+DEFAULT_EXCEL_PATH = ROOT_DIR / 'Doc' / '\u5267\u60c5.xlsx'
 DEFAULT_OUTPUT_PATH = ROOT_DIR / 'js' / 'story' / 'story-generated-data.js'
 STORY_ASSET_ROOT = ROOT_DIR / 'Texture' / 'story'
 PORTRAIT_FOLDER = '\u7acb\u7ed8'

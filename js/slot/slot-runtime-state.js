@@ -1,6 +1,6 @@
 // ============================================================
 // Slot Game — Shared Runtime State
-// Loaded before script.js via index.html.
+// Loaded before slot-main.js via index.html.
 // ============================================================
 
 // --------------- Config Guard ---------------

@@ -1,6 +1,6 @@
 // ============================================================
 // Slot Game — Blueprint & Board Plan Generation
-// Loaded before script.js via index.html.
+// Loaded before slot-main.js via index.html.
 // ============================================================
 
 function cloneBlueprintCounts(counts = {}) {

@@ -46,13 +46,8 @@ jobs:
             --exclude '*.cmd' \
             --exclude '*.xlsx' \
             --exclude '*.py' \
-            --exclude 'progress.md' \
-            --exclude 'PERFORMANCE_PARTITION.md' \
-            --exclude 'README.md' \
-            --exclude 'skills-lock.json' \
-            --exclude '__head_index.html' \
+            --exclude 'css/style.css' \
             --exclude '.cloudbaseignore' \
-            --exclude 'style.css' \
             ./ .deploy-static/
 
       - name: Deploy root static files to hosting

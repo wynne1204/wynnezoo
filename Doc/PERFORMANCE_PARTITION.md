@@ -6,7 +6,7 @@
 - Split low-frequency visual code out of the main runtime path.
 
 ## Current Partitions
-- Main runtime: `script.js`
+- Main runtime: `js/slot/slot-main.js`
   - Grid state, click handling, settlement, wheel logic, UI state updates.
   - Hot-path data optimized with typed arrays and index pools.
 - Effects runtime: `js/effects.js`

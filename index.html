@@ -36,13 +36,13 @@
             document.write('<script src="' + withAssetVersion(src) + '"><' + '/script>');
         };
 
-        writeStylesheet('style.base.css');
-        writeStylesheet('style.zoo-home.css');
-        writeStylesheet('style.slot-game.css');
-        writeStylesheet('style.bonus-game.css');
-        writeStylesheet('style.story.css');
-        writeStylesheet('style.collection.css');
-        writeStylesheet('effects.css');
+        writeStylesheet('css/style.base.css');
+        writeStylesheet('css/style.zoo-home.css');
+        writeStylesheet('css/style.slot-game.css');
+        writeStylesheet('css/style.bonus-game.css');
+        writeStylesheet('css/style.story.css');
+        writeStylesheet('css/style.collection.css');
+        writeStylesheet('css/effects.css');
     })(window);
     </script>
     <script>
@@ -834,7 +834,7 @@
 
             writeScript('js/module-registry.js');
             writeScript('js/utils.js');
-            writeScript('config/game-config.js');
+            writeScript('js/slot/game-config.js');
             writeScript('js/slot/slot-config.js');
             writeScript('js/slot/simple-match-core.js');
             writeScript('js/slot/slot-runtime-state.js');
@@ -846,7 +846,7 @@
             writeScript('js/zoo/zoo-balance.js');
             writeScript('js/zoo/zoo-economy.js');
             writeScript('js/zoo/zoo-quest.js');
-            writeScript('script.js');
+            writeScript('js/slot/slot-main.js');
             writeScript('js/story/story-schema.js');
             writeScript('js/story/story-generated-data.js');
             writeScript('js/story/story-data.js');

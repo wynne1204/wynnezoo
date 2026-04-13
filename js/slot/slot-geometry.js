@@ -1,6 +1,6 @@
 // ============================================================
 // Slot Game — Geometry & Animation Helpers
-// Loaded before script.js via index.html.
+// Loaded before slot-main.js via index.html.
 // ============================================================
 
 function animateUiElement(element, keyframes, options) {

@@ -321,7 +321,7 @@
     width: 42.05%;
     height: 14.65%;
     z-index: 14;
-    background-image: url('./Texture/UI/NewSlot/bubble_bg.png');
+    background-image: url('../Texture/UI/NewSlot/bubble_bg.png');
     background-repeat: no-repeat;
     background-position: center;
     background-size: contain;
@@ -339,7 +339,7 @@
     width: 56.92%;
     height: 10.31%;
     padding: 0;
-    background: url('./Texture/UI/FigmaSlot/multi-open-banner.png') center / 100% 100% no-repeat;
+    background: url('../Texture/UI/FigmaSlot/multi-open-banner.png') center / 100% 100% no-repeat;
     filter: none;
     z-index: 42;
 }
@@ -1003,7 +1003,7 @@
     height: var(--restock-tray-box-size);
     border: none;
     border-radius: 0;
-    background: url('./Texture/UI/FigmaSlot/blind-box-stock.webp') center / contain no-repeat;
+    background: url('../Texture/UI/FigmaSlot/blind-box-stock.webp') center / contain no-repeat;
     display: block;
     cursor: pointer;
     appearance: none;
@@ -1039,7 +1039,7 @@
 }
 .restock-fly-box {
     position: absolute;
-    background: url('./Texture/UI/FigmaSlot/blind-box-stock.webp') center / contain no-repeat;
+    background: url('../Texture/UI/FigmaSlot/blind-box-stock.webp') center / contain no-repeat;
     z-index: 120;
     pointer-events: none;
     will-change: transform, opacity, filter;
@@ -1516,7 +1516,7 @@
 }
 
 .action-buttons .btn.is-auto-running {
-    background-image: url('./Texture/UI/btn_longpress.png');
+    background-image: url('../Texture/UI/btn_longpress.png');
     color: #ffffff;
     text-shadow: 0 2px 0 #4EA266, 0 0 10px rgba(78,162,102,0.45);
     font-size: calc(1.05rem * var(--mine-scale));
@@ -1554,7 +1554,7 @@
     top: 77.85%;
     width: 63.59%;
     height: 21.94%;
-    background-image: url('./Texture/UI/NewSlot/btn_open.webp');
+    background-image: url('../Texture/UI/NewSlot/btn_open.webp');
     /* Figma 文本样式 */
     color: #FFF3D9;
     text-align: center;
@@ -1583,7 +1583,7 @@
 }
 
 .action-buttons .btn.is-auto-running:disabled {
-    background-image: url('./Texture/UI/btn_longpress.png');
+    background-image: url('../Texture/UI/btn_longpress.png');
     color: #ffffff;
     text-shadow: 0 2px 0 #4EA266, 0 0 10px rgba(78,162,102,0.45);
     filter: brightness(0.82) saturate(1.08);

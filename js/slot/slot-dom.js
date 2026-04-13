@@ -1,6 +1,6 @@
 // ============================================================
 // Slot Game — Shared DOM References
-// Loaded before script.js via index.html.
+// Loaded before slot-main.js via index.html.
 // ============================================================
 
 const gridBoard = document.getElementById('grid-board');

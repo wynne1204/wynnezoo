@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$excelPath = Join-Path $root '剧情.xlsx'
+$excelPath = Join-Path $root 'Doc\剧情.xlsx'
 $importerPath = Join-Path $PSScriptRoot 'import_story_from_excel.py'
 
 function Invoke-StoryImport {

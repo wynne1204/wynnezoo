@@ -1,7 +1,7 @@
 // ============================================================
 // Slot Game — Configuration, Constants & Data Tables
-// Extracted from script.js for maintainability.
-// This file MUST be loaded before script.js.
+// Extracted from slot-main.js for maintainability.
+// This file MUST be loaded before slot-main.js.
 // ============================================================
 
 // --------------- Default Game Config ---------------

@@ -140,7 +140,7 @@ window.APP_CONFIG = {
         // hardPityThreshold：连续多少局未抽到 BP_06/BP_07 时触发保底
         // 说明：
         // 1) 权重支持 0（表示该蓝图不会被抽到）
-        // 2) 只需改 game.blueprintWeights，不需要改 script.js
+        // 2) 只需改 game.blueprintWeights，不需要改 slot-main.js
         // 3) BP_05 含 SW，调高 BP_05 权重可提升 SW 出现概率
         blueprintWeights: {
             default: {

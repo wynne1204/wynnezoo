@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $rootDir = Split-Path -Parent $PSScriptRoot
-$defaultExcelPath = Join-Path $rootDir ([string]([char]0x5267) + [char]0x60C5 + '.xlsx')
+$defaultExcelPath = Join-Path $rootDir ('Doc\' + [string]([char]0x5267) + [char]0x60C5 + '.xlsx')
 $defaultOutputPath = Join-Path $rootDir 'js\story\story-generated-data.js'
 $storyAssetRoot = Join-Path $rootDir 'Texture\story'
 $portraitFolder = [string]([char]0x7ACB) + [char]0x7ED8
