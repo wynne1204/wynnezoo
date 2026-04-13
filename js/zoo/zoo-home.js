@@ -59,6 +59,40 @@
     const DIRECT_BUILD_HABITAT_ID = 'red-panda-grove';
     const RED_PANDA_POST_BUILD_STORY_ID = 'post-build-red-panda';
     const RED_PANDA_POST_BUILD_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1-redpanda.webp';
+    const selectorApi = globalScope.WynneZooHomeSelectors && typeof globalScope.WynneZooHomeSelectors.create === 'function'
+        ? globalScope.WynneZooHomeSelectors.create({
+            balance,
+            hasUnfinishedRound,
+            getInfoHabitat
+        })
+        : null;
+    const viewHelpers = globalScope.WynneZooHomeViewHelpers && typeof globalScope.WynneZooHomeViewHelpers.create === 'function'
+        ? globalScope.WynneZooHomeViewHelpers.create({
+            escapeHtml,
+            getHabitatArt,
+            getHabitatArtKey
+        })
+        : null;
+    const rendererApi = globalScope.WynneZooHomeRenderers && typeof globalScope.WynneZooHomeRenderers.create === 'function'
+        ? globalScope.WynneZooHomeRenderers.create({
+            buildInlineStyle,
+            directBuildHabitatId: DIRECT_BUILD_HABITAT_ID,
+            escapeHtml,
+            getHabitatArt,
+            getHabitatStageLayout,
+            getHabitatTierDefinitions,
+            renderEnvironmentTierCard,
+            renderFactRows,
+            renderMetricCards,
+            renderOverviewCard,
+            shouldAnimateHabitatArtSwap,
+            shouldShowHabitatBuildGuide
+        })
+        : null;
+
+    if (!selectorApi || !viewHelpers || !rendererApi) {
+        throw new Error('zoo-home helper modules must load before zoo-home.js');
+    }
 
     function cacheDom() {
         refs.homeScreen = document.getElementById('zoo-home-screen');
@@ -373,91 +407,12 @@
     }
 
     function shouldShowCollectionFollowupGuide(snapshot) {
-        if (!snapshot) {
-            return false;
-        }
-
-        const pendingGuideSpeciesId = snapshot.collection
-            ? String(snapshot.collection.pendingGuideSpeciesId || '').trim()
-            : '';
-        if (pendingGuideSpeciesId) {
-            return true;
-        }
-
-        const storyFlow = snapshot.storyFlow && typeof snapshot.storyFlow === 'object'
-            ? snapshot.storyFlow
-            : null;
-        return Boolean(
-            storyFlow
-            && String(storyFlow.pendingReturnStoryId || '').trim()
-        );
+        return selectorApi.shouldShowCollectionFollowupGuide(snapshot);
     }
 
     function getSlotCardCopy(slotSnapshot, zooSnapshot) {
-        const theme = zooSnapshot && zooSnapshot.slotTheme
-            ? zooSnapshot.slotTheme
-            : (balance ? balance.SLOT_THEME : null);
-        const ticketName = theme ? theme.ticketName : '游园惊喜券';
-        const machineName = theme ? theme.machineName : '礼盒机';
-        const unlockedHabitats = zooSnapshot && Array.isArray(zooSnapshot.habitats)
-            ? zooSnapshot.habitats.filter((habitat) => habitat && habitat.unlocked)
-            : [];
-
-        if (unlockedHabitats.length <= 0
-            && !hasUnfinishedRound(slotSnapshot)
-            && (!zooSnapshot || !zooSnapshot.resources || zooSnapshot.resources.playTicket <= 0)) {
-            return {
-                status: '动物园暂未开放',
-                hint: `首个栖息地暂未开放，当前先保持空园状态，不会产出${ticketName}。`,
-                entryText: '暂未开放',
-                disabled: true
-            };
-        }
-
-        if (hasUnfinishedRound(slotSnapshot)) {
-            if (slotSnapshot.isBonusGameActive) {
-                return {
-                    status: `${machineName} · Bonus 进行中`,
-                    hint: `继续当前局即可衔接 Bonus，已翻开 ${slotSnapshot.revealedCount}/${slotSnapshot.totalCells} 格。`,
-                    entryText: '继续当前局',
-                    disabled: false
-                };
-            }
-
-            if (slotSnapshot.isFreeSpinActive) {
-                return {
-                    status: `${machineName} · Free Spin`,
-                    hint: `当前倍率 ${Number(slotSnapshot.currentMultiplier || 1).toFixed(1)}x，返回后继续免费回合。`,
-                    entryText: '继续免费回合',
-                    disabled: false
-                };
-            }
-
-            return {
-                status: `${machineName} · 进度保留中`,
-                hint: `已翻开 ${slotSnapshot.revealedCount}/${slotSnapshot.totalCells} 格，继续时不额外消耗 ${ticketName}。`,
-                entryText: '继续当前局',
-                disabled: false
-            };
-        }
-
-        if (!zooSnapshot || !zooSnapshot.resources || zooSnapshot.resources.playTicket <= 0) {
-            return {
-                status: `${ticketName} 不足`,
-                hint: '等待小熊猫栖息地产券，或点击气泡领取新产出的盲盒券。',
-                entryText: '暂无盲盒券',
-                disabled: true
-            };
-        }
-
-        return {
-            status: `${machineName} 已待命`,
-            hint: `当前持有 ${zooSnapshot.resources.playTicket} 张 ${ticketName}，点击右下角入口拆盲盒。`,
-            entryText: '拆盲盒',
-            disabled: false
-        };
+        return selectorApi.getSlotCardCopy(slotSnapshot, zooSnapshot);
     }
-
     function getHabitatTierLevel(habitat) {
         if (!habitat || !habitat.tier) {
             return 1;
@@ -529,207 +484,16 @@
         return habitat.sceneAsset || '';
     }
 
-    const HABITAT_STAGE_LAYOUTS = {
-        level1: {
-            stageLeft: '1.2821%',
-            stageTop: '28.2385%',
-            stageWidth: '106.9915%',
-            stageHeight: '36.9273%',
-            imageLeft: '0%',
-            imageTop: '0%',
-            imageWidth: '100%',
-            imageHeight: '100%'
-        },
-        level2: {
-            stageLeft: '1.2821%',
-            stageTop: '28.2385%',
-            stageWidth: '106.9915%',
-            stageHeight: '36.9273%',
-            imageLeft: '0%',
-            imageTop: '0%',
-            imageWidth: '100%',
-            imageHeight: '100%'
-        },
-        level3: {
-            stageLeft: '3.1624%',
-            stageTop: '24.3681%',
-            stageWidth: '103.1624%',
-            stageHeight: '41.7062%',
-            imageLeft: '0%',
-            imageTop: '0%',
-            imageWidth: '100%',
-            imageHeight: '100%'
-        },
-        level4: {
-            stageLeft: '3.1624%',
-            stageTop: '24.3681%',
-            stageWidth: '103.1624%',
-            stageHeight: '41.7062%',
-            imageLeft: '0%',
-            imageTop: '0%',
-            imageWidth: '100%',
-            imageHeight: '100%'
-        },
-        level5: {
-            stageLeft: '3.1624%',
-            stageTop: '22.4%',
-            stageWidth: '103.1624%',
-            stageHeight: '43.8%',
-            imageLeft: '0%',
-            imageTop: '0%',
-            imageWidth: '100%',
-            imageHeight: '100%'
-        },
-        level6: {
-            stageLeft: '5.8974%',
-            stageTop: '20.7946%',
-            stageWidth: '99.7436%',
-            stageHeight: '43.0885%',
-            imageLeft: '0%',
-            imageTop: '-53.35%',
-            imageWidth: '100%',
-            imageHeight: '191.49%',
-            imageFit: 'fill',
-            imagePosition: 'center center'
-        }
-    };
-
-    const HABITAT_TICKET_BUBBLE_LAYOUT = {
-        bubbleLeft: '57.7778%',
-        bubbleTop: '27.2117%',
-        bubbleWidth: '33.2479%',
-        bubbleHeight: '15.3633%'
-    };
-
     function buildInlineStyle(styleMap) {
-        return Object.entries(styleMap)
-            .map(([key, value]) => `${key}:${value}`)
-            .join(';');
+        return viewHelpers.buildInlineStyle(styleMap);
     }
 
     function getHabitatStageLayout(habitat) {
-        const variant = getHabitatArtKey(habitat);
-        return {
-            variant,
-            ...(HABITAT_STAGE_LAYOUTS[variant] || HABITAT_STAGE_LAYOUTS.level1),
-            ...HABITAT_TICKET_BUBBLE_LAYOUT
-        };
+        return viewHelpers.getHabitatStageLayout(habitat);
     }
-
-    function renderTicketBubble(habitat) {
-        if (!habitat || !habitat.hasClaimableTickets || habitat.claimableTickets <= 0) {
-            return '';
-        }
-
-        return `
-            <button
-                class="zoo-habitat-ticket-bubble"
-                type="button"
-                data-action="claim-tickets"
-                data-habitat-id="${escapeHtml(habitat.id)}"
-                aria-label="领取${habitat.claimableTickets}张玩法券"
-            >
-                <img class="zoo-habitat-ticket-bubble-bg" src="./Texture/UI/Home_TicketBubble.png" alt="" aria-hidden="true">
-                <img class="zoo-habitat-ticket-icon" src="./Texture/UI/Icon_Ticket.png" alt="" aria-hidden="true">
-                <span class="zoo-habitat-ticket-copy">
-                    <span class="zoo-habitat-ticket-count">x${habitat.claimableTickets}</span>
-                    <span class="zoo-habitat-ticket-label">点击领取</span>
-                </span>
-            </button>
-        `;
-    }
-
-    function isDirectBuildTargetHabitat(habitat) {
-        return Boolean(habitat && habitat.id === DIRECT_BUILD_HABITAT_ID);
-    }
-
-    function getHabitatPrimaryAction(snapshot, habitat) {
-        const showBuildGuide = shouldShowHabitatBuildGuide(snapshot, habitat);
-        if (habitat && habitat.isConstructing) {
-            return {
-                action: 'construction-pending',
-                label: '小熊猫栏舍建造中',
-                showBuildGuide: false
-            };
-        }
-
-        if (habitat && !habitat.unlocked && isDirectBuildTargetHabitat(habitat) && showBuildGuide) {
-            return {
-                action: 'build-habitat',
-                label: '建造小熊猫栏舍',
-                showBuildGuide: true
-            };
-        }
-
-        return {
-            action: 'open-info',
-            label: '查看栏舍信息',
-            showBuildGuide
-        };
-    }
-
-    function renderHabitatSitePlaceholder(habitat) {
-        return `
-            <div class="zoo-habitat-empty-site" aria-hidden="true">
-                <div class="zoo-habitat-empty-site-ground"></div>
-                <div class="zoo-habitat-empty-site-frame"></div>
-                <div class="zoo-habitat-empty-site-copy">
-                    <span class="zoo-habitat-empty-site-badge">待建造</span>
-                    <strong>${escapeHtml((habitat && habitat.speciesLabel) || '栏舍')} 1 级栏舍</strong>
-                </div>
-            </div>
-        `;
-    }
-
-    function renderHabitatConstructionOverlay(habitat) {
-        if (!habitat || !habitat.isConstructing) return '';
-        return `
-            <div class="zoo-habitat-construction" aria-hidden="true">
-                <div class="zoo-habitat-construction-dust"></div>
-                <div class="zoo-habitat-construction-copy">
-                    <span>CONSTRUCTING</span>
-                    <strong>小熊猫栏舍施工中...</strong>
-                </div>
-                <div class="zoo-habitat-construction-progress">
-                    <span style="width: 65%; background: linear-gradient(90deg, #86efac 0%, #4ade80 52%, #22c55e 100%); box-shadow: 0 0 0.6rem rgba(74, 222, 128, 0.5);"></span>
-                </div>
-            </div>
-        `;
-    }
-
     function getMainTaskCopy(snapshot) {
-        const habitat = getInfoHabitat(snapshot);
-        if (!habitat) {
-            return '查看动物园主页';
-        }
-
-        const habitatLabel = habitat.speciesLabel
-            ? `${habitat.speciesLabel}栏舍`
-            : habitat.name;
-
-        if (habitat.isConstructing) {
-            return `建造中 · ${habitatLabel}`;
-        }
-
-        if (habitat.isStoryLocked) {
-            return '建造小熊猫栏舍';
-        }
-
-        if (!habitat.unlocked) {
-            return habitat.unlockActionText || `解锁${habitatLabel}`;
-        }
-
-        if (habitat.hasClaimableTickets && habitat.claimableTickets > 0) {
-            return '领取盲盒券';
-        }
-
-        if (habitat.nextTier) {
-            return `升级${habitatLabel}`;
-        }
-
-        return `查看${habitatLabel}`;
+        return selectorApi.getMainTaskCopy(snapshot);
     }
-
     function shouldAnimateHabitatArtSwap(habitat, art) {
         const habitatId = String(habitat && habitat.id || '').trim();
         if (!habitatId) {
@@ -742,146 +506,18 @@
         return Boolean(normalizedArt && previousArt && previousArt !== normalizedArt);
     }
 
-    function renderHabitatStage(habitat) {
-        if (!habitat) {
-            return '';
-        }
-
-        if (habitat.isStoryLocked) {
-            return '';
-        }
-
-        if (habitat.isConstructing) {
-            return '';
-        }
-
-        const art = getHabitatArt(habitat);
-        const shouldAnimateArtSwap = shouldAnimateHabitatArtSwap(habitat, art);
-        const layout = getHabitatStageLayout(habitat);
-        const snapshot = economy && typeof economy.getSnapshot === 'function'
-            ? economy.getSnapshot()
-            : null;
-        const primaryAction = getHabitatPrimaryAction(snapshot, habitat);
-        const showBuildGuide = primaryAction.showBuildGuide;
-        const articleStyle = buildInlineStyle({
-            '--habitat-stage-left': layout.stageLeft,
-            '--habitat-stage-top': layout.stageTop,
-            '--habitat-stage-width': layout.stageWidth,
-            '--habitat-stage-height': layout.stageHeight,
-            '--habitat-image-left': layout.imageLeft,
-            '--habitat-image-top': layout.imageTop,
-            '--habitat-image-width': layout.imageWidth,
-            '--habitat-image-height': layout.imageHeight,
-            '--habitat-image-fit': layout.imageFit || 'contain',
-            '--habitat-image-position': layout.imagePosition || 'center bottom',
-            '--habitat-bubble-left': layout.bubbleLeft,
-            '--habitat-bubble-top': layout.bubbleTop,
-            '--habitat-bubble-width': layout.bubbleWidth,
-            '--habitat-bubble-height': layout.bubbleHeight
-        });
-
-        return `
-            <article
-                class="zoo-habitat-stage zoo-habitat-stage--${escapeHtml(layout.variant)}${showBuildGuide ? ' is-guide-target' : ''}"
-                data-habitat-id="${escapeHtml(habitat.id)}"
-                style="${articleStyle}"
-            >
-                ${renderTicketBubble(habitat)}
-                ${showBuildGuide ? '' : ''}
-                <button
-                    class="zoo-habitat-hotspot${showBuildGuide ? ' is-guide-highlight' : ''}${habitat.isConstructing ? ' is-constructing' : ''}${!art && !showBuildGuide ? ' is-empty-site' : ''}"
-                    type="button"
-                    data-action="${escapeHtml(primaryAction.action)}"
-                    data-habitat-id="${escapeHtml(habitat.id)}"
-                    aria-label="${escapeHtml(primaryAction.label)}"
-                    ${habitat.isConstructing ? 'disabled' : ''}
-                >
-                    ${art ? `<img class="zoo-habitat-scene${shouldAnimateArtSwap ? ' is-art-transitioning' : ''}" src="${escapeHtml(art)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : ''}
-                    ${showBuildGuide && !art ? `
-                        <div class="zoo-build-guide-zone" aria-hidden="true">
-                            <div class="zoo-build-guide-ring"></div>
-                            <div class="zoo-build-guide-ring zoo-build-guide-ring--outer"></div>
-                            <div class="zoo-build-guide-icon">
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="m15 12-8.5 8.5c-.83.83-2.17.83-3 0 0 0 0 0 0 0a2.12 2.12 0 0 1 0-3L12 9"/>
-                                    <path d="M17.64 15 22 10.64"/>
-                                    <path d="m20.91 11.7-1.25-1.25c-.6-.6-.93-1.4-.93-2.25v-.86L16.01 4.6a5.56 5.56 0 0 0-3.94-1.64H11.2l-1.42 1.42L14 8.6l3.5 3.5Z"/>
-                                </svg>
-                            </div>
-                            <div class="zoo-build-guide-label">点此建造栏舍</div>
-                        </div>
-                    ` : ''}
-                    ${!art && !showBuildGuide ? renderHabitatSitePlaceholder(habitat) : ''}
-                    ${renderHabitatConstructionOverlay(habitat)}
-                </button>
-            </article>
-        `;
+    function renderHabitatStage(habitat, snapshot) {
+        return rendererApi.renderHabitatStage(habitat, snapshot);
     }
-
     function renderMetricCards(metrics) {
-        const items = [
-            { key: 'cleanliness', label: '清洁度' },
-            { key: 'food', label: '食物' },
-            { key: 'water', label: '水源' },
-            { key: 'environment', label: '环境' },
-            { key: 'health', label: '健康值' }
-        ];
-
-        return items.map((item) => {
-            const value = Math.max(0, Math.min(100, Number(metrics[item.key]) || 0));
-            return `
-                <article class="habitat-stat-card">
-                    <div class="habitat-stat-header">
-                        <span>${item.label}</span>
-                        <strong>${value}</strong>
-                    </div>
-                    <div class="habitat-stat-bar">
-                        <span style="width:${value}%"></span>
-                    </div>
-                </article>
-            `;
-        }).join('');
+        return viewHelpers.renderMetricCards(metrics);
     }
-
     function renderOverviewCard(habitat, actionMarkup = '') {
-        const previewArt = habitat ? getHabitatArt(habitat) : '';
-        const previewImage = previewArt
-            ? `<img class="habitat-overview-image" src="${escapeHtml(previewArt)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">`
-            : '<div class="habitat-overview-image habitat-overview-image--placeholder" aria-hidden="true"></div>';
-
-        return `
-            <section class="habitat-overview-card">
-                <div class="habitat-overview-media">
-                    ${previewImage}
-                </div>
-                <div class="habitat-overview-copy">
-                    <div class="habitat-overview-head">
-                        <div>
-                            <div class="habitat-overview-kicker">${escapeHtml(habitat.tagline || habitat.speciesLabel || 'Habitat')}</div>
-                            <h4>${escapeHtml(habitat.name)}</h4>
-                        </div>
-                        <span class="habitat-overview-tier">${escapeHtml((habitat.tier && (habitat.tier.shortLabel || habitat.tier.label)) || '普通')}</span>
-                    </div>
-                    <p class="habitat-overview-description">${escapeHtml(habitat.ticketSummary || habitat.lockDescription || '')}</p>
-                    ${actionMarkup ? `<div class="habitat-overview-action">${actionMarkup}</div>` : ''}
-                </div>
-            </section>
-        `;
+        return viewHelpers.renderOverviewCard(habitat, actionMarkup);
     }
-
     function renderFactRows(rows) {
-        return `
-            <div class="habitat-fact-list">
-                ${rows.map((row) => `
-                    <article class="habitat-fact-row">
-                        <span>${escapeHtml(row.label)}</span>
-                        <strong>${escapeHtml(row.value)}</strong>
-                    </article>
-                `).join('')}
-            </div>
-        `;
+        return viewHelpers.renderFactRows(rows);
     }
-
     function renderUnlockButton(habitat) {
         if (!habitat) {
             return '';
@@ -906,314 +542,12 @@
         `;
     }
 
-    function renderLockedStatusTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        const actionMarkup = renderUnlockButton(habitat);
-        const infoTitle = habitat.isConstructing
-            ? `${habitat.name} 正在建造中`
-            : `${habitat.name} 尚未开放`;
-        const infoHint = habitat.isConstructing
-            ? '完工后会直接以 1 级栏舍开放，并同步解锁入驻、升级和自动产券。'
-            : '解锁后会开放栏舍状态、小动物、环境升级和自动产券。';
-        return `
-            ${renderOverviewCard(habitat, actionMarkup)}
-            <div class="habitat-placeholder-card habitat-locked-card">
-                <div class="habitat-info-title">${escapeHtml(infoTitle)}</div>
-                <p>${escapeHtml(habitat.lockDescription)}</p>
-                <p>${escapeHtml(infoHint)}</p>
-            </div>
-        `;
-    }
-
-    function renderLockedAnimalsTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        const previewAnimals = habitat.animals.map((animal) => `
-            <article class="animal-resident-card">
-                <div class="animal-resident-head">
-                    <div>
-                        <h4>${escapeHtml(animal.name)}</h4>
-                        <p>${escapeHtml(animal.gender)} \u00b7 ${escapeHtml(animal.ageLabel)}</p>
-                    </div>
-                    <span class="animal-resident-badge">\u5f85\u5165\u4f4f</span>
-                </div>
-                <div class="animal-need-pills">
-                    <span class="animal-need-pill">\u9965\u997f ${animal.hunger}</span>
-                    <span class="animal-need-pill">\u53e3\u6e34 ${animal.thirst}</span>
-                </div>
-            </article>
-        `).join('');
-
-        return `
-            ${renderOverviewCard(habitat, renderUnlockButton(habitat))}
-            <div class="habitat-section-title">\u9884\u89c8\u5c0f\u52a8\u7269</div>
-            <div class="animal-resident-list">${previewAnimals}</div>
-            <div class="habitat-placeholder-card habitat-locked-card">
-                <div class="habitat-info-title">\u89e3\u9501\u540e\u53ef\u67e5\u770b\u5168\u90e8\u5165\u4f4f\u6863\u6848</div>
-                <p>\u5305\u62ec\u6027\u522b\u3001\u5e74\u9f84\u3001\u9965\u997f\u548c\u53e3\u6e34\u72b6\u6001\uff0c\u4e5f\u53ef\u76f4\u63a5\u8fdb\u884c\u4e00\u952e\u7167\u987e\u3002</p>
-            </div>
-        `;
-    }
-
-
     function renderEnvironmentTierCard(tier, currentTierId, nextTierId) {
-        const isCurrent = tier.id === currentTierId;
-        const isNext = tier.id === nextTierId;
-        const modifier = isCurrent ? 'is-current' : (isNext ? 'is-next' : '');
-        const titleSuffix = isCurrent ? '\u5f53\u524d' : (isNext ? '\u4e0b\u4e00\u9636' : '\u53ef\u8fbe\u5c42\u7ea7');
-
-        return `
-            <article class="environment-tier-card ${modifier}">
-                <div class="environment-tier-head">
-                    <h4>${escapeHtml(tier.label)}</h4>
-                    <span>${titleSuffix}</span>
-                </div>
-                <div class="environment-tier-meta">\u73af\u5883 ${tier.environment} \u00b7 \u5bb9\u91cf ${tier.capacity} \u00b7 \u5238\u4ed3\u4e0a\u9650 ${tier.ticketCap}</div>
-                <div class="environment-tier-meta">\u57fa\u7840\u4ea7\u5238\u901f\u5ea6 \u6bcf ${Math.max(1, Math.round(tier.ticketIntervalSec / 60))} \u5206\u949f 1 \u5f20</div>
-            </article>
-        `;
+        return viewHelpers.renderEnvironmentTierCard(tier, currentTierId, nextTierId);
     }
-
-    function renderLockedEnvironmentTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        const tiers = getHabitatTierDefinitions(habitat);
-        const tierCards = tiers.map((tier) => (
-            renderEnvironmentTierCard(tier, habitat.tier.id, habitat.nextTier && habitat.nextTier.id)
-        )).join('');
-
-        return `
-            ${renderOverviewCard(habitat, renderUnlockButton(habitat))}
-            ${renderFactRows([
-                { label: '\u5f53\u524d\u5bb9\u91cf', value: `${habitat.capacity}` },
-                { label: '\u73af\u5883\u5206\u503c', value: `${habitat.tier.environment}` },
-                { label: '\u4ea7\u5238\u57fa\u7840\u901f\u5ea6', value: `\u6bcf ${Math.max(1, Math.round(habitat.ticketBaseIntervalSec / 60))} \u5206\u949f 1 \u5f20` },
-                { label: '\u5238\u4ed3\u4e0a\u9650', value: `${habitat.tier.ticketCap}` }
-            ])}
-            <div class="habitat-section-title">\u73af\u5883\u9636\u6bb5\u9884\u89c8</div>
-            <div class="environment-tier-list">${tierCards}</div>
-        `;
-    }
-
-
-    function renderLockedAppearanceTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        return `
-            ${renderOverviewCard(habitat, renderUnlockButton(habitat))}
-            <div class="appearance-preview-card is-locked">
-                <div class="appearance-preview-copy">
-                    <div class="habitat-info-title">\u5916\u89c2\u6a21\u5f0f\u6682\u672a\u5f00\u653e</div>
-                    <p>\u672c\u7248\u672c\u5148\u805a\u7126\u89e3\u9501\u3001\u5582\u98df\u3001\u5347\u7ea7\u548c\u4ea7\u5238\u95ed\u73af\uff0c\u5916\u89c2\u88c5\u4fee\u4f1a\u5728\u540e\u7eed\u6253\u5f00\u3002</p>
-                </div>
-                <div class="habitat-chip-list">
-                    <span class="habitat-chip">${escapeHtml(habitat.name)}</span>
-                    <span class="habitat-chip">${escapeHtml(habitat.tier.label)}</span>
-                    <span class="habitat-chip">${escapeHtml(habitat.tagline)}</span>
-                </div>
-            </div>
-        `;
-    }
-
-
-    function renderStatusTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        if (!habitat.unlocked) {
-            return renderLockedStatusTab(snapshot);
-        }
-
-        const actionMarkup = habitat.nextTier
-            ? `
-                <button class="habitat-action-btn is-inline" type="button" data-action="upgrade">
-                    \u5347\u7ea7\u680f\u820d \u00b7 ${habitat.nextTier.diamondCost} \u94bb\u77f3
-                </button>
-            `
-            : `
-                <button class="habitat-action-btn is-inline" type="button" data-action="feed" ${habitat.feedCost > 0 ? '' : 'disabled'}>
-                    ${habitat.feedCost > 0 ? `\u4e00\u952e\u5582\u98df \u00b7 ${habitat.feedCost} \u91d1\u5e01` : '\u72b6\u6001\u826f\u597d\uff0c\u65e0\u9700\u5582\u98df'}
-                </button>
-            `;
-
-        return `
-            ${renderOverviewCard(habitat, actionMarkup)}
-            <div class="habitat-summary-strip">
-                <article class="habitat-summary-card">
-                    <span>\u5165\u4f4f\u60c5\u51b5</span>
-                    <strong>${habitat.residentCount}/${habitat.capacity}</strong>
-                    <em>${escapeHtml(habitat.speciesLabel)} \u5df2\u5165\u4f4f</em>
-                </article>
-                <article class="habitat-summary-card">
-                    <span>\u76f2\u76d2\u5238\u8fdb\u5ea6</span>
-                    <strong>${Math.max(0, Math.round(habitat.ticketProgressPct || 0))}%</strong>
-                    <em>${escapeHtml(habitat.ticketCountdownText)}</em>
-                </article>
-            </div>
-            ${renderFactRows([
-                { label: '\u6574\u4f53\u5fc3\u60c5', value: `${habitat.mood} \u00b7 ${habitat.moodLabel}` },
-                { label: '\u4ea7\u5238\u901f\u5ea6', value: habitat.ticketEfficiencyLabel },
-                { label: '\u4e0b\u4e00\u5f20\u76f2\u76d2\u5238', value: habitat.ticketCountdownText },
-                { label: '\u5f53\u524d\u680f\u820d\u7b49\u7ea7', value: habitat.tier.label }
-            ])}
-            <div class="habitat-section-title">\u72b6\u6001\u6307\u6807</div>
-            <div class="habitat-tab-grid">
-                ${renderMetricCards(habitat.statusMetrics)}
-            </div>
-            <div class="habitat-summary-strip">
-                <article class="habitat-summary-card">
-                    <span>\u5fc3\u60c5\u503c</span>
-                    <strong>${habitat.mood}</strong>
-                    <em>${escapeHtml(habitat.moodLabel)}</em>
-                </article>
-                <article class="habitat-summary-card">
-                    <span>\u76f2\u76d2\u5238\u6548\u7387</span>
-                    <strong>${escapeHtml(habitat.ticketEfficiencyLabel)}</strong>
-                    <em>\u6bcf ${Math.max(1, Math.round(habitat.ticketIntervalSec / 60))} \u5206\u949f 1 \u5f20</em>
-                </article>
-            </div>
-        `;
-    }
-
-    function renderAnimalsTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        if (!habitat.unlocked) {
-            return renderLockedAnimalsTab(snapshot);
-        }
-
-        const animalCards = habitat.animals.map((animal) => `
-            <article class="animal-resident-card">
-                <div class="animal-resident-head">
-                    <div>
-                        <h4>${escapeHtml(animal.name)}</h4>
-                        <p>${escapeHtml(animal.gender)} \u00b7 ${escapeHtml(animal.ageLabel)}</p>
-                    </div>
-                    <span class="animal-resident-badge">${escapeHtml(habitat.tagline)}</span>
-                </div>
-                <div class="animal-need-pills">
-                    <span class="animal-need-pill">\u9965\u997f ${animal.hunger} \u00b7 ${escapeHtml(animal.hungerLabel)}</span>
-                    <span class="animal-need-pill">\u53e3\u6e34 ${animal.thirst} \u00b7 ${escapeHtml(animal.thirstLabel)}</span>
-                </div>
-            </article>
-        `).join('');
-
-        const feedDisabled = habitat.feedCost <= 0;
-        const actionMarkup = `
-            <button class="habitat-action-btn is-inline" type="button" data-action="feed" ${feedDisabled ? 'disabled' : ''}>
-                ${feedDisabled ? '\u72b6\u6001\u826f\u597d\uff0c\u65e0\u9700\u5582\u98df' : `\u4e00\u952e\u5582\u98df \u00b7 ${habitat.feedCost} \u91d1\u5e01`}
-            </button>
-        `;
-
-        return `
-            ${renderOverviewCard(habitat, actionMarkup)}
-            <div class="habitat-summary-strip">
-                <article class="habitat-summary-card">
-                    <span>\u5c0f\u52a8\u7269\u6570\u91cf</span>
-                    <strong>${habitat.residentCount}/${habitat.capacity}</strong>
-                    <em>\u5f53\u524d\u680f\u820d\u53ef\u5bb9\u7eb3 ${habitat.capacity} \u53ea</em>
-                </article>
-                <article class="habitat-summary-card">
-                    <span>\u7167\u987e\u72b6\u6001</span>
-                    <strong>${escapeHtml(habitat.moodLabel)}</strong>
-                    <em>${feedDisabled ? '\u6682\u65e0\u9700\u8981\u989d\u5916\u7167\u987e' : '\u53ef\u76f4\u63a5\u6267\u884c\u4e00\u952e\u5582\u98df'}</em>
-                </article>
-            </div>
-            ${renderFactRows([
-                { label: '\u7269\u79cd', value: habitat.speciesLabel },
-                { label: '\u680f\u820d\u4e3b\u9898', value: habitat.tagline },
-                { label: '\u5f53\u524d\u5fc3\u60c5', value: habitat.moodLabel },
-                { label: '\u5582\u98df\u6210\u672c', value: feedDisabled ? '\u65e0' : `${habitat.feedCost} \u91d1\u5e01` }
-            ])}
-            <div class="habitat-section-title">\u5165\u4f4f\u5217\u8868</div>
-            <div class="animal-resident-list">${animalCards}</div>
-        `;
-    }
-
-
-    function renderEnvironmentTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        if (!habitat.unlocked) {
-            return renderLockedEnvironmentTab(snapshot);
-        }
-
-        const tiers = getHabitatTierDefinitions(habitat);
-        const tierCards = tiers
-            .filter(tier => tier.id === habitat.tier.id || (habitat.nextTier && tier.id === habitat.nextTier.id))
-            .map((tier) => (
-                renderEnvironmentTierCard(tier, habitat.tier.id, habitat.nextTier && habitat.nextTier.id)
-            )).join('');
-
-        const nextTier = habitat.nextTier;
-        const actionMarkup = `
-            <button class="habitat-action-btn is-inline" type="button" data-action="upgrade" ${nextTier ? '' : 'disabled'}>
-                ${nextTier ? `\u5347\u7ea7\u5230 ${escapeHtml(nextTier.label)} \u00b7 ${nextTier.diamondCost} \u94bb\u77f3` : '\u5df2\u8fbe\u5230\u6700\u9ad8\u680f\u820d\u7b49\u7ea7'}
-            </button>
-        `;
-
-        return `
-            ${renderOverviewCard(habitat, actionMarkup)}
-            <div class="habitat-summary-strip">
-                <article class="habitat-summary-card">
-                    <span>\u73af\u5883\u5206\u503c</span>
-                    <strong>${habitat.tier.environment}</strong>
-                    <em>${escapeHtml(habitat.tier.label)}</em>
-                </article>
-                <article class="habitat-summary-card">
-                    <span>\u5bb9\u91cf\u4e0a\u9650</span>
-                    <strong>${habitat.capacity}</strong>
-                    <em>\u5f53\u524d\u5df2\u5165\u4f4f ${habitat.residentCount} \u53ea</em>
-                </article>
-            </div>
-            ${renderFactRows([
-                { label: '\u5238\u4ed3\u4e0a\u9650', value: `${habitat.tier.ticketCap}` },
-                { label: '\u5f53\u524d\u4ea7\u5238\u9891\u7387', value: `\u6bcf ${Math.max(1, Math.round(habitat.ticketIntervalSec / 60))} \u5206\u949f 1 \u5f20` },
-                { label: '\u57fa\u7840\u9891\u7387', value: `\u6bcf ${Math.max(1, Math.round(habitat.ticketBaseIntervalSec / 60))} \u5206\u949f 1 \u5f20` },
-                { label: '\u4e0b\u4e00\u9636\u6bb5', value: nextTier ? nextTier.label : '\u5df2\u6ee1\u7ea7' }
-            ])}
-            <div class="habitat-section-title">\u9636\u6bb5\u4fe1\u606f</div>
-            <div class="environment-tier-list">${tierCards}</div>
-        `;
-    }
-
-
-    function renderAppearanceTab(snapshot) {
-        const habitat = snapshot.selectedHabitat;
-        if (!habitat.unlocked) {
-            return renderLockedAppearanceTab(snapshot);
-        }
-
-        const previewArt = getHabitatArt(habitat);
-
-        return `
-            ${renderOverviewCard(habitat)}
-            <div class="appearance-preview-card">
-                <div class="appearance-preview-media">
-                    ${previewArt ? `<img class="appearance-preview-image" src="${escapeHtml(previewArt)}" alt="${escapeHtml(habitat.sceneAlt || habitat.name)}">` : '<div class="appearance-preview-image appearance-preview-image--placeholder" aria-hidden="true"></div>'}
-                </div>
-                <div class="appearance-preview-copy">
-                    <div class="habitat-info-title">\u5f53\u524d\u5916\u89c2\u4e3b\u9898</div>
-                    <p>${escapeHtml(habitat.appearanceTitle || habitat.name)} \u00b7 ${escapeHtml(habitat.tagline)}</p>
-                    <p>\u4fdd\u6301\u4f60\u73b0\u5728\u7684\u6e29\u6696\u914d\u8272\u8bed\u8a00\uff0c\u540e\u7eed\u53ef\u5728\u8fd9\u91cc\u7ee7\u7eed\u6269\u5c55\u88c5\u9970\u3001\u76ae\u80a4\u548c\u4e3b\u9898\u5207\u6362\u529f\u80fd\u3002</p>
-                </div>
-                <div class="habitat-chip-list">
-                    <span class="habitat-chip">${escapeHtml(habitat.name)}</span>
-                    <span class="habitat-chip">${escapeHtml(habitat.tier.label)}</span>
-                    <span class="habitat-chip">${escapeHtml(habitat.moodLabel)}</span>
-                </div>
-            </div>
-            ${renderFactRows([
-                { label: '\u5916\u89c2\u6807\u9898', value: habitat.appearanceTitle || habitat.name },
-                { label: '\u573a\u666f\u6807\u7b7e', value: habitat.sceneBadge || habitat.speciesLabel },
-                { label: '\u4e3b\u9898\u8bed\u6c47', value: habitat.tagline },
-                { label: '\u5f53\u524d\u7b49\u7ea7', value: habitat.tier.label }
-            ])}
-        `;
-    }
-
-
     function renderTabContent(snapshot) {
-        const tab = snapshot && snapshot.ui ? snapshot.ui.activeTab : 'status';
-        if (tab === 'animals') return renderAnimalsTab(snapshot);
-        if (tab === 'environment') return renderEnvironmentTab(snapshot);
-        if (tab === 'appearance') return renderAppearanceTab(snapshot);
-        return renderStatusTab(snapshot);
+        return rendererApi.renderTabContent(snapshot);
     }
-
     function updateTabButtons(activeTab) {
         refs.tabButtons.forEach((button) => {
             const isActive = button.dataset.tab === activeTab;
@@ -1419,10 +753,10 @@
         playBuildEffect(function () {
             render();
             playConstructionCelebration(habitatId, {
-                text: '栏舍升级成功！'
+                text: '栖息地升级成功！'
             });
         }, {
-            text: '栏舍升级中...'
+            text: '栖息地升级中...'
         });
         closePanel();
         closeStoryPreviewPanel();
@@ -1614,7 +948,7 @@
             localState.unlockNotificationQueue = pending.slice();
             showNextUnlockPopup();
         } catch (error) {
-            // 静默失败
+            // 闈欓粯澶辫触
         }
     }
 
@@ -1659,7 +993,7 @@
 
         if (refs.devNote) {
             refs.devNote.textContent = displayHabitat && displayHabitat.isConstructing
-                ? `${displayHabitat.name} 正在施工中，马上就会落成为 1 级栏舍`
+                ? `${displayHabitat.name} 正在施工中，马上就会开放 1 级栏舍`
                 : (displayHabitat && displayHabitat.unlocked
                     ? `${displayHabitat.name} 当前为 ${displayHabitat.tier.label}，${displayHabitat.ticketCountdownText}`
                     : '动物园当前还是空场景，栖息地解锁章节暂未配置。');
@@ -1681,7 +1015,7 @@
                 : '';
             if (stageKey !== localState.lastHabitatStageKey) {
                 localState.lastHabitatStageKey = stageKey;
-                refs.habitatStageList.innerHTML = renderHabitatStage(displayHabitat);
+                refs.habitatStageList.innerHTML = renderHabitatStage(displayHabitat, snapshot);
             }
         }
 
@@ -2167,3 +1501,6 @@
         globalScope.WynneRegistry.register('ZooHomeModule', globalScope.ZooHomeModule);
     }
 }(window));
+
+
+

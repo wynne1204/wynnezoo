@@ -295,7 +295,9 @@
 
     function getStoryData() {
         const runtimeStoryData = globalScope.WynneStoryData || null;
-        return runtimeStoryData && typeof runtimeStoryData.getNextStoryId === 'function'
+        return runtimeStoryData
+            && typeof runtimeStoryData.getStory === 'function'
+            && typeof runtimeStoryData.getNextStoryId === 'function'
             ? runtimeStoryData
             : null;
     }
@@ -448,7 +450,7 @@
         return !(Number(unlockedAtBySpeciesId[speciesId]) > 0);
     }
 
-    function showCollectionMessage(unlock) {
+    function legacyShowCollectionMessage(unlock) {
         if (!refs.collectionMessage || !unlock) {
             return;
         }
@@ -477,7 +479,7 @@
         refs.screen.classList.add('has-collection-unlock');
     }
 
-    function getStoryData() {
+    function legacyGetStoryData() {
         const runtimeStoryData = globalScope.WynneStoryData || null;
         return runtimeStoryData && typeof runtimeStoryData.getStory === 'function'
             ? runtimeStoryData

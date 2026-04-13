@@ -17,13 +17,24 @@
     const RED_PANDA_POST_BUILD_STORY_ID = 'post-build-red-panda';
     const RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1.webp';
     const RED_PANDA_HABITAT_LEVEL1_POST_BUILD_IMAGE_SRC = './Texture/ZOO/redpanda/habitat-level-1-redpanda.webp';
+    const persistenceFactory = globalScope.WynneZooEconomyPersistence
+        && typeof globalScope.WynneZooEconomyPersistence.create === 'function'
+        ? globalScope.WynneZooEconomyPersistence.create
+        : null;
+    const snapshotFactory = globalScope.WynneZooEconomySnapshot
+        && typeof globalScope.WynneZooEconomySnapshot.create === 'function'
+        ? globalScope.WynneZooEconomySnapshot.create
+        : null;
+    const progressionFactory = globalScope.WynneZooEconomyProgression
+        && typeof globalScope.WynneZooEconomyProgression.create === 'function'
+        ? globalScope.WynneZooEconomyProgression.create
+        : null;
     const listeners = new Set();
     let tickTimerId = 0;
     let visibilityHandlerBound = false;
-    let saveTimerId = 0;
-    let lastSaveAt = 0;
-    let pendingSaveUserId = '';
-    let pendingSaveState = null;
+    let persistenceApi = null;
+    let snapshotApi = null;
+    let progressionApi = null;
     const COLLECTION_REDPANDA_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_小熊猫.webp';
     const COLLECTION_NORTHEAST_TIGER_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_东北虎.webp';
     const COLLECTION_ASIAN_ELEPHANT_CARD_IMAGE_SRC = './Texture/UI/Collection/图鉴_亚洲象.webp';
@@ -200,57 +211,38 @@
     const COLLECTION_SPECIES_ID_SET = new Set(COLLECTION_SPECIES_DEFINITIONS.map((species) => species.id));
 
     function normalizeUserId(userId) {
-        return String(userId || '').trim().slice(0, 32);
+        return persistenceApi
+            ? persistenceApi.normalizeUserId(userId)
+            : String(userId || '').trim().slice(0, 32);
     }
 
     function getStorageKeyForUser(userId) {
-        const normalized = normalizeUserId(userId);
-        return normalized ? `${STORAGE_PREFIX}${encodeURIComponent(normalized)}` : '';
+        return persistenceApi ? persistenceApi.getStorageKeyForUser(userId) : '';
     }
 
     function loadLastActiveUserId() {
-        try {
-            return normalizeUserId(globalScope.localStorage.getItem(ACTIVE_USER_STORAGE_KEY));
-        } catch (error) {
-            return '';
-        }
+        return persistenceApi ? persistenceApi.loadLastActiveUserId() : '';
     }
 
     function persistActiveUserId(userId) {
-        const normalized = normalizeUserId(userId);
-        try {
-            if (normalized) {
-                globalScope.localStorage.setItem(ACTIVE_USER_STORAGE_KEY, normalized);
-            } else {
-                globalScope.localStorage.removeItem(ACTIVE_USER_STORAGE_KEY);
-            }
-        } catch (error) {
-            return;
+        if (persistenceApi) {
+            persistenceApi.persistActiveUserId(userId);
         }
     }
 
     function createDefaultUserId() {
-        const timestamp = Date.now().toString(36).slice(-6);
-        const randomPart = Math.random().toString(36).slice(2, 6);
-        return normalizeUserId(`${DEFAULT_USER_ID_PREFIX}-${timestamp}${randomPart}`);
+        return persistenceApi
+            ? persistenceApi.createDefaultUserId()
+            : normalizeUserId(`${DEFAULT_USER_ID_PREFIX}-${Date.now().toString(36).slice(-6)}`);
     }
 
     function ensureInitialActiveUserId() {
-        const lastUserId = loadLastActiveUserId();
-        if (lastUserId) {
-            return {
-                userId: lastUserId,
-                autoAssigned: false
+        return persistenceApi
+            ? persistenceApi.ensureInitialActiveUserId()
+            : {
+                userId: createDefaultUserId(),
+                autoAssigned: true
             };
-        }
-
-        const defaultUserId = createDefaultUserId();
-        persistActiveUserId(defaultUserId);
-
-        return {
-            userId: defaultUserId,
-            autoAssigned: true
-        };
     }
 
     function normalizeStoryId(storyId) {
@@ -274,120 +266,35 @@
     }
 
     function normalizeCollectionSpeciesId(speciesId) {
-        return String(speciesId || '').trim().toLowerCase().slice(0, 64);
+        return progressionApi
+            ? progressionApi.normalizeCollectionSpeciesId(speciesId)
+            : String(speciesId || '').trim().toLowerCase().slice(0, 64);
     }
 
     function getCollectionSpeciesDefinition(speciesId) {
-        const normalizedId = normalizeCollectionSpeciesId(speciesId);
-        return COLLECTION_SPECIES_DEFINITIONS.find((species) => species.id === normalizedId) || null;
+        return progressionApi ? progressionApi.getCollectionSpeciesDefinition(speciesId) : null;
     }
 
     function normalizeCollectionUnlockMap(rawMap) {
-        if (!rawMap || typeof rawMap !== 'object') {
-            return {};
-        }
-
-        return Object.keys(rawMap).reduce((result, key) => {
-            const normalizedKey = normalizeCollectionSpeciesId(key);
-            if (!normalizedKey || !COLLECTION_SPECIES_ID_SET.has(normalizedKey)) {
-                return result;
-            }
-
-            const rawValue = Number(rawMap[key]);
-            if (!Number.isFinite(rawValue) || rawValue <= 0) {
-                return result;
-            }
-
-            result[normalizedKey] = Math.max(0, Math.floor(rawValue));
-            return result;
-        }, {});
+        return progressionApi ? progressionApi.normalizeCollectionUnlockMap(rawMap) : {};
     }
 
     function normalizeCollectionRewardClaimMap(rawMap) {
-        if (!rawMap || typeof rawMap !== 'object') {
-            return {};
-        }
-
-        return Object.keys(rawMap).reduce((result, key) => {
-            const normalizedKey = normalizeCollectionSpeciesId(key);
-            if (!normalizedKey || !COLLECTION_SPECIES_ID_SET.has(normalizedKey) || !rawMap[key]) {
-                return result;
-            }
-
-            result[normalizedKey] = true;
-            return result;
-        }, {});
+        return progressionApi ? progressionApi.normalizeCollectionRewardClaimMap(rawMap) : {};
     }
 
     function normalizeCollectionState(rawCollection) {
-        const unlockedAtBySpeciesId = normalizeCollectionUnlockMap(rawCollection && rawCollection.unlockedAtBySpeciesId);
-        const pendingGuideSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.pendingGuideSpeciesId);
-        const lastViewedSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.lastViewedSpeciesId);
-        const pendingGuideRewardSpeciesId = normalizeCollectionSpeciesId(rawCollection && rawCollection.pendingGuideRewardSpeciesId);
-        const guideRewardClaimedBySpeciesId = normalizeCollectionRewardClaimMap(rawCollection && rawCollection.guideRewardClaimedBySpeciesId);
-
-        return {
-            unlockedAtBySpeciesId,
-            pendingGuideSpeciesId: COLLECTION_SPECIES_ID_SET.has(pendingGuideSpeciesId) ? pendingGuideSpeciesId : '',
-            lastViewedSpeciesId: COLLECTION_SPECIES_ID_SET.has(lastViewedSpeciesId) ? lastViewedSpeciesId : '',
-            pendingGuideRewardSpeciesId: COLLECTION_SPECIES_ID_SET.has(pendingGuideRewardSpeciesId) ? pendingGuideRewardSpeciesId : '',
-            guideRewardClaimedBySpeciesId
+        return progressionApi ? progressionApi.normalizeCollectionState(rawCollection) : {
+            unlockedAtBySpeciesId: {},
+            pendingGuideSpeciesId: '',
+            lastViewedSpeciesId: '',
+            pendingGuideRewardSpeciesId: '',
+            guideRewardClaimedBySpeciesId: {}
         };
     }
 
     function syncCollectionUnlocksFromPlayedStories(nowTs = Date.now()) {
-        if (!runtimeState.collection || typeof runtimeState.collection !== 'object') {
-            runtimeState.collection = normalizeCollectionState(null);
-        }
-
-        if (!runtimeState.collection.unlockedAtBySpeciesId || typeof runtimeState.collection.unlockedAtBySpeciesId !== 'object') {
-            runtimeState.collection.unlockedAtBySpeciesId = {};
-        }
-
-        const storyData = globalScope.WynneStoryData || null;
-        if (!storyData || typeof storyData.getStory !== 'function') {
-            return false;
-        }
-
-        const storyFlags = normalizeStoryFlags(runtimeState.meta && runtimeState.meta.storyFlags);
-        const fallbackUnlockedAt = Math.max(1, Math.floor(Number(nowTs) || Date.now()));
-        let changed = false;
-
-        Object.keys(storyFlags).forEach((storyId) => {
-            if (!storyFlags[storyId]) {
-                return;
-            }
-
-            const story = storyData.getStory(storyId);
-            const beats = story && Array.isArray(story.beats)
-                ? story.beats
-                : [];
-
-            beats.forEach((beat) => {
-                const unlock = beat && beat.collectionUnlock && typeof beat.collectionUnlock === 'object'
-                    ? beat.collectionUnlock
-                    : null;
-                const speciesId = normalizeCollectionSpeciesId(unlock && unlock.speciesId);
-
-                if (!speciesId || !COLLECTION_SPECIES_ID_SET.has(speciesId)) {
-                    return;
-                }
-
-                const existingUnlockedAt = Math.max(
-                    0,
-                    Math.floor(Number(runtimeState.collection.unlockedAtBySpeciesId[speciesId]) || 0)
-                );
-
-                if (existingUnlockedAt > 0) {
-                    return;
-                }
-
-                runtimeState.collection.unlockedAtBySpeciesId[speciesId] = fallbackUnlockedAt;
-                changed = true;
-            });
-        });
-
-        return changed;
+        return progressionApi ? progressionApi.syncCollectionUnlocksFromPlayedStories(nowTs) : false;
     }
 
     function isUnlockPending(definition) {
@@ -568,14 +475,10 @@
     }
 
     function normalizePendingReturnStoryFlow(rawFlow) {
-        const flow = rawFlow && typeof rawFlow === 'object' ? rawFlow : {};
-        const pendingReturnStoryId = normalizeStoryId(flow.pendingReturnStoryId);
-        const pendingGuideSpeciesId = normalizeCollectionSpeciesId(flow.pendingGuideSpeciesId);
-
-        return {
-            pendingReturnStoryId,
-            pendingGuideSpeciesId,
-            readyToResume: Boolean(pendingReturnStoryId && flow.readyToResume)
+        return progressionApi ? progressionApi.normalizePendingReturnStoryFlow(rawFlow) : {
+            pendingReturnStoryId: '',
+            pendingGuideSpeciesId: '',
+            readyToResume: false
         };
     }
 
@@ -657,101 +560,82 @@
         return normalizedState;
     }
 
-    function loadStateForUser(userId) {
-        const storageKey = getStorageKeyForUser(userId);
-        if (!storageKey) {
-            return createDefaultState();
-        }
+    progressionApi = progressionFactory
+        ? progressionFactory({
+            collectionSpeciesDefinitions: COLLECTION_SPECIES_DEFINITIONS,
+            collectionSpeciesIdSet: COLLECTION_SPECIES_ID_SET,
+            emitChange: function (reason) {
+                emitChange(reason);
+            },
+            getRuntimeState: function () {
+                return runtimeState;
+            },
+            normalizeStoryFlags,
+            normalizeStoryId,
+            syncAll
+        })
+        : null;
+    persistenceApi = persistenceFactory
+        ? persistenceFactory({
+            activeUserStorageKey: ACTIVE_USER_STORAGE_KEY,
+            createDefaultState,
+            defaultUserIdPrefix: DEFAULT_USER_ID_PREFIX,
+            globalScope,
+            normalizeState,
+            saveThrottleMs: SAVE_THROTTLE_MS,
+            storagePrefix: STORAGE_PREFIX
+        })
+        : null;
+    snapshotApi = snapshotFactory
+        ? snapshotFactory({
+            balance,
+            collectionSpeciesDefinitions: COLLECTION_SPECIES_DEFINITIONS,
+            createHabitatSnapshot,
+            getActiveUserId: function () {
+                return activeUserId;
+            },
+            getRuntimeState: function () {
+                return runtimeState;
+            },
+            getSelectedHabitat,
+            normalizeCollectionState,
+            normalizeConstructionFlow,
+            normalizePendingReturnStoryFlow,
+            normalizeStoryFlags,
+            redPandaHabitatId: RED_PANDA_HABITAT_ID,
+            redPandaPostBuildStoryId: RED_PANDA_POST_BUILD_STORY_ID,
+            redPandaHabitatLevel1ImageSrc: RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC,
+            redPandaHabitatLevel1PostBuildImageSrc: RED_PANDA_HABITAT_LEVEL1_POST_BUILD_IMAGE_SRC,
+            syncAll
+        })
+        : null;
 
-        try {
-            const rawText = globalScope.localStorage.getItem(storageKey);
-            return normalizeState(safeParse(rawText));
-        } catch (error) {
-            return createDefaultState();
-        }
+    function loadStateForUser(userId) {
+        return persistenceApi ? persistenceApi.loadStateForUser(userId) : createDefaultState();
     }
 
     function saveStateForUser(userId, state) {
-        const storageKey = getStorageKeyForUser(userId);
-        if (!storageKey) {
-            return;
-        }
-
-        try {
-            globalScope.localStorage.setItem(storageKey, JSON.stringify(state));
-        } catch (error) {
-            return;
+        if (persistenceApi) {
+            persistenceApi.saveStateForUser(userId, state);
         }
     }
 
     function clearPendingSaveTimer() {
-        if (!saveTimerId) {
-            return;
+        if (persistenceApi) {
+            persistenceApi.clearPendingSaveTimer();
         }
-
-        globalScope.clearTimeout(saveTimerId);
-        saveTimerId = 0;
     }
 
     function persistStateNow(userId, state) {
-        const targetUserId = normalizeUserId(userId);
-        if (!targetUserId || !state) {
-            return false;
-        }
-
-        clearPendingSaveTimer();
-        pendingSaveUserId = '';
-        pendingSaveState = null;
-        saveStateForUser(targetUserId, state);
-        lastSaveAt = Date.now();
-        return true;
+        return persistenceApi ? persistenceApi.persistStateNow(userId, state) : false;
     }
 
     function scheduleStateSave(userId, state, options = {}) {
-        const targetUserId = normalizeUserId(userId);
-        if (!targetUserId || !state) {
-            return false;
-        }
-
-        if (pendingSaveUserId && pendingSaveUserId !== targetUserId) {
-            flushPendingSave();
-        }
-
-        pendingSaveUserId = targetUserId;
-        pendingSaveState = state;
-
-        const immediate = Boolean(options.immediate);
-        const now = Date.now();
-        const remainingMs = Math.max(0, SAVE_THROTTLE_MS - (now - lastSaveAt));
-
-        if (immediate || lastSaveAt === 0 || remainingMs <= 0) {
-            return persistStateNow(targetUserId, state);
-        }
-
-        if (saveTimerId) {
-            return true;
-        }
-
-        saveTimerId = globalScope.setTimeout(() => {
-            const queuedUserId = pendingSaveUserId;
-            const queuedState = pendingSaveState;
-            saveTimerId = 0;
-            if (!queuedUserId || !queuedState) {
-                return;
-            }
-            persistStateNow(queuedUserId, queuedState);
-        }, remainingMs);
-
-        return true;
+        return persistenceApi ? persistenceApi.scheduleStateSave(userId, state, options) : false;
     }
 
     function flushPendingSave() {
-        if (!pendingSaveUserId || !pendingSaveState) {
-            clearPendingSaveTimer();
-            return false;
-        }
-
-        return persistStateNow(pendingSaveUserId, pendingSaveState);
+        return persistenceApi ? persistenceApi.flushPendingSave() : false;
     }
 
     function getHabitatById(habitatId) {
@@ -951,37 +835,15 @@
     }
 
     function createAnimalSnapshot(animal) {
-        return {
-            ...animal,
-            hunger: Math.round(balance.clampNumber(animal.hunger, 0, 100)),
-            thirst: Math.round(balance.clampNumber(animal.thirst, 0, 100)),
-            hungerLabel: balance.getNeedLabel(animal.hunger),
-            thirstLabel: balance.getNeedLabel(animal.thirst)
-        };
+        return snapshotApi ? snapshotApi.createAnimalSnapshot(animal) : animal;
     }
 
     function getHabitatStageAssets(definition, storyFlags) {
-        const stageAssets = definition && definition.stageAssets && typeof definition.stageAssets === 'object'
-            ? { ...definition.stageAssets }
-            : {};
-
-        if (definition && definition.id === RED_PANDA_HABITAT_ID) {
-            stageAssets.level1 = storyFlags && storyFlags[RED_PANDA_POST_BUILD_STORY_ID]
-                ? RED_PANDA_HABITAT_LEVEL1_POST_BUILD_IMAGE_SRC
-                : RED_PANDA_HABITAT_LEVEL1_IMAGE_SRC;
-        }
-
-        return stageAssets;
+        return snapshotApi ? snapshotApi.getHabitatStageAssets(definition, storyFlags) : {};
     }
 
     function getHabitatSceneAsset(definition, stageAssets) {
-        if (definition && definition.id === RED_PANDA_HABITAT_ID && stageAssets.level1) {
-            return stageAssets.level1;
-        }
-
-        return definition && definition.sceneAsset
-            ? definition.sceneAsset
-            : '';
+        return snapshotApi ? snapshotApi.getHabitatSceneAsset(definition, stageAssets) : '';
     }
 
     function createHabitatSnapshot(habitat) {
@@ -1086,63 +948,11 @@
     }
 
     function createCollectionSnapshot() {
-        const collectionState = normalizeCollectionState(runtimeState.collection);
-        const pendingGuideSpeciesId = collectionState.pendingGuideSpeciesId;
-        const lastViewedSpeciesId = collectionState.lastViewedSpeciesId;
-        const species = COLLECTION_SPECIES_DEFINITIONS.map((definition, index) => {
-            const unlockedAt = collectionState.unlockedAtBySpeciesId[definition.id] || 0;
-            return {
-                ...definition,
-                index,
-                pageIndex: Math.floor(index / 9),
-                unlocked: unlockedAt > 0,
-                unlockedAt,
-                isPendingGuide: pendingGuideSpeciesId === definition.id,
-                isLastViewed: lastViewedSpeciesId === definition.id
-            };
-        });
-
-        return {
-            species,
-            totalSpecies: species.length,
-            pageSize: 9,
-            totalPages: Math.max(1, Math.ceil(species.length / 9)),
-            unlockedCount: species.filter((item) => item.unlocked).length,
-            unlockedAtBySpeciesId: { ...collectionState.unlockedAtBySpeciesId },
-            pendingGuideSpeciesId,
-            lastViewedSpeciesId,
-            pendingGuideRewardSpeciesId: collectionState.pendingGuideRewardSpeciesId || '',
-            guideRewardClaimedBySpeciesId: { ...(collectionState.guideRewardClaimedBySpeciesId || {}) }
-        };
+        return snapshotApi ? snapshotApi.createCollectionSnapshot() : normalizeCollectionState(runtimeState.collection);
     }
 
     function getSnapshot() {
-        syncAll(Date.now());
-        const selectedHabitat = createHabitatSnapshot(getSelectedHabitat());
-        const habitats = runtimeState.habitats.map(createHabitatSnapshot);
-        const collection = createCollectionSnapshot();
-
-        return {
-            user: {
-                id: activeUserId,
-                loggedIn: Boolean(activeUserId)
-            },
-            resources: { ...runtimeState.resources },
-            ui: { ...runtimeState.ui },
-            storyFlags: { ...(runtimeState.meta.storyFlags || {}) },
-            unlockedSystems: JSON.parse(JSON.stringify(runtimeState.meta.unlockedSystems || {})),
-            slotTutorialSeen: Boolean(runtimeState.meta.slotTutorialSeen),
-            slotTheme: { ...balance.SLOT_THEME },
-            collection,
-            habitats,
-            selectedHabitat,
-            habitat: selectedHabitat,
-            storyFlow: { ...(runtimeState.meta.storyFlow || normalizePendingReturnStoryFlow(null)) },
-            constructionFlow: { ...(runtimeState.meta.constructionFlow || normalizeConstructionFlow(null)) },
-            lastSettlement: runtimeState.meta.lastSettlement
-                ? { ...runtimeState.meta.lastSettlement }
-                : null
-        };
+        return snapshotApi ? snapshotApi.getSnapshot() : null;
     }
 
     function emitChange(reason, options = {}) {
@@ -1250,33 +1060,11 @@
     }
 
     function hasPlayedStory(storyId) {
-        syncAll(Date.now());
-        const targetId = normalizeStoryId(storyId);
-        if (!targetId) {
-            return false;
-        }
-
-        return Boolean(runtimeState.meta && runtimeState.meta.storyFlags && runtimeState.meta.storyFlags[targetId]);
+        return progressionApi ? progressionApi.hasPlayedStory(storyId) : false;
     }
 
     function markStoryPlayed(storyId, played = true) {
-        syncAll(Date.now());
-        const targetId = normalizeStoryId(storyId);
-        if (!targetId) {
-            return false;
-        }
-
-        if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
-            runtimeState.meta = {};
-        }
-
-        if (!runtimeState.meta.storyFlags || typeof runtimeState.meta.storyFlags !== 'object') {
-            runtimeState.meta.storyFlags = {};
-        }
-
-        runtimeState.meta.storyFlags[targetId] = Boolean(played);
-        emitChange('story-flag');
-        return true;
+        return progressionApi ? progressionApi.markStoryPlayed(storyId, played) : false;
     }
 
     function hasSeenSlotTutorial() {
@@ -1295,6 +1083,9 @@
     }
 
     function unlockCollectionSpecies(speciesId, options = {}) {
+        if (progressionApi) {
+            return progressionApi.unlockCollectionSpecies(speciesId, options);
+        }
         syncAll(Date.now());
         const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
         const definition = getCollectionSpeciesDefinition(normalizedSpeciesId);
@@ -1355,6 +1146,9 @@
     }
 
     function clearCollectionGuide(speciesId) {
+        if (progressionApi) {
+            return progressionApi.clearCollectionGuide(speciesId);
+        }
         syncAll(Date.now());
         if (!runtimeState.collection || typeof runtimeState.collection !== 'object') {
             runtimeState.collection = normalizeCollectionState(null);
@@ -1376,6 +1170,9 @@
     }
 
     function markCollectionSpeciesViewed(speciesId) {
+        if (progressionApi) {
+            return progressionApi.markCollectionSpeciesViewed(speciesId);
+        }
         syncAll(Date.now());
         const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
         if (!getCollectionSpeciesDefinition(normalizedSpeciesId)) {
@@ -1392,6 +1189,9 @@
     }
 
     function queueCollectionGuideReward(speciesId) {
+        if (progressionApi) {
+            return progressionApi.queueCollectionGuideReward(speciesId);
+        }
         syncAll(Date.now());
         const normalizedSpeciesId = normalizeCollectionSpeciesId(speciesId);
         if (!getCollectionSpeciesDefinition(normalizedSpeciesId) || normalizedSpeciesId !== 'red-panda') {
@@ -1420,6 +1220,9 @@
     }
 
     function claimCollectionGuideReward(speciesId = '') {
+        if (progressionApi) {
+            return progressionApi.claimCollectionGuideReward(speciesId);
+        }
         syncAll(Date.now());
         if (!runtimeState.collection || typeof runtimeState.collection !== 'object') {
             runtimeState.collection = normalizeCollectionState(null);
@@ -1447,6 +1250,9 @@
     }
 
     function getPendingReturnStory() {
+        if (progressionApi) {
+            return progressionApi.getPendingReturnStory();
+        }
         syncAll(Date.now());
         const storyFlow = runtimeState.meta && runtimeState.meta.storyFlow
             ? normalizePendingReturnStoryFlow(runtimeState.meta.storyFlow)
@@ -1460,6 +1266,9 @@
     }
 
     function setPendingReturnStory(storyId, options = {}) {
+        if (progressionApi) {
+            return progressionApi.setPendingReturnStory(storyId, options);
+        }
         syncAll(Date.now());
         const pendingReturnStoryId = normalizeStoryId(storyId);
         const pendingGuideSpeciesId = normalizeCollectionSpeciesId(options.pendingGuideSpeciesId || options.speciesId);
@@ -1477,6 +1286,9 @@
     }
 
     function markPendingReturnStoryReady(speciesId = '') {
+        if (progressionApi) {
+            return progressionApi.markPendingReturnStoryReady(speciesId);
+        }
         syncAll(Date.now());
         if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
             runtimeState.meta = {};
@@ -1505,6 +1317,9 @@
     }
 
     function consumePendingReturnStory() {
+        if (progressionApi) {
+            return progressionApi.consumePendingReturnStory();
+        }
         syncAll(Date.now());
         if (!runtimeState.meta || typeof runtimeState.meta !== 'object') {
             runtimeState.meta = {};
