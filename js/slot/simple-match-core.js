@@ -698,9 +698,9 @@
                         plusButton.classList.toggle('disabled', !canRestock);
                         plusButton.classList.toggle('is-ready', canRestock);
                         plusButton.disabled = !canRestock;
-                        plusButton.hidden = false;
-                        plusButton.style.display = '';
-                        plusButton.setAttribute('aria-hidden', 'false');
+                        plusButton.hidden = !canRestock;
+                        plusButton.style.display = canRestock ? '' : 'none';
+                        plusButton.setAttribute('aria-hidden', canRestock ? 'false' : 'true');
                         plusButton.setAttribute('aria-label', canRestock ? '点击后一键补满所有可补盲盒' : '当前无法补充盲盒');
                         plusButton.tabIndex = canRestock ? 0 : -1;
                     }

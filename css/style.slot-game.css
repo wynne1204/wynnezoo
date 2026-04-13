@@ -48,12 +48,15 @@
 
 /* 货架  x:0 y:1048  1170×1189 (含阴影) */
 .slot-bg-shelf {
+    --slot-enter-translate-x: -50%;
+    --slot-enter-translate-y: var(--shelf-offset-y, -10px);
     position: absolute;
-    left: var(--shelf-left, -0.77%);
-    top: var(--shelf-top-screen, 43.4%);
-    width: var(--shelf-width, 99.66%);
-    height: var(--shelf-height-screen, 45.18%);
-    object-fit: fill;
+    left: 50%;
+    top: calc(var(--shelf-top-screen, 43.4%) - var(--shelf-visual-lift-screen, 7.8%));
+    width: min(99.66%, 42rem);
+    height: auto;
+    transform: translate(var(--slot-enter-translate-x), var(--slot-enter-translate-y));
+    object-fit: contain;
     z-index: 1;
     pointer-events: none;
     filter: drop-shadow(0 10px 8px rgba(140, 76, 6, 0.2));
@@ -61,6 +64,8 @@
 
 /* 货架-FreeSpin  x:1 y:1017  1167×1265  (hidden by default) */
 .slot-bg-shelf-freespin {
+    --slot-enter-translate-x: 0%;
+    --slot-enter-translate-y: 0px;
     position: absolute;
     /* 1 / 1170 = 0.09% */
     left: 0.09%;
@@ -88,7 +93,7 @@
     /* 432 / 2532 = 17.06% */
     height: 17.06%;
     object-fit: fill;
-    z-index: 35;
+    z-index: 25;
     pointer-events: none;
     /* Figma: boxShadow 0 4px 4px rgba(0,0,0,0.25) — no extra blur */
 }
@@ -105,7 +110,7 @@
     /* 420 / 2532 = 16.59% */
     height: 16.59%;
     object-fit: fill;
-    z-index: 35;
+    z-index: 25;
     pointer-events: none;
 }
 
@@ -682,11 +687,14 @@
 .shop-name-bg { display: none; }
 
 .shelf-container {
+    --slot-enter-translate-x: -50%;
+    --slot-enter-translate-y: var(--shelf-offset-y, -10px);
     position: absolute;
-    top: calc((var(--shelf-top) - var(--bottom-panel-top)) / var(--bottom-panel-height) * 100%);
-    left: var(--shelf-left, -0.77%);
-    width: var(--shelf-width, 99.66%);
+    top: calc(((var(--shelf-top) - var(--shelf-content-lift, 210)) - var(--bottom-panel-top)) / var(--bottom-panel-height) * 100%);
+    left: 50%;
+    width: min(99.66%, 42rem);
     height: calc(var(--shelf-height) / var(--bottom-panel-height) * 100%);
+    transform: translate(var(--slot-enter-translate-x), var(--slot-enter-translate-y));
     background: transparent;
     z-index: 1;
     display: flex;
@@ -708,7 +716,7 @@
     position: absolute;
     left: 50%;
     top: var(--grid-board-center-y, 54%);
-    transform: translate(-50%, -50%);
+    transform: translate(-50%, calc(-50% + var(--grid-board-offset-y, 0px)));
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
@@ -1210,14 +1218,15 @@
 }
 
 .restock-tray {
+    --restock-tray-base-transform: translate(-50%, var(--restock-tray-offset-y, 55px));
     --restock-tray-box-size: 6.9rem;
     --restock-tray-step-x: 4.12rem;
     --restock-tray-step-y: 5.2rem;
     position: absolute;
     left: 50%;
-    top: calc(-31.6% + 40px);
-    transform: translateX(-50%);
-    width: min(96%, 34rem);
+    top: calc(100% + var(--restock-tray-top, -22%));
+    transform: var(--restock-tray-base-transform);
+    width: min(82%, 28rem);
     height: var(--restock-tray-box-size);
     display: flex;
     flex-direction: column;
@@ -1732,15 +1741,15 @@
 
 @keyframes simple-match-reward-pop-centered {
     0% {
-        transform: translateX(-50%) scale(1);
+        transform: var(--restock-tray-base-transform) scale(1);
         filter: brightness(1);
     }
     35% {
-        transform: translateX(-50%) scale(1.05);
+        transform: var(--restock-tray-base-transform) scale(1.05);
         filter: brightness(1.08);
     }
     100% {
-        transform: translateX(-50%) scale(1);
+        transform: var(--restock-tray-base-transform) scale(1);
         filter: brightness(1);
     }
 }
@@ -2320,11 +2329,17 @@
 @keyframes slotEnter-shelfRise {
     0% {
         opacity: 0;
-        transform: translateY(15%);
+        transform: translate(
+            var(--slot-enter-translate-x, 0%),
+            calc(var(--slot-enter-translate-y, 0px) + 15%)
+        );
     }
     100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate(
+            var(--slot-enter-translate-x, 0%),
+            var(--slot-enter-translate-y, 0px)
+        );
     }
 }
 
@@ -2356,11 +2371,17 @@
 @keyframes slotEnter-shelfContent {
     0% {
         opacity: 0;
-        transform: scale(0.85);
+        transform: translate(
+            var(--slot-enter-translate-x, 0%),
+            var(--slot-enter-translate-y, 0px)
+        ) scale(0.85);
     }
     100% {
         opacity: 1;
-        transform: scale(1);
+        transform: translate(
+            var(--slot-enter-translate-x, 0%),
+            var(--slot-enter-translate-y, 0px)
+        ) scale(1);
     }
 }
 

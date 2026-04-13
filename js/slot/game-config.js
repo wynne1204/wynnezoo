@@ -186,6 +186,7 @@ window.APP_CONFIG = {
             '--mine-scale': '0.9',
             // 盲盒网格 UI 调整参数
             '--grid-board-center-y': '55.4%', // 整个盘面的纵向位置
+            '--grid-board-offset-y': '15px', // 3x3 箱子整体下移
             '--grid-board-gap-x': '0%',    // 箱子之间的水平间距
             '--grid-board-gap-y': '0%',   // 箱子之间的垂直间距
             '--grid-cell-bg-size': '130%', // 单个箱子底图缩放

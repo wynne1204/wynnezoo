@@ -41,6 +41,9 @@ html {
     --shelf-width: 99.66%;
     --shelf-top-screen: 43.4%;
     --shelf-height-screen: 45.18%;
+    --shelf-visual-lift-screen: 7.8%;
+    --shelf-content-lift: 210;
+    --shelf-offset-y: -25px;
     --shop-name-x: 384;
     --shop-name-y: 1092;
     --shop-name-width: 401;
@@ -56,6 +59,7 @@ html {
     --grid-board-width: 89.2%;
     --grid-board-height: 90.8%;
     --grid-board-center-y: 50.5%;
+    --grid-board-offset-y: 0px;
     --grid-board-gap-x: 0%;
     --grid-board-gap-y: 0%;
     --grid-cell-bg-size: 118%;
@@ -64,6 +68,7 @@ html {
     --grid-cell-overlap-x: 0px;
     --grid-cell-overlap-y: 0px;
     --restock-tray-top: -22%;
+    --restock-tray-offset-y: 80px;
     --selection-hint-top: -4.2rem;
     --top-bg-left: -5px;
     --top-bg-top: 0px;
