@@ -1328,12 +1328,14 @@
 }
 .restock-tray-boxes {
     position: absolute;
+    --restock-tray-min-bottom: 0px;
+    --restock-tray-stack-height: 0px;
     left: 50%;
     bottom: 0;
     transform: translateX(-50%);
     display: block;
     width: calc((4 * var(--restock-tray-step-x)) + var(--restock-tray-box-size));
-    height: calc((var(--restock-tray-rows, 1) - 1) * var(--restock-tray-step-y) + var(--restock-tray-box-size));
+    height: calc(var(--restock-tray-box-size) + var(--restock-tray-stack-height) + (0px - var(--restock-tray-min-bottom)));
     min-height: var(--restock-tray-box-size);
     margin-inline: 0;
     overflow: visible;
@@ -1341,8 +1343,8 @@
 }
 .restock-tray-box {
     position: absolute;
-    left: calc(var(--stock-col, 0) * var(--restock-tray-step-x));
-    bottom: calc(var(--stock-row, 0) * var(--restock-tray-step-y));
+    left: var(--stock-left, calc(var(--stock-col, 0) * var(--restock-tray-step-x)));
+    bottom: var(--stock-bottom, 0px);
     width: var(--restock-tray-box-size);
     height: var(--restock-tray-box-size);
     border: none;
@@ -1355,6 +1357,12 @@
     margin-inline: 0;
     filter: drop-shadow(0 8px 12px rgba(133, 75, 18, 0.18));
     transition: transform 0.18s ease, filter 0.18s ease, opacity 0.18s ease;
+}
+.restock-tray.ready-to-fill .restock-tray-box:not(.disabled):not(.is-source-flying) {
+    animation: restock-ready-float 1.05s cubic-bezier(0.28, 0.02, 0.18, 1) infinite;
+    animation-delay: calc(var(--restock-order, 0) * 60ms);
+    transform-origin: center bottom;
+    will-change: transform, filter;
 }
 .restock-tray-box.is-hidden {
     opacity: 0;
@@ -1654,6 +1662,29 @@
     box-shadow: 0 10px 22px rgba(109, 50, 19, 0.2);
 }
 
+@keyframes restock-ready-float {
+    0% {
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 8px 12px rgba(133, 75, 18, 0.18)) brightness(1);
+    }
+    26% {
+        transform: translateY(-7px) scale(1.018);
+        filter: drop-shadow(0 14px 20px rgba(133, 75, 18, 0.26)) brightness(1.06);
+    }
+    52% {
+        transform: translateY(-1px) scale(1.004);
+        filter: drop-shadow(0 9px 13px rgba(133, 75, 18, 0.2)) brightness(1.015);
+    }
+    76% {
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 8px 12px rgba(133, 75, 18, 0.18)) brightness(1);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 8px 12px rgba(133, 75, 18, 0.18)) brightness(1);
+    }
+}
+
 .simple-match-celebration {
     display: none;
 }
@@ -1900,7 +1931,7 @@
    Panel-relative: left 18.80%, top 77.85%, w 63.59%, h 21.94% */
 #random-btn {
     left: 18.80%;
-    top: 77.85%;
+    top: calc(77.85% - 90px);
     width: 63.59%;
     height: 21.94%;
     background-image: url('../Texture/UI/NewSlot/btn_open.png');

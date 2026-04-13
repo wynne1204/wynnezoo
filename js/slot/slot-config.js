@@ -14,6 +14,9 @@ const DEFAULT_CONFIG = {
         bonusGameEnabled: false
     },
     initialBlindBoxCount: 9,
+    // 普通积木动物备注：
+    // S1=大象，S2=斑马，S3=熊猫，S4=小熊猫，S5=狮子，
+    // S6=老虎，S7=长颈鹿，S8=猴子，S9=绵羊，S10=企鹅
     normalSymbolKeys: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
     wishRewardBlindBoxes: 1,
     pairRewardBlindBoxes: 1,
@@ -30,16 +33,16 @@ const DEFAULT_CONFIG = {
         // 黏性百搭权重（本体是百搭，并会在同位置额外停留若干轮）
         stickyWildWeight: 4,
         normalImages: [
-            './Texture/BlockImg/Block_1.webp',
-            './Texture/BlockImg/Block_2.webp',
-            './Texture/BlockImg/Block_3.webp',
-            './Texture/BlockImg/Block_4.webp',
-            './Texture/BlockImg/Block_5.webp',
-            './Texture/BlockImg/Block_6.webp',
-            './Texture/BlockImg/Block_7.webp',
-            './Texture/BlockImg/Block_8.webp',
-            './Texture/BlockImg/Block_9.webp',
-            './Texture/BlockImg/Block_10.webp'
+            './Texture/BlockImg/Block_1.webp',  // S1 大象
+            './Texture/BlockImg/Block_2.webp',  // S2 斑马
+            './Texture/BlockImg/Block_3.webp',  // S3 熊猫
+            './Texture/BlockImg/Block_4.webp',  // S4 小熊猫
+            './Texture/BlockImg/Block_5.webp',  // S5 狮子
+            './Texture/BlockImg/Block_6.webp',  // S6 老虎
+            './Texture/BlockImg/Block_7.webp',  // S7 长颈鹿
+            './Texture/BlockImg/Block_8.webp',  // S8 猴子
+            './Texture/BlockImg/Block_9.webp',  // S9 绵羊
+            './Texture/BlockImg/Block_10.webp'  // S10 企鹅
         ],
         wildImage: './Texture/BlockImg/Block_Wild.webp',
         bonusImage: './Texture/BlockImg/Block_Bonus.webp',

@@ -374,10 +374,10 @@
                 cell.appendChild(plusButton);
             }
             plusButton.dataset.index = String(index);
-            plusButton.hidden = false;
-            plusButton.style.display = '';
-            plusButton.setAttribute('aria-hidden', 'false');
-            plusButton.tabIndex = 0;
+            plusButton.hidden = true;
+            plusButton.style.display = 'none';
+            plusButton.setAttribute('aria-hidden', 'true');
+            plusButton.tabIndex = -1;
             helpers.positionSimpleModeCellPlusButton(cell, plusButton);
         }
 
@@ -656,14 +656,42 @@
                     : '当前没有可补的空格');
             const stableRows = Math.max(1, Math.ceil(restockCount / 5));
             const fragment = document.createDocumentFragment();
+            const getRestockRowBottom = (rowIndex, totalRows) => {
+                if (totalRows <= 1) return 0;
+                if (totalRows === 2) {
+                    return rowIndex === 0 ? -20 : 20;
+                }
+                if (rowIndex === 0) return -20;
+                return 10 + ((rowIndex - 1) * 10);
+            };
+            const centeredColumnOffsets = [0, 1, -1, 2, -2];
+            const maxRowBottom = getRestockRowBottom(Math.max(0, stableRows - 1), stableRows);
+            const minRowBottom = getRestockRowBottom(0, stableRows);
+            const trayHeight = Math.max(
+                0,
+                Math.floor(Number(config?.restockTrayBoxSizePx) || 0),
+                maxRowBottom - minRowBottom
+            );
             elements.restockTrayBoxes.style.setProperty('--restock-tray-rows', String(stableRows));
+            elements.restockTrayBoxes.style.setProperty('--restock-tray-min-bottom', `${minRowBottom}px`);
+            elements.restockTrayBoxes.style.setProperty('--restock-tray-stack-height', `${trayHeight}px`);
             for (let index = 0; index < restockCount; index++) {
+                const stockRow = Math.floor(index / 5);
+                const stockIndexInRow = index % 5;
+                const centeredOffset = centeredColumnOffsets[stockIndexInRow] ?? 0;
+                const stockBottom = getRestockRowBottom(stockRow, stableRows);
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'restock-tray-box';
                 button.dataset.stockIndex = String(index);
-                button.style.setProperty('--stock-col', String(index % 5));
-                button.style.setProperty('--stock-row', String(Math.floor(index / 5)));
+                button.style.setProperty('--stock-col', String(2 + centeredOffset));
+                button.style.setProperty('--stock-row', String(stockRow));
+                button.style.setProperty(
+                    '--stock-left',
+                    `calc((2 * var(--restock-tray-step-x)) + (${centeredOffset} * var(--restock-tray-step-x)))`
+                );
+                button.style.setProperty('--stock-bottom', `${stockBottom}px`);
+                button.style.setProperty('--restock-order', String(index));
                 button.style.zIndex = String(index + 1);
                 button.disabled = !canFill;
                 button.classList.toggle('disabled', !canFill);
@@ -698,11 +726,11 @@
                         plusButton.classList.toggle('disabled', !canRestock);
                         plusButton.classList.toggle('is-ready', canRestock);
                         plusButton.disabled = !canRestock;
-                        plusButton.hidden = !canRestock;
-                        plusButton.style.display = canRestock ? '' : 'none';
-                        plusButton.setAttribute('aria-hidden', canRestock ? 'false' : 'true');
+                        plusButton.hidden = true;
+                        plusButton.style.display = 'none';
+                        plusButton.setAttribute('aria-hidden', 'true');
                         plusButton.setAttribute('aria-label', canRestock ? '点击后一键补满所有可补盲盒' : '当前无法补充盲盒');
-                        plusButton.tabIndex = canRestock ? 0 : -1;
+                        plusButton.tabIndex = -1;
                     }
                     return;
                 }
