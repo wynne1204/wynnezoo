@@ -257,14 +257,15 @@
         celebrationTimer: 0
     };
 
-    function escapeHtml(value) {
+    // Delegate to the shared escapeHtml in js/utils.js
+    var escapeHtml = globalScope.escapeHtml || function(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
-    }
+    };
 
     function setText(ref, value) {
         if (ref) {
@@ -450,16 +451,6 @@
         return !(Number(unlockedAtBySpeciesId[speciesId]) > 0);
     }
 
-    function legacyShowCollectionMessage(unlock) {
-        if (!refs.collectionMessage || !unlock) {
-            return;
-        }
-
-        refs.collectionMessage.textContent = `太棒了！解锁了${unlock.speciesName}！`;
-        refs.collectionMessage.hidden = false;
-        refs.screen.classList.add('has-collection-unlock');
-    }
-
     function hideCollectionMessage() {
         if (!refs.collectionMessage) {
             return;
@@ -477,13 +468,6 @@
         refs.collectionMessage.textContent = `太棒了！解锁了${unlock.speciesName}！`;
         refs.collectionMessage.hidden = false;
         refs.screen.classList.add('has-collection-unlock');
-    }
-
-    function legacyGetStoryData() {
-        const runtimeStoryData = globalScope.WynneStoryData || null;
-        return runtimeStoryData && typeof runtimeStoryData.getStory === 'function'
-            ? runtimeStoryData
-            : null;
     }
 
     function getBuiltinStory(storyId) {
@@ -585,53 +569,6 @@
         refs.choiceList.hidden = true;
         refs.choiceList.innerHTML = '';
     }
-
-    /*
-
-    function showChoices(choices) {
-        const normalizedChoices = Array.isArray(choices)
-            ? choices.filter((choice) => choice && typeof choice === 'object')
-            : [];
-
-        if (!refs.choiceList || normalizedChoices.length <= 0) {
-            hideChoices();
-            return;
-        }
-
-        refs.choiceList.innerHTML = normalizedChoices.map((choice, index) => {
-            const rawJump = Number(choice.jump ?? (index + 1));
-            const jump = Number.isFinite(rawJump)
-                ? Math.max(1, Math.floor(rawJump))
-                : (index + 1);
-            const label = escapeHtml(String(choice.label || '').trim());
-            const choiceId = escapeHtml(String(choice.id || (index + 1)).trim() || String(index + 1));
-            return `<button class="story-choice-btn" type="button" data-choice-id="${choiceId}" data-choice-jump="${jump}">
-                <span class="story-choice-badge">${badge}</span>
-                <span class="story-choice-copy">
-                    <span class="story-choice-kicker">关键抉择</span>
-                    <span class="story-choice-label">${label}</span>
-                </span>
-                <span class="story-choice-arrow" aria-hidden="true">→</span>
-            </button>`;
-        }).join('');
-        refs.choiceList.innerHTML = normalizedChoices.map((choice, index) => {
-            const rawJump = Number(choice.jump ?? (index + 1));
-            const jump = Number.isFinite(rawJump)
-                ? Math.max(1, Math.floor(rawJump))
-                : (index + 1);
-            const label = escapeHtml(String(choice.label || '').trim());
-            const choiceId = escapeHtml(String(choice.id || (index + 1)).trim() || String(index + 1));
-            return `<button class="story-choice-btn" type="button" data-choice-id="${choiceId}" data-choice-jump="${jump}">
-                <span class="story-choice-label">${label}</span>
-                <span class="story-choice-arrow" aria-hidden="true">→</span>
-            </button>`;
-        }).join('');
-        refs.choiceList.hidden = false;
-        refs.screen.classList.add('has-choice-overlay');
-        choiceOpen = true;
-    }
-
-    */
 
     function showItemReward(itemReward) {
         if (!refs.itemRewardOverlay) {

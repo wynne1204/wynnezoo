@@ -73,14 +73,15 @@
         bubbleHeight: '15.3633%'
     });
 
-    function fallbackEscapeHtml(value) {
+    // Delegate to the shared escapeHtml in js/utils.js
+    var fallbackEscapeHtml = globalScope.escapeHtml || function(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
-    }
+    };
 
     function create(deps = {}) {
         const escapeHtml = typeof deps.escapeHtml === 'function'

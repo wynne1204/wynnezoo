@@ -34,6 +34,28 @@
     let bonusResponsiveLayoutFrame = 0;
     let bonusResponsiveBindingsReady = false;
 
+    // ── Shared number roll animation helper ─────────────────
+    function animateBonusNumberRoll(element, from, to, duration) {
+        if (!element) return Promise.resolve();
+        const startTime = performance.now();
+        return new Promise(function (resolve) {
+            function tick(currentTime) {
+                var elapsed = currentTime - startTime;
+                var progress = Math.min(elapsed / duration, 1);
+                var easeOut = 1 - Math.pow(1 - progress, 3);
+                var currentVal = Math.floor(from + (to - from) * easeOut);
+                element.textContent = currentVal;
+                if (progress < 1) {
+                    requestAnimationFrame(tick);
+                } else {
+                    element.textContent = to;
+                    resolve();
+                }
+            }
+            requestAnimationFrame(tick);
+        });
+    }
+
     let createFloatingText = (x, y, text) => {
         const effectsApi = globalScope.GameEffects;
         if (effectsApi && typeof effectsApi.createFloatingText === 'function') {
@@ -815,45 +837,48 @@ function renderBonusRollingCell(cell) {
     cell.element.innerHTML = `<span class="bonus-special-symbol">${BONUS_SPECIAL_META[previewId].symbol}</span>`;
 }
 
-function pickWeighted(items, getWeight) {
-    const total = items.reduce((sum, item) => sum + Math.max(0, Number(getWeight(item)) || 0), 0);
-    if (total <= 0) return items[items.length - 1];
-    let roll = Math.random() * total;
-    for (let i = 0; i < items.length; i++) {
-        roll -= Math.max(0, Number(getWeight(items[i])) || 0);
-        if (roll <= 0) return items[i];
+    // Use shared shuffleArray from utils.js, with local fallback
+    var _shuffleArray = globalScope.shuffleArray || function(items) {
+        var arr = Array.isArray(items) ? items.slice() : [];
+        for (var i = arr.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        }
+        return arr;
+    };
+
+    // Use shared pickWeighted from utils.js, with local fallback
+    var _pickWeighted = globalScope.pickWeighted || function(items, getWeight) {
+        var total = items.reduce(function(sum, item) { return sum + Math.max(0, Number(getWeight(item)) || 0); }, 0);
+        if (total <= 0) return items[items.length - 1];
+        var roll = Math.random() * total;
+        for (var i = 0; i < items.length; i++) {
+            roll -= Math.max(0, Number(getWeight(items[i])) || 0);
+            if (roll <= 0) return items[i];
+        }
+        return items[items.length - 1];
+    };
+
+    // Use shared clamp from utils.js, with local fallback
+    var clampNumber = globalScope.clamp || function(value, min, max) {
+        return Math.min(max, Math.max(min, Number(value) || 0));
+    };
+
+    function pickBonusDiamondValue() {
+        var selected = _pickWeighted(BONUS_GAME_CONFIG.diamondWeights, function(item) { return item.weight; });
+        return selected ? selected.value : 20;
     }
-    return items[items.length - 1];
-}
 
-function pickBonusDiamondValue() {
-    const selected = pickWeighted(BONUS_GAME_CONFIG.diamondWeights, (item) => item.weight);
-    return selected ? selected.value : 20;
-}
-
-function pickBonusAddValue() {
-    const selected = pickWeighted(BONUS_GAME_CONFIG.addValueWeights, (item) => item.weight);
-    return selected ? selected.value : 6;
-}
-
-function clampNumber(value, min, max) {
-    return Math.min(max, Math.max(min, value));
-}
-
-function pickRandomIntInRange(min, max) {
-    const safeMin = Math.ceil(Math.min(min, max));
-    const safeMax = Math.floor(Math.max(min, max));
-    return safeMin + Math.floor(Math.random() * (safeMax - safeMin + 1));
-}
-
-function shuffleArray(items) {
-    const arr = [...items];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+    function pickBonusAddValue() {
+        var selected = _pickWeighted(BONUS_GAME_CONFIG.addValueWeights, function(item) { return item.weight; });
+        return selected ? selected.value : 6;
     }
-    return arr;
-}
+
+    function pickRandomIntInRange(min, max) {
+        var safeMin = Math.ceil(Math.min(min, max));
+        var safeMax = Math.floor(Math.max(min, max));
+        return safeMin + Math.floor(Math.random() * (safeMax - safeMin + 1));
+    }
 
 function pickBonusSpecialType({ allowMagnet = true } = {}) {
     const available = [];
@@ -869,7 +894,7 @@ function pickBonusSpecialType({ allowMagnet = true } = {}) {
     if (available.length === 0) {
         return null;
     }
-    const picked = pickWeighted(available, (key) => getBonusSpecialTypeWeight(key));
+    const picked = _pickWeighted(available, (key) => getBonusSpecialTypeWeight(key));
     return picked || available[0];
 }
 
@@ -878,7 +903,7 @@ function pickBonusChestId() {
         const progressWeights = BONUS_GAME_CONFIG.earlyChestProgressWeights || {};
         const idWeights = BONUS_GAME_CONFIG.earlyChestIdWeights || {};
         const finishPenaltyById = BONUS_GAME_CONFIG.earlyChestFinishPenaltyById || {};
-        const pickedEarly = pickWeighted(BONUS_CHEST_IDS, (chestId) => {
+        const pickedEarly = _pickWeighted(BONUS_CHEST_IDS, (chestId) => {
             const progress = Math.max(0, Number(BONUS_STATE.chestProgress[chestId]) || 0);
             const progressWeight = progress >= 2
                 ? Number(progressWeights[2]) || 0
@@ -906,7 +931,7 @@ function pickBonusChestId() {
     const jackpotNearMissProgress = Math.max(1, Number(BONUS_GAME_CONFIG.jackpotNearMissProgress) || 2);
     const jackpotNearMissPenalty = clampNumber(Number(BONUS_GAME_CONFIG.jackpotNearMissPenalty) || 0.08, 0, 1);
 
-    const pickedLate = pickWeighted(BONUS_CHEST_IDS, (chestId) => {
+    const pickedLate = _pickWeighted(BONUS_CHEST_IDS, (chestId) => {
         const progress = Math.max(0, Number(BONUS_STATE.chestProgress[chestId]) || 0);
         let weight = Number(baseWeights[chestId]) || 0;
         if (progress >= 2) {
@@ -993,7 +1018,7 @@ function pickBonusNewCellCount(maxCount) {
     const candidates = (BONUS_GAME_CONFIG.newCellCountWeights || [])
         .filter((item) => item.count <= maxCount);
     if (candidates.length === 0) return 1;
-    const picked = pickWeighted(candidates, (item) => item.weight);
+    const picked = _pickWeighted(candidates, (item) => item.weight);
     const count = Number(picked?.count) || 1;
     return clampNumber(count, 1, maxCount);
 }
@@ -1001,7 +1026,7 @@ function pickBonusNewCellCount(maxCount) {
 function pickBonusTriggerStackType() {
     const candidates = ['add', 'chest'].filter((stackId) => !BONUS_STATE.collapsedStacks[stackId]);
     if (candidates.length === 0) return null;
-    const picked = pickWeighted(candidates, (stackId) => BONUS_GAME_CONFIG.triggerTypeWeights[stackId] || 0);
+    const picked = _pickWeighted(candidates, (stackId) => BONUS_GAME_CONFIG.triggerTypeWeights[stackId] || 0);
     return picked || candidates[0];
 }
 
@@ -1061,7 +1086,7 @@ function generateBonusSpinOutcomeMap(spinnableCells) {
     if (!shouldSpawn) return outcomeMap;
 
     const spawnCount = pickBonusNewCellCount(maxNewCells);
-    const selectedCells = shuffleArray(spinnableCells).slice(0, spawnCount);
+    const selectedCells = _shuffleArray(spinnableCells).slice(0, spawnCount);
     if (selectedCells.length === 0) return outcomeMap;
 
     let projectedDiamondCount = getCurrentBonusDiamondCount();
@@ -1436,26 +1461,8 @@ async function applyChestProgressById(chestId) {
             
             await waitMs(400);
             
-            // Roll number
-            const duration = 1200;
-            const startTime = performance.now();
-            await new Promise((resolve) => {
-                const animateRoll = (currentTime) => {
-                    const elapsed = currentTime - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    const easeOut = 1 - Math.pow(1 - progress, 3);
-                    const currentVal = Math.floor(easeOut * chestReward);
-                    if (valEl) valEl.textContent = currentVal;
-                    
-                    if (progress < 1) {
-                        requestAnimationFrame(animateRoll);
-                    } else {
-                        if (valEl) valEl.textContent = chestReward;
-                        resolve();
-                    }
-                };
-                requestAnimationFrame(animateRoll);
-            });
+            // Roll number using shared helper
+            await animateBonusNumberRoll(valEl, 0, chestReward, 1200);
             
             await waitMs(1000); // show the full amount for a bit
             
@@ -1487,24 +1494,8 @@ async function applyChestProgressById(chestId) {
             bonusTotalReward.classList.add('bonus-win-burst');
             
             const startValue = BONUS_STATE.totalReward - chestReward;
-            const rollDuration = 400;
-            const startTime = performance.now();
-            await new Promise((resolve) => {
-                const animateQuickRoll = (currentTime) => {
-                    const elapsed = currentTime - startTime;
-                    const progress = Math.min(elapsed / rollDuration, 1);
-                    const currentVal = Math.floor(startValue + (progress * chestReward));
-                    bonusTotalReward.textContent = currentVal;
-                    
-                    if (progress < 1) {
-                        requestAnimationFrame(animateQuickRoll);
-                    } else {
-                        bonusTotalReward.textContent = BONUS_STATE.totalReward;
-                        resolve();
-                    }
-                };
-                requestAnimationFrame(animateQuickRoll);
-            });
+            // Quick roll using shared helper
+            await animateBonusNumberRoll(bonusTotalReward, startValue, BONUS_STATE.totalReward, 400);
         } else {
             BONUS_STATE.chestReward += chestReward;
             BONUS_STATE.totalReward += chestReward;
@@ -2105,22 +2096,9 @@ async function finalizeBonusGame() {
             cell.element.style.opacity = '0.3';
             cell.element.style.transform = 'scale(0.8)';
 
-            // 目标UI数字滚动变化
-            const rollDuration = 300;
-            const startTime = performance.now();
-            const animateQuickRoll = (currentTime) => {
-                const elapsed = currentTime - startTime;
-                const progress = Math.min(elapsed / rollDuration, 1);
-                const currentVal = Math.floor(startValue + (progress * addedValue));
-                bonusTotalReward.textContent = currentVal;
-                
-                if (progress < 1) {
-                    requestAnimationFrame(animateQuickRoll);
-                } else {
-                    bonusTotalReward.textContent = BONUS_STATE.totalReward;
-                }
-            };
-            requestAnimationFrame(animateQuickRoll);
+            // 目标UI数字滚动变化 using shared helper
+            const rollStartValue = BONUS_STATE.totalReward - addedValue;
+            animateBonusNumberRoll(bonusTotalReward, rollStartValue, BONUS_STATE.totalReward, 300);
 
             // 每个钻石之间的收集间隔
             await waitMs(150);
@@ -2157,24 +2135,8 @@ async function finalizeBonusGame() {
         // Wait a small moment before starting animation for better impact
         await waitMs(300);
         
-        // Rolling number animation
-        const duration = 1800;
-        const startTime = performance.now();
-        const animateRoll = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            // Ease out cubic
-            const easeOut = 1 - Math.pow(1 - progress, 3);
-            const currentVal = Math.floor(easeOut * bonusReward);
-            bonusResultReward.textContent = currentVal;
-            
-            if (progress < 1) {
-                requestAnimationFrame(animateRoll);
-            } else {
-                bonusResultReward.textContent = bonusReward;
-            }
-        };
-        requestAnimationFrame(animateRoll);
+        // Rolling number animation using shared helper
+        animateBonusNumberRoll(bonusResultReward, 0, bonusReward, 1800);
 
         // Wait for the user to click collect
         await new Promise((resolve) => {

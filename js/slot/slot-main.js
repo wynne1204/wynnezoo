@@ -1965,7 +1965,6 @@ function initGame() {
     }
     updateStats();
     updateBombDisplay();
-    renderCurrentCustomer();
     if (SIMPLE_SLOT_MODE) {
         showSimpleWishOverlay();
     }
@@ -2107,7 +2106,8 @@ function pickWeightedBlockType() {
     if (rand < 0) return 'bonus';
     rand -= monkeyWeight;
     if (rand < 0) return 'monkey';
-    // 鍓╀綑鏉冮噸瑙嗕负榛忔€х櫨鎼?    return 'stickyWild';
+    // 剩余权重视为黏性百搭
+    return 'stickyWild';
 }
 
 function createRandomStackBlockData(options = {}) {
@@ -2491,60 +2491,8 @@ function flyBlockToStack(startX, startY, blockData) {
     });
 }
 
-function flyVisualBlockToStack(startX, startY, blockData) {
-    return new Promise((resolve) => {
-        if (!gameContainer || !stackContainer) {
-            addBlockToStack(blockData, false);
-            resolve();
-            return;
-        }
-
-        const flyEl = document.createElement('div');
-        flyEl.className = 'block';
-        flyEl.style.margin = '0';
-        flyEl.style.position = 'absolute';
-        if (blockData.type === 'bonus') {
-            flyEl.classList.add('block-bonus-glow');
-        }
-        const img = document.createElement('img');
-        img.className = 'block-img';
-        img.src = blockData.imageSrc;
-        flyEl.appendChild(img);
-        gameContainer.appendChild(flyEl);
-
-        const actualBlock = addBlockToStack(blockData, true);
-
-        requestAnimationFrame(() => {
-            const targetRect = actualBlock.getBoundingClientRect();
-            const containerRect = gameContainer.getBoundingClientRect();
-
-            const relStartX = startX - containerRect.left;
-            const relStartY = startY - containerRect.top;
-            const relEndX = targetRect.left - containerRect.left + (targetRect.width / 2);
-            const relEndY = targetRect.top - containerRect.top + (targetRect.height / 2);
-
-            flyEl.style.left = `${relStartX}px`;
-            flyEl.style.top = `${relStartY}px`;
-            flyEl.style.transform = 'translate(-50%, -50%) scale(1.1)';
-            flyEl.style.zIndex = '200';
-            flyEl.style.pointerEvents = 'none';
-
-            void flyEl.offsetWidth;
-
-            flyEl.style.transition = 'all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)';
-            flyEl.style.left = `${relEndX}px`;
-            flyEl.style.top = `${relEndY}px`;
-            flyEl.style.transform = 'translate(-50%, -50%) scale(0.9)';
-
-            setTimeout(() => {
-                flyEl.remove();
-                actualBlock.style.opacity = '1';
-                actualBlock.classList.add('new-item');
-                resolve();
-            }, 500);
-        });
-    });
-}
+// flyVisualBlockToStack is identical to flyBlockToStack — use single implementation
+const flyVisualBlockToStack = flyBlockToStack;
 
 function updateSway() {
     if (!stackContainer) return;

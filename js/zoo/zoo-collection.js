@@ -68,14 +68,15 @@
         return globalScope.WynneZooAppShell || null;
     }
 
-    function escapeHtml(value) {
+    // Delegate to the shared escapeHtml in js/utils.js
+    var escapeHtml = globalScope.escapeHtml || function(value) {
         return String(value || '')
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;');
-    }
+    };
 
     function fitSingleLineText(element, options = {}) {
         if (!(element instanceof HTMLElement)) {

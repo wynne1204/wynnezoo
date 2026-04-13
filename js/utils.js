@@ -95,3 +95,56 @@ function clamp(value, min, max) {
     var n = Number(value) || 0;
     return Math.min(max, Math.max(min, n));
 }
+
+// ── 通用数组洗牌 ────────────────────────────────────────────
+/**
+ * Fisher-Yates 洗牌，返回新数组。
+ * @param {Array} items
+ * @returns {Array}
+ */
+function shuffleArray(items) {
+    var arr = Array.isArray(items) ? items.slice() : [];
+    for (var i = arr.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
+    }
+    return arr;
+}
+
+// ── 通用加权随机选择 ────────────────────────────────────────
+/**
+ * 从带权重的条目中随机选择一个。
+ * @param {Array} items - 条目数组
+ * @param {Function} getWeight - 获取权重的函数 (item) => number
+ * @returns {*} 选中的条目
+ */
+function pickWeighted(items, getWeight) {
+    if (!Array.isArray(items) || items.length === 0) return undefined;
+    var total = 0;
+    for (var i = 0; i < items.length; i++) {
+        total += Math.max(0, Number(getWeight(items[i])) || 0);
+    }
+    if (total <= 0) return items[items.length - 1];
+    var roll = Math.random() * total;
+    for (var j = 0; j < items.length; j++) {
+        roll -= Math.max(0, Number(getWeight(items[j])) || 0);
+        if (roll <= 0) return items[j];
+    }
+    return items[items.length - 1];
+}
+
+/**
+ * 从权重 Map 中随机选择一个 key。
+ * @param {Object} weightMap - { key: weight }
+ * @returns {string|null}
+ */
+function pickWeightedKey(weightMap) {
+    var entries = Object.entries(weightMap || {})
+        .map(function(pair) { return { key: pair[0], weight: Number(pair[1]) }; })
+        .filter(function(e) { return Number.isFinite(e.weight) && e.weight > 0; });
+    if (entries.length === 0) return null;
+    var picked = pickWeighted(entries, function(e) { return e.weight; });
+    return picked ? picked.key : null;
+}

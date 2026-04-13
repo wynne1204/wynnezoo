@@ -621,8 +621,9 @@
         globalScope.WynneRegistry.register('WynneZooQuest', api);
     }
 
-    // 导出供测试使用的内部引用
-    globalScope._WynneZooQuestInternals = {
+    // 导出供测试使用的内部引用（仅开发环境）
+    if (typeof globalScope.__DEV_MODE__ !== 'undefined' || (globalScope.location && globalScope.location.hostname === 'localhost')) {
+        globalScope._WynneZooQuestInternals = {
         QUEST_CHAIN: QUEST_CHAIN,
         createDefaultState: createDefaultState,
         getRuntimeState: function () { return runtimeState; },
@@ -654,5 +655,6 @@
         notifySubscribers: notifySubscribers,
         getListeners: function () { return listeners; }
     };
+    }
 
 }(window));

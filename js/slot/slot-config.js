@@ -458,8 +458,9 @@ function hasPositiveWeight(weightMap = {}) {
 }
 
 // --------------- Symbol & Payout Tables ---------------
-const NORMAL_SYMBOL_ORDER = ['S1', 'S2', 'S3', 'S4', 'S5'];
-const NORMAL_SYMBOL_VALUE_ORDER = ['S5', 'S4', 'S3', 'S2', 'S1'];
+// NORMAL_SYMBOL_ORDER must match CONFIG.normalSymbolKeys for payout/blueprint logic
+const NORMAL_SYMBOL_ORDER = CONFIG.normalSymbolKeys.slice(0, 5);
+const NORMAL_SYMBOL_VALUE_ORDER = NORMAL_SYMBOL_ORDER.slice().reverse();
 const MAX_STACK_BLOCKS_PER_SETTLEMENT_EVENT = 30;
 const STACK_BLOCK_MULTI_FLY_STAGGER_MS = 35;
 const SYMBOL_IMAGE_FALLBACKS = {

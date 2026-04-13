@@ -9,9 +9,17 @@
     const slotBackBtn = document.getElementById('slot-back-btn');
 
     const R = globalScope.WynneRegistry || null;
-    const zooHome = (R && R.get('ZooHomeModule')) || globalScope.ZooHomeModule || null;
-    const slotGame = (R && R.get('WynneZooSlotGame')) || globalScope.WynneZooSlotGame || null;
-    const zooEconomy = (R && R.get('WynneZooEconomy')) || globalScope.WynneZooEconomy || null;
+
+    // Lazy module getters - avoid capturing stale null references at load time
+    function getZooHome() {
+        return (R && R.get('ZooHomeModule')) || globalScope.ZooHomeModule || null;
+    }
+    function getSlotGame() {
+        return (R && R.get('WynneZooSlotGame')) || globalScope.WynneZooSlotGame || null;
+    }
+    function getZooEconomy() {
+        return (R && R.get('WynneZooEconomy')) || globalScope.WynneZooEconomy || null;
+    }
 
     const ENTRY_STORY_ID = 'prologue';
     const FIRST_CHAPTER_ID = '第一章';
@@ -26,17 +34,17 @@
     };
 
     function getSlotSnapshot() {
-        return (slotGame && typeof slotGame.getSnapshot === 'function')
-            ? slotGame.getSnapshot()
+        return (getSlotGame() && typeof getSlotGame().getSnapshot === 'function')
+            ? getSlotGame().getSnapshot()
             : null;
     }
 
     function updateZooHomeFromSlotSnapshot() {
-        if (!zooHome || typeof zooHome.setSlotSnapshot !== 'function') {
+        if (!getZooHome() || typeof getZooHome().setSlotSnapshot !== 'function') {
             return;
         }
 
-        zooHome.setSlotSnapshot(getSlotSnapshot());
+        getZooHome().setSlotSnapshot(getSlotSnapshot());
     }
 
     function getStoryData() {
@@ -144,8 +152,8 @@
     }
 
     function getPendingReturnStory() {
-        return zooEconomy && typeof zooEconomy.getPendingReturnStory === 'function'
-            ? zooEconomy.getPendingReturnStory()
+        return getZooEconomy() && typeof getZooEconomy().getPendingReturnStory === 'function'
+            ? getZooEconomy().getPendingReturnStory()
             : null;
     }
 
@@ -156,11 +164,11 @@
             return false;
         }
 
-        if (!zooEconomy || typeof zooEconomy.consumePendingReturnStory !== 'function') {
+        if (!getZooEconomy() || typeof getZooEconomy().consumePendingReturnStory !== 'function') {
             return false;
         }
 
-        const consumedStoryId = String(zooEconomy.consumePendingReturnStory() || '').trim();
+        const consumedStoryId = String(getZooEconomy().consumePendingReturnStory() || '').trim();
         if (!consumedStoryId) {
             return false;
         }
@@ -192,8 +200,8 @@
     function showZooHomeBackdrop() {
         updateZooHomeFromSlotSnapshot();
 
-        if (zooHome && typeof zooHome.onShow === 'function') {
-            zooHome.onShow(getSlotSnapshot());
+        if (getZooHome() && typeof getZooHome().onShow === 'function') {
+            getZooHome().onShow(getSlotSnapshot());
         }
     }
 
@@ -213,8 +221,8 @@
 
         if (targetScreen === 'story'
             && APP_STATE.storyBackdropMode === STORY_BACKDROP_MODE_ZOO_HOME
-            && zooHome && typeof zooHome.onHide === 'function') {
-            zooHome.onHide();
+            && getZooHome() && typeof getZooHome().onHide === 'function') {
+            getZooHome().onHide();
         }
 
         setScreenVisibility({
@@ -229,8 +237,8 @@
     }
 
     function leaveCurrentViews(nextScreen) {
-        if (nextScreen !== 'slot' && slotGame && typeof slotGame.leaveView === 'function') {
-            slotGame.leaveView();
+        if (nextScreen !== 'slot' && getSlotGame() && typeof getSlotGame().leaveView === 'function') {
+            getSlotGame().leaveView();
         }
 
         const storyPlayer = getStoryPlayer();
@@ -240,8 +248,8 @@
 
         if (nextScreen !== 'zoo'
             && (APP_STATE.currentScreen === 'zoo' || APP_STATE.storyBackdropMode === STORY_BACKDROP_MODE_ZOO_HOME)
-            && zooHome && typeof zooHome.onHide === 'function') {
-            zooHome.onHide();
+            && getZooHome() && typeof getZooHome().onHide === 'function') {
+            getZooHome().onHide();
         }
 
         const zooCollection = getZooCollection();
@@ -259,8 +267,8 @@
         leaveCurrentViews('zoo');
         setActiveScreen('zoo');
 
-        if (zooHome && typeof zooHome.onShow === 'function') {
-            zooHome.onShow(getSlotSnapshot());
+        if (getZooHome() && typeof getZooHome().onShow === 'function') {
+            getZooHome().onShow(getSlotSnapshot());
         }
 
         if (maybePlayReadyPendingReturnStory()) {
@@ -278,8 +286,8 @@
 
         leaveCurrentViews('collection');
         setActiveScreen('collection');
-        zooCollection.show(zooEconomy && typeof zooEconomy.getSnapshot === 'function'
-            ? zooEconomy.getSnapshot()
+        zooCollection.show(getZooEconomy() && typeof getZooEconomy().getSnapshot === 'function'
+            ? getZooEconomy().getSnapshot()
             : null);
         return true;
     }
@@ -312,9 +320,9 @@
                 const unlockCandidates = finishedNormally
                     ? (collectionUnlock ? [collectionUnlock] : [])
                     : getCollectionUnlocksForStory(targetStoryId);
-                const collectionUnlockResults = zooEconomy
-                    && typeof zooEconomy.unlockCollectionSpecies === 'function'
-                    ? unlockCandidates.map((unlock) => zooEconomy.unlockCollectionSpecies(unlock.speciesId, {
+                const collectionUnlockResults = getZooEconomy()
+                    && typeof getZooEconomy().unlockCollectionSpecies === 'function'
+                    ? unlockCandidates.map((unlock) => getZooEconomy().unlockCollectionSpecies(unlock.speciesId, {
                         setGuidePending: true
                     }))
                     : [];
@@ -326,9 +334,9 @@
                 );
                 if ((finishedNormally || followupStoryId)
                     && config.markAsPlayed
-                    && zooEconomy
-                    && typeof zooEconomy.markStoryPlayed === 'function') {
-                    zooEconomy.markStoryPlayed(targetStoryId, true);
+                    && getZooEconomy()
+                    && typeof getZooEconomy().markStoryPlayed === 'function') {
+                    getZooEconomy().markStoryPlayed(targetStoryId, true);
                 }
                 if (storyData && typeof storyData.markCurrentStoryVersionSeen === 'function') {
                     storyData.markCurrentStoryVersionSeen(targetStoryId);
@@ -339,9 +347,9 @@
                     systemUnlock.checkAndUnlock(targetStoryId);
                 }
                 if (shouldDeferFollowupToCollectionReturn
-                    && zooEconomy
-                    && typeof zooEconomy.setPendingReturnStory === 'function') {
-                    zooEconomy.setPendingReturnStory(followupStoryId, {
+                    && getZooEconomy()
+                    && typeof getZooEconomy().setPendingReturnStory === 'function') {
+                    getZooEconomy().setPendingReturnStory(followupStoryId, {
                         pendingGuideSpeciesId: 'red-panda',
                         readyToResume: false
                     });
@@ -419,21 +427,21 @@
     }
 
     function showSlotGame() {
-        if (!zooHomeScreen || !slotGameScreen || !slotGame) {
+        if (!zooHomeScreen || !slotGameScreen || !getSlotGame()) {
             return false;
         }
 
-        const snapshot = (typeof slotGame.getSnapshot === 'function')
-            ? slotGame.getSnapshot()
+        const snapshot = (typeof getSlotGame().getSnapshot === 'function')
+            ? getSlotGame().getSnapshot()
             : null;
         const hasUnfinishedRound = Boolean(snapshot && snapshot.initialized && !snapshot.isGameOver);
-        const canStartFreshRound = !zooEconomy || typeof zooEconomy.canStartFreshRound !== 'function'
+        const canStartFreshRound = !getZooEconomy() || typeof getZooEconomy().canStartFreshRound !== 'function'
             ? true
-            : zooEconomy.canStartFreshRound();
+            : getZooEconomy().canStartFreshRound();
 
         if (!hasUnfinishedRound && !canStartFreshRound) {
-            if (zooHome && typeof zooHome.notify === 'function') {
-                zooHome.notify('当前没有可用的盲盒券，先去动物园收取产出吧。', 'warn');
+            if (getZooHome() && typeof getZooHome().notify === 'function') {
+                getZooHome().notify('当前没有可用的盲盒券，先去动物园收取产出吧。', 'warn');
             }
             return false;
         }
@@ -443,24 +451,24 @@
 
         globalScope.requestAnimationFrame(() => {
             let ready = true;
-            if (typeof slotGame.ensureInitialized === 'function') {
-                ready = slotGame.ensureInitialized() !== false;
+            if (typeof getSlotGame().ensureInitialized === 'function') {
+                ready = getSlotGame().ensureInitialized() !== false;
             }
 
             if (!ready) {
                 showZooHome();
-                if (zooHome && typeof zooHome.notify === 'function') {
-                    zooHome.notify('盲盒券不足，已返回动物园主页。', 'warn');
+                if (getZooHome() && typeof getZooHome().notify === 'function') {
+                    getZooHome().notify('盲盒券不足，已返回动物园主页。', 'warn');
                 }
                 return;
             }
 
-            if (typeof slotGame.enterView === 'function') {
-                const entered = slotGame.enterView();
+            if (typeof getSlotGame().enterView === 'function') {
+                const entered = getSlotGame().enterView();
                 if (entered === false) {
                     showZooHome();
-                    if (zooHome && typeof zooHome.notify === 'function') {
-                        zooHome.notify('盲盒券不足，已返回动物园主页。', 'warn');
+                    if (getZooHome() && typeof getZooHome().notify === 'function') {
+                        getZooHome().notify('盲盒券不足，已返回动物园主页。', 'warn');
                     }
                     return;
                 }
@@ -480,11 +488,11 @@
             return false;
         }
 
-        if (!zooEconomy || typeof zooEconomy.hasPlayedStory !== 'function') {
+        if (!getZooEconomy() || typeof getZooEconomy().hasPlayedStory !== 'function') {
             return true;
         }
 
-        if (!zooEconomy.hasPlayedStory(ENTRY_STORY_ID)) {
+        if (!getZooEconomy().hasPlayedStory(ENTRY_STORY_ID)) {
             return true;
         }
 
@@ -534,8 +542,8 @@
             return;
         }
 
-        if (zooHome && typeof zooHome.init === 'function') {
-            zooHome.init();
+        if (getZooHome() && typeof getZooHome().init === 'function') {
+            getZooHome().init();
         }
         const zooCollection = getZooCollection();
         if (zooCollection && typeof zooCollection.init === 'function') {

@@ -132,6 +132,23 @@
         pollTimer = globalScope.setInterval(() => {
             loadGeneratedStories();
         }, GENERATED_POLL_MS);
+
+        // Pause polling when page is hidden to save resources
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                if (pollTimer) {
+                    globalScope.clearInterval(pollTimer);
+                    pollTimer = 0;
+                }
+            } else {
+                if (!pollTimer) {
+                    loadGeneratedStories();
+                    pollTimer = globalScope.setInterval(() => {
+                        loadGeneratedStories();
+                    }, GENERATED_POLL_MS);
+                }
+            }
+        });
     }
 
     readImportedStoriesFromWindow();

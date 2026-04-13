@@ -11,16 +11,21 @@
         const symbolKeys = Array.isArray(config.normalSymbolKeys) && config.normalSymbolKeys.length > 0
             ? config.normalSymbolKeys.slice()
             : ['S1'];
-        const tripleLines = [
-            [0, 1, 2],
-            [3, 4, 5],
-            [6, 7, 8],
-            [0, 3, 6],
-            [1, 4, 7],
-            [2, 5, 8],
-            [0, 4, 8],
-            [2, 4, 6]
-        ];
+
+        // Generate triple lines dynamically based on grid size
+        // For a 3x3 grid: 3 rows + 3 cols + 2 diagonals = 8 lines
+        const gridSide = Math.round(Math.sqrt(config.gridSize || 9));
+        const tripleLines = [];
+        if (gridSide === 3) {
+            // Rows
+            for (let r = 0; r < 3; r++) tripleLines.push([r * 3, r * 3 + 1, r * 3 + 2]);
+            // Columns
+            for (let c = 0; c < 3; c++) tripleLines.push([c, c + 3, c + 6]);
+            // Diagonals
+            tripleLines.push([0, 4, 8]);
+            tripleLines.push([2, 4, 6]);
+        }
+        // If gridSize is not 9 (3x3), tripleLines will be empty and triple matching is disabled
         const SIMPLE_RESTOCK_FLIGHT_MS = 240;
         const SIMPLE_RESTOCK_STAGGER_MS = 70;
 
