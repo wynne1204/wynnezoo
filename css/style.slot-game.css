@@ -804,7 +804,7 @@
 }
 
 .grid-cell.revealed .grid-cell-box-img { display: none; }
-.grid-cell:not(.revealed):active { transform: scale(0.95); }
+.grid-cell:not(.revealed):not(.selected):active { transform: scale(0.95); }
 
 .grid-cell.opening {
     animation: box-opening 0.4s ease-in forwards;
@@ -1161,10 +1161,15 @@
     display: none;
 }
 .grid-cell.selected .safe-open-box-frame {
+    transform: translate(
+        calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
+        calc(-50% + var(--grid-cell-overlap-y-offset, -10px))
+    ) scale(1.15);
     filter:
-        brightness(1.08)
-        drop-shadow(0 0 12px rgba(255, 216, 136, 0.52))
-        drop-shadow(0 8px 12px rgba(106, 53, 22, 0.14));
+        brightness(1.15)
+        drop-shadow(0 0 16px rgba(255, 216, 136, 0.8))
+        drop-shadow(0 12px 16px rgba(106, 53, 22, 0.2));
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
 }
 .grid-cell.full-set {
     box-shadow: 0 0 0 4px rgba(158, 255, 200, 0.85), inset 0 0 20px rgba(158, 255, 200, 0.3);
