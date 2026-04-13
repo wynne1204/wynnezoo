@@ -13,7 +13,7 @@ window.APP_CONFIG = {
         wishRewardBlindBoxes: 1,
         pairRewardBlindBoxes: 1,
         tripleRewardBlindBoxes: 2,
-        fullSetRewardBlindBoxes: 2,
+        fullSetRewardBlindBoxes: 5,
         maxSelectableSameSymbolCount: 3,
         triplePriorityOverPair: true,
         blockPool: {

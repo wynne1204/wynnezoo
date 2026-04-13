@@ -1,43 +1,14 @@
 // ============================================================
-// Slot Game — Settlement & Cluster Calculation
-// Extracted from slot-main.js for maintainability.
-// This file MUST be loaded before slot-main.js.
+// Slot Game — Settlement Shared Utilities
+// Common settlement animation, highlight, and block helpers
+// used by both cluster and match settlement modules.
+//
+// Mode-specific logic lives in:
+//   slot-cluster-settlement.js  (cluster / 连线结算)
+//   slot-match-settlement.js    (match / 对对碰结算)
 // ============================================================
 
-function getClusterMultiplier(size) {
-    const payout = CONFIG.clusterPayout;
-    const safeSize = Math.max(0, Math.floor(Number(size) || 0));
-    if (safeSize < payout.minClusterSize) return 0;
-    if (safeSize >= payout.jackpotThreshold) return payout.jackpotMultiplier;
-    const mapped = Number(payout.multipliers[safeSize]);
-    return Number.isFinite(mapped) ? Math.max(0, mapped) : 0;
-}
-
-function getClusterReward(symbolKey, size) {
-    const safeSize = Math.max(0, Math.floor(Number(size) || 0));
-    const symbolText = String(symbolKey || '');
-    const [, rawSymbol = ''] = symbolText.split(':');
-    const payoutTable = MAIN_BOARD_PAYOUTS[rawSymbol];
-    if (!payoutTable || safeSize < 3) {
-        return 0;
-    }
-    if (safeSize >= 10) {
-        return payoutTable[10] || 0;
-    }
-    return payoutTable[safeSize] || 0;
-}
-
-function getSettlementStackBlockCount(size) {
-    const payout = CONFIG.clusterPayout || {};
-    const mapping = payout.stackBlocksByClusterSize || {};
-    const threshold = Math.max(1, Math.floor(Number(payout.jackpotThreshold) || 10));
-    const safeSize = Math.max(0, Math.floor(Number(size) || 0));
-    const exact = Number(mapping[safeSize]);
-    if (Number.isFinite(exact)) return Math.max(0, Math.floor(exact));
-    const jackpotMapped = Number(mapping[threshold]);
-    if (safeSize >= threshold && Number.isFinite(jackpotMapped)) return Math.max(0, Math.floor(jackpotMapped));
-    return 1;
-}
+// ---- Stack block data helpers (shared by both modes) ----
 
 function createSettlementStackBlockData(symbolKey) {
     const [type, ...parts] = String(symbolKey || '').split(':');
@@ -58,129 +29,15 @@ function createSettlementStackBlockData(symbolKey) {
     return createNormalBlockData('S1');
 }
 
-function getSettlementStackBlockCountByClusterSize(clusterSize) {
-    const safeSize = Math.max(1, Math.floor(Number(clusterSize) || 0));
-    const rewardMap = CONFIG.clusterPayout.settlementStackBlocksBySize || {};
-    const directValue = Number(rewardMap[safeSize]);
-    if (Number.isFinite(directValue)) {
-        return Math.max(0, Math.floor(directValue));
-    }
+// ---- Highlight helpers (shared by both modes) ----
 
-    const minSize = Math.max(1, Math.floor(Number(CONFIG.clusterPayout.minClusterSize) || 3));
-    const fallbackValue = Number(rewardMap[minSize]);
-    if (Number.isFinite(fallbackValue)) {
-        return Math.max(0, Math.floor(fallbackValue));
-    }
-    return 1;
-}
-
-function createBoardClusterSnapshot(blocksInput = STATE.cellBlocks) {
-    const blocks = Array.isArray(blocksInput) ? blocksInput : [];
-    const total = blocks.length;
-    const side = getGridSideLength(total);
-    const blockSymbols = new Array(total);
-    const symbolKeys = [];
-    const seenSymbols = new Set();
-
-    for (let index = 0; index < total; index++) {
-        const symbolKey = getBlockSymbolKey(blocks[index]);
-        blockSymbols[index] = symbolKey;
-        if (!symbolKey || seenSymbols.has(symbolKey)) continue;
-        seenSymbols.add(symbolKey);
-        symbolKeys.push(symbolKey);
-    }
-
-    return {
-        blocks,
-        blockSymbols,
-        symbolKeys,
-        total,
-        side
-    };
-}
-
-function collectActiveSymbolKeys(boardSnapshot = createBoardClusterSnapshot()) {
-    return boardSnapshot.symbolKeys.slice();
-}
-
-function canBlockJoinSymbol(blockData, blockSymbol, symbolKey) {
-    if (!blockData) return false;
-    return blockData.type === 'wild'
-        || blockData.type === 'stickyWild'
-        || blockSymbol === symbolKey;
-}
-
-function queueSymbolNeighbor(nextIndex, boardSnapshot, symbolKey, visited, queue) {
-    if (visited[nextIndex]) return;
-
-    const nextBlock = boardSnapshot.blocks[nextIndex];
-    if (!canBlockJoinSymbol(nextBlock, boardSnapshot.blockSymbols[nextIndex], symbolKey)) return;
-
-    visited[nextIndex] = 1;
-    queue.push(nextIndex);
-}
-
-function findBestClusterForSymbol(symbolKey, boardSnapshot = createBoardClusterSnapshot()) {
-    const { blocks, blockSymbols, total, side } = boardSnapshot;
-    const visited = new Uint8Array(total);
-
-    let bestSize = 0;
-    let bestIndexes = [];
-    let bestMinIndex = Number.MAX_SAFE_INTEGER;
-
-    for (let start = 0; start < total; start++) {
-        if (visited[start]) continue;
-        const startBlock = blocks[start];
-        if (!canBlockJoinSymbol(startBlock, blockSymbols[start], symbolKey)) continue;
-
-        const queue = [start];
-        const component = [];
-        let cursor = 0;
-        let hasTargetSymbol = false;
-        let componentMinIndex = start;
-
-        visited[start] = 1;
-        while (cursor < queue.length) {
-            const current = queue[cursor++];
-            component.push(current);
-            if (current < componentMinIndex) {
-                componentMinIndex = current;
-            }
-
-            if (blockSymbols[current] === symbolKey) {
-                hasTargetSymbol = true;
-            }
-
-            const row = Math.floor(current / side);
-            const col = current % side;
-            if (row > 0) queueSymbolNeighbor(current - side, boardSnapshot, symbolKey, visited, queue);
-            if (row < side - 1) queueSymbolNeighbor(current + side, boardSnapshot, symbolKey, visited, queue);
-            if (col > 0) queueSymbolNeighbor(current - 1, boardSnapshot, symbolKey, visited, queue);
-            if (col < side - 1) queueSymbolNeighbor(current + 1, boardSnapshot, symbolKey, visited, queue);
-        }
-
-        if (!hasTargetSymbol) continue;
-        if (component.length > bestSize) {
-            bestSize = component.length;
-            bestIndexes = component;
-            bestMinIndex = componentMinIndex;
-        }
-    }
-
-    return {
-        symbolKey,
-        size: bestSize,
-        indexes: bestIndexes,
-        minIndex: bestMinIndex
-    };
-}
-
-function highlightRealtimeSettlementEvent(event, cells = STATE.gridCells) {
-    if (!event || !Array.isArray(cells) || cells.length === 0) return [];
+function highlightRealtimeSettlementEvent(event, cells) {
+    const gridCells = cells || STATE.gridCells;
+    if (!event || !Array.isArray(gridCells) || gridCells.length === 0) return [];
     const indexes = Array.from(new Set(event.indexes || []));
 
     indexes.forEach((index) => {
-        const cell = cells[index];
+        const cell = gridCells[index];
         if (!cell) return;
         cell.classList.add('win-cluster');
         if (event.jackpot) {
@@ -208,11 +65,12 @@ function highlightRealtimeSettlementEvent(event, cells = STATE.gridCells) {
     return indexes;
 }
 
-function clearRealtimeSettlementHighlight(indexes, cells = STATE.gridCells) {
-    if (!Array.isArray(indexes) || indexes.length === 0 || !Array.isArray(cells) || cells.length === 0) return;
+function clearRealtimeSettlementHighlight(indexes, cells) {
+    const gridCells = cells || STATE.gridCells;
+    if (!Array.isArray(indexes) || indexes.length === 0 || !Array.isArray(gridCells) || gridCells.length === 0) return;
 
     indexes.forEach((index) => {
-        const cell = cells[index];
+        const cell = gridCells[index];
         if (!cell) return;
         cell.classList.remove('win-cluster', 'win-jackpot');
         cell.style.zIndex = '';
@@ -229,17 +87,20 @@ function clearRealtimeSettlementHighlight(indexes, cells = STATE.gridCells) {
     });
 }
 
-async function playSettlementAnimationSequence(events, cells, options = {}) {
+// ---- Settlement animation sequence (shared by both modes) ----
+
+async function playSettlementAnimationSequence(events, cells, options) {
+    const opts = options || {};
     if (!Array.isArray(events) || events.length === 0 || !Array.isArray(cells) || cells.length === 0) return;
 
-    const centerGetter = typeof options.centerGetter === 'function'
-        ? options.centerGetter
+    const centerGetter = typeof opts.centerGetter === 'function'
+        ? opts.centerGetter
         : getGridCellBoxCenterInViewport;
-    const flyBlockFn = typeof options.flyBlockFn === 'function'
-        ? options.flyBlockFn
+    const flyBlockFn = typeof opts.flyBlockFn === 'function'
+        ? opts.flyBlockFn
         : flyBlockToStack;
-    const rewardTextFormatter = typeof options.rewardTextFormatter === 'function'
-        ? options.rewardTextFormatter
+    const rewardTextFormatter = typeof opts.rewardTextFormatter === 'function'
+        ? opts.rewardTextFormatter
         : ((event) => `+${event.reward}`);
 
     for (let index = 0; index < events.length; index++) {
@@ -310,79 +171,76 @@ async function playSettlementAnimationSequence(events, cells, options = {}) {
     }
 }
 
-async function settleRealtimeRewardsForCurrentBoard(centerX, centerY) {
-    const boardSnapshot = createBoardClusterSnapshot();
-    const symbolKeys = collectActiveSymbolKeys(boardSnapshot);
-    const gridCells = Array.isArray(STATE.gridCells) ? STATE.gridCells : [];
-    const triggeredEvents = [];
+// ============================================================
+// Unified settlement dispatcher
+// Called from slot-main.js — routes to the correct module.
+// ============================================================
 
-    symbolKeys.forEach((symbolKey) => {
-        const bestCluster = findBestClusterForSymbol(symbolKey, boardSnapshot);
-        if (!bestCluster || bestCluster.size <= 0) return;
-
-        const prevSettledSize = Math.max(0, Math.floor(Number(STATE.symbolSettledSizeByKey[symbolKey]) || 0));
-        const maxSettleSize = Math.min(bestCluster.size, CONFIG.clusterPayout.jackpotThreshold);
-        if (maxSettleSize <= prevSettledSize) return;
-
-        const settleFrom = Math.max(CONFIG.clusterPayout.minClusterSize, prevSettledSize + 1);
-        if (settleFrom > maxSettleSize) {
-            STATE.symbolSettledSizeByKey[symbolKey] = maxSettleSize;
-            return;
-        }
-
-        const settleSize = maxSettleSize;
-        const reward = getClusterReward(symbolKey, settleSize);
-        if (reward > 0) {
-            STATE.roundReward += reward;
-            STATE.totalSettlements += 1;
-
-            const event = {
-                symbolKey,
-                size: settleSize,
-                reward,
-                indexes: bestCluster.indexes.slice(),
-                minIndex: bestCluster.minIndex,
-                stackBlocks: getSettlementStackBlockCount(settleSize),
-                satisfactionGain: 0,
-                satisfiesCustomer: false,
-                customerPreferenceKey: null,
-                multiplier: getClusterMultiplier(settleSize),
-                jackpot: settleSize >= CONFIG.clusterPayout.jackpotThreshold
-            };
-            STATE.realtimeSettlementEvents.push(event);
-            triggeredEvents.push(event);
-        }
-
-        STATE.symbolSettledSizeByKey[symbolKey] = maxSettleSize;
-    });
-
-    if (triggeredEvents.length > 0) {
-        triggeredEvents.sort((a, b) => {
-            const aMin = Number.isFinite(a.minIndex) ? a.minIndex : Number.MAX_SAFE_INTEGER;
-            const bMin = Number.isFinite(b.minIndex) ? b.minIndex : Number.MAX_SAFE_INTEGER;
-            if (aMin !== bMin) return aMin - bMin;
-            if (a.symbolKey !== b.symbolKey) return String(a.symbolKey).localeCompare(String(b.symbolKey));
-            return a.size - b.size;
-        });
-
-        STATE.isSettling = true;
-
-        try {
-            await playSettlementAnimationSequence(triggeredEvents, gridCells, {
-                centerGetter: getGridCellBoxCenterInViewport,
-                flyBlockFn: flyBlockToStack
-            });
-        } catch (err) {
-            console.error('Settlement animation failed:', err);
-        } finally {
-            STATE.isSettling = false;
-        }
-
-        if (STATE.pendingOpens === 0 && !STATE.isAnimating && !STATE.isGameOver && !STATE.isBonusGameActive && !STATE.bonusGamePendingStart && !FREE_SPIN_STATE.pendingStart && !FREE_SPIN_STATE.active) {
-            if (STATE.unrevealedIndices.length > 0) {
-                if (cashoutBtn) cashoutBtn.disabled = false;
-                if (randomBtn) randomBtn.disabled = false;
-            }
-        }
+async function settleRealtimeRewardsForCurrentBoard() {
+    if (SIMPLE_SLOT_MODE) {
+        // 对对碰 mode: settlement is driven by user selection clicks,
+        // not by automatic board scanning. No-op here.
+        return;
     }
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        await CLUSTER_SETTLEMENT.settleRealtimeRewardsForCurrentBoard();
+    }
+}
+
+// ============================================================
+// Backward-compatible global wrappers for cluster functions.
+// Used by slot-free-spin.js and slot-blueprint.js which call
+// these as globals. They delegate to CLUSTER_SETTLEMENT when
+// available (cluster mode), otherwise return safe defaults.
+// ============================================================
+
+function getClusterMultiplier(size) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.getClusterMultiplier(size);
+    }
+    return 0;
+}
+
+function getClusterReward(symbolKey, size) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.getClusterReward(symbolKey, size);
+    }
+    return 0;
+}
+
+function getSettlementStackBlockCount(size) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.getSettlementStackBlockCount(size);
+    }
+    return 1;
+}
+
+function getSettlementStackBlockCountByClusterSize(clusterSize) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.getSettlementStackBlockCountByClusterSize(clusterSize);
+    }
+    return 1;
+}
+
+function createBoardClusterSnapshot(blocksInput) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.createBoardClusterSnapshot(blocksInput);
+    }
+    // Minimal fallback for when cluster module is not loaded
+    const blocks = Array.isArray(blocksInput) ? blocksInput : (typeof STATE !== 'undefined' && Array.isArray(STATE.cellBlocks) ? STATE.cellBlocks : []);
+    return { blocks, blockSymbols: [], symbolKeys: [], total: blocks.length, side: 0 };
+}
+
+function collectActiveSymbolKeys(boardSnapshot) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.collectActiveSymbolKeys(boardSnapshot);
+    }
+    return boardSnapshot ? boardSnapshot.symbolKeys.slice() : [];
+}
+
+function findBestClusterForSymbol(symbolKey, boardSnapshot) {
+    if (typeof CLUSTER_SETTLEMENT !== 'undefined' && CLUSTER_SETTLEMENT) {
+        return CLUSTER_SETTLEMENT.findBestClusterForSymbol(symbolKey, boardSnapshot);
+    }
+    return { symbolKey, size: 0, indexes: [], minIndex: Number.MAX_SAFE_INTEGER };
 }

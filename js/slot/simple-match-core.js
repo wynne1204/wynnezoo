@@ -812,6 +812,9 @@
                         ? `三连 +${match.rewardCount}盲盒`
                         : `对碰 +${match.rewardCount}盲盒`);
                 helpers.createFloatingText(center.x, center.y - 28, label);
+                if (match.type === 'full-set') {
+                    helpers.createConfettiFireworks();
+                }
                 await helpers.waitMs(match.type === 'full-set' ? 320 : 260);
                 clearSimpleModeSelectionState();
                 match.indexes.forEach((resolvedIndex) => {

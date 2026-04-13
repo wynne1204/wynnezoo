@@ -66,6 +66,101 @@ const SIMPLE_MATCH_CORE = (() => {
     });
 })();
 
+// ============================================================
+// Cluster Settlement Module (only active in cluster mode)
+// ============================================================
+const CLUSTER_SETTLEMENT = (() => {
+    if (SIMPLE_SLOT_MODE) {
+        return null;
+    }
+    if (!window.WynneClusterSettlement || typeof window.WynneClusterSettlement.create !== 'function') {
+        throw new Error('js/slot/slot-cluster-settlement.js must be loaded before slot-main.js');
+    }
+    return window.WynneClusterSettlement.create({
+        config: CONFIG,
+        state: STATE,
+        helpers: {
+            getMainBoardPayouts() { return typeof MAIN_BOARD_PAYOUTS !== 'undefined' ? MAIN_BOARD_PAYOUTS : {}; },
+            getGridSideLength,
+            getBlockSymbolKey,
+            playSettlementAnimationSequence,
+            getGridCellBoxCenterInViewport,
+            flyBlockToStack,
+            unlockButtonsIfIdle() {
+                if (STATE.pendingOpens === 0 && !STATE.isAnimating && !STATE.isGameOver && !STATE.isBonusGameActive && !STATE.bonusGamePendingStart && !FREE_SPIN_STATE.pendingStart && !FREE_SPIN_STATE.active) {
+                    if (STATE.unrevealedIndices.length > 0) {
+                        if (cashoutBtn) cashoutBtn.disabled = false;
+                        if (randomBtn) randomBtn.disabled = false;
+                    }
+                }
+            }
+        }
+    });
+})();
+
+// ============================================================
+// Match Settlement Module (only active in 对对碰 mode)
+// ============================================================
+const MATCH_SETTLEMENT = (() => {
+    if (!SIMPLE_SLOT_MODE) {
+        return null;
+    }
+    if (!window.WynneMatchSettlement || typeof window.WynneMatchSettlement.create !== 'function') {
+        throw new Error('js/slot/slot-match-settlement.js must be loaded before slot-main.js');
+    }
+    return window.WynneMatchSettlement.create({
+        config: CONFIG,
+        state: STATE,
+        helpers: {
+            getGridCellElement,
+            getGridCellBoxCenterInViewport,
+            highlightRealtimeSettlementEvent,
+            clearRealtimeSettlementHighlight,
+            createFloatingText,
+            waitMs,
+            syncSimpleModeStockState() {
+                if (SIMPLE_MATCH_CORE) {
+                    STATE.queuedBlindBoxes = Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0));
+                }
+            },
+            pulseRewardSurfaces() {
+                if (SIMPLE_MATCH_CORE && typeof SIMPLE_MATCH_CORE.pulseSimpleModeRewardSurfaces === 'function') {
+                    // pulse is internal to simple-match-core, trigger via refreshSimpleModeUi
+                }
+            },
+            rewardBlindBoxesFn(count) {
+                return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.rewardSimpleModeBlindBoxes(count) : 0;
+            },
+            refreshSimpleModeUi() {
+                if (SIMPLE_MATCH_CORE) SIMPLE_MATCH_CORE.refreshSimpleModeUi();
+            },
+            refreshSimpleModeSelectionUi() {
+                if (SIMPLE_MATCH_CORE) SIMPLE_MATCH_CORE.refreshSimpleModeSelectionUi();
+            },
+            clearSimpleModeSelectionState() {
+                if (SIMPLE_MATCH_CORE) SIMPLE_MATCH_CORE.clearSimpleModeSelectionState();
+            },
+            setSimpleModeCellEmpty(index) {
+                if (SIMPLE_MATCH_CORE) SIMPLE_MATCH_CORE.setSimpleModeCellEmpty(index);
+            },
+            stopAutoOpen() {
+                if (typeof stopAutoOpen === 'function') stopAutoOpen();
+            },
+            handleAllBoxesOpened() {
+                if (typeof handleAllBoxesOpened === 'function') handleAllBoxesOpened();
+            },
+            playSelectedCellFeedback(index) {
+                const cell = getGridCellElement(index);
+                if (cell && typeof playSimpleModeSelectedCellFeedback === 'function') {
+                    playSimpleModeSelectedCellFeedback(cell);
+                }
+            },
+            cashoutBtn,
+            randomBtn
+        }
+    });
+})();
+
 
 // ============================================================
 // Zoo Economy Bridge
@@ -340,10 +435,12 @@ function clearSimpleModeSelectionState() {
 }
 
 function getSimpleModeTargetSelectionCount(symbolKey) {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.getSimpleModeTargetSelectionCount(symbolKey);
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.getSimpleModeTargetSelectionCount(symbolKey) : 0;
 }
 
 function isSimpleModeFullSetAvailable() {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.isSimpleModeFullSetAvailable();
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.isSimpleModeFullSetAvailable() : false;
 }
 
@@ -358,10 +455,12 @@ function refreshSimpleModeUi() {
 }
 
 function hasAnySimpleModeResolvableAction() {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.hasAnyResolvableAction();
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.hasAnySimpleModeResolvableAction() : false;
 }
 
 function rewardSimpleModeBlindBoxes(count) {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.rewardBlindBoxes(count);
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.rewardSimpleModeBlindBoxes(count) : 0;
 }
 
@@ -371,6 +470,7 @@ function renderSimpleModeWishSymbol() {
 }
 
 function getSimpleModeCellSymbolKey(index) {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.getSimpleModeCellSymbolKey(index);
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.getSimpleModeCellSymbolKey(index) : '';
 }
 
@@ -387,14 +487,17 @@ function playSimpleModeRestockSequence() {
 }
 
 async function resolveSimpleModeSelection(match) {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.resolveSelection(match);
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.resolveSimpleModeSelection(match) : false;
 }
 
 async function maybeResolveSimpleModeSelection() {
+    if (MATCH_SETTLEMENT) return MATCH_SETTLEMENT.maybeResolveSelection();
     return SIMPLE_MATCH_CORE ? SIMPLE_MATCH_CORE.maybeResolveSimpleModeSelection() : false;
 }
 
 function handleSimpleModeSelectionClick(index) {
+    if (MATCH_SETTLEMENT) { MATCH_SETTLEMENT.handleSelectionClick(index); return; }
     if (!SIMPLE_MATCH_CORE) return;
     SIMPLE_MATCH_CORE.handleSimpleModeSelectionClick(index);
 }
