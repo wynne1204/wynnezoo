@@ -11,6 +11,18 @@
         const symbolKeys = Array.isArray(config.normalSymbolKeys) && config.normalSymbolKeys.length > 0
             ? config.normalSymbolKeys.slice()
             : ['S1'];
+        const symbolLabelMap = {
+            S1: '大象',
+            S2: '斑马',
+            S3: '熊猫',
+            S4: '小熊猫',
+            S5: '狮子',
+            S6: '老虎',
+            S7: '长颈鹿',
+            S8: '猴子',
+            S9: '绵羊',
+            S10: '企鹅'
+        };
 
         // Generate triple lines dynamically based on grid size
         // For a 3x3 grid: 3 rows + 3 cols + 2 diagonals = 8 lines
@@ -37,6 +49,9 @@
 
         function getSimpleModeSymbolLabel(symbolKey) {
             const safeKey = String(symbolKey || '').trim();
+            if (symbolLabelMap[safeKey]) {
+                return symbolLabelMap[safeKey];
+            }
             return safeKey || '未选择';
         }
 
@@ -51,6 +66,22 @@
                 return `对碰 +${Math.max(0, Math.floor(Number(config.pairRewardBlindBoxes) || 0))} 盲盒`;
             }
             return `命中许愿 +${Math.max(0, Math.floor(Number(config.wishRewardBlindBoxes) || 0))} 盲盒`;
+        }
+
+        function syncSimpleWishOptionLabels() {
+            if (!slotWishOptions) return;
+            slotWishOptions.querySelectorAll('.slot-wish-option').forEach((button) => {
+                const symbolKey = String(button.dataset.symbolKey || '').trim();
+                const symbolLabel = getSimpleModeSymbolLabel(symbolKey);
+                const image = button.querySelector('img');
+                const label = button.querySelector('span');
+                if (image) {
+                    image.alt = symbolLabel;
+                }
+                if (label) {
+                    label.textContent = symbolLabel;
+                }
+            });
         }
 
         function pulseSimpleModeRewardSurfaces() {
@@ -154,6 +185,7 @@
             if (!simpleSlotMode || !elements.gameContainer) return null;
             if (slotWishOverlay && slotWishOverlay.isConnected) {
                 slotWishOptions = slotWishOverlay.querySelector('#slot-wish-options');
+                syncSimpleWishOptionLabels();
                 bindWishOverlay(slotWishOverlay);
                 return slotWishOverlay;
             }
@@ -174,16 +206,18 @@
             if (slotWishOptions) {
                 slotWishOptions.innerHTML = '';
                 symbolKeys.forEach((symbolKey) => {
+                    const symbolLabel = getSimpleModeSymbolLabel(symbolKey);
                     const button = document.createElement('button');
                     button.type = 'button';
                     button.className = 'slot-wish-option';
                     button.dataset.symbolKey = symbolKey;
                     button.innerHTML = `
-                        <img src="${helpers.getNormalSymbolImage(symbolKey)}" alt="${symbolKey}">
-                        <span>${symbolKey}</span>
+                        <img src="${helpers.getNormalSymbolImage(symbolKey)}" alt="${symbolLabel}">
+                        <span>${symbolLabel}</span>
                     `;
                     slotWishOptions.appendChild(button);
                 });
+                syncSimpleWishOptionLabels();
             }
             bindWishOverlay(slotWishOverlay);
             return slotWishOverlay;
@@ -219,9 +253,12 @@
             const safeSize = Math.max(1, Math.floor(Number(size) || config.gridSize || 1));
             clearSimpleMatchCelebration();
             state.wishSymbolKey = '';
+            state.wishHitCountThisRound = 0;
             state.remainingBlindBoxes = Math.max(0, Math.floor(Number(config.initialBlindBoxCount) || safeSize));
             state.restockPoolCount = 0;
             state.queuedBlindBoxes = 0;
+            state.simpleSettlementPending = false;
+            state.clearBoardBonusGrantedThisRound = false;
             state.selectedIndexes = [];
             state.selectionMode = 'none';
             state.pendingPlacementIndexes = [];
@@ -337,6 +374,10 @@
                 cell.appendChild(plusButton);
             }
             plusButton.dataset.index = String(index);
+            plusButton.hidden = false;
+            plusButton.style.display = '';
+            plusButton.setAttribute('aria-hidden', 'false');
+            plusButton.tabIndex = 0;
             helpers.positionSimpleModeCellPlusButton(cell, plusButton);
         }
 
@@ -393,6 +434,22 @@
             return tripleLines.some((line) => line.every((lineIndex) => indexSet.has(lineIndex)));
         }
 
+        function hasAnySimpleModeTripleOpportunity() {
+            const symbolKeysInBoard = new Set();
+            for (let index = 0; index < state.boardCellStates.length; index++) {
+                const symbolKey = getSimpleModeCellSymbolKey(index);
+                if (symbolKey) {
+                    symbolKeysInBoard.add(symbolKey);
+                }
+            }
+            for (const symbolKey of symbolKeysInBoard) {
+                if (hasSimpleModeTripleOpportunity(symbolKey)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function getSimpleModeTargetSelectionCount(symbolKey) {
             const sameSymbolIndexes = getSimpleModeSameSymbolIndexes(symbolKey);
             if (sameSymbolIndexes.length < 2) return 0;
@@ -432,10 +489,68 @@
             return [];
         }
 
+        function canSimpleModeRestockNow() {
+            if (!simpleSlotMode) return false;
+            if (state.restockPoolCount <= 0 || isRestockSequenceActive) return false;
+            if (state.selectionMode !== 'none' || state.selectedIndexes.length > 0) return false;
+            if (state.isGameOver || state.isBoardEntering || state.isAnimating || state.isSettling || state.isBonusGameActive || state.bonusGamePendingStart) {
+                return false;
+            }
+            if (hasAnySimpleModeResolvableAction()) return false;
+            return getSimpleModeEmptyIndexes().length > 0;
+        }
+
+        function getSimpleModePrimaryAction() {
+            if (!simpleSlotMode) return 'open';
+            if (isSimpleModeSettlementReady()) return 'settle';
+            if (canSimpleModeRestockNow()) return 'refill';
+            return 'open';
+        }
+
+        function getSimpleModeRestockHintText() {
+            if (!simpleSlotMode || state.restockPoolCount <= 0) return '';
+            if (hasAnySimpleModeResolvableAction()) {
+                return '需先完成当前可消组合';
+            }
+            if (getSimpleModeEmptyIndexes().length <= 0) {
+                return '当前没有可补的空格';
+            }
+            return '点击 + 号或待上架盲盒一键补满';
+        }
+
+        function isSimpleModeSettlementReady() {
+            if (!simpleSlotMode) return false;
+            if (!hasSimpleWishSelection()) return false;
+            if (state.isGameOver || state.isBoardEntering || state.isAnimating || state.isSettling || state.isBonusGameActive || state.bonusGamePendingStart) {
+                return false;
+            }
+            if (state.simpleSettlementPending) {
+                return true;
+            }
+            if (state.pendingOpens > 0) return false;
+            if (state.unrevealedIndices.length > 0) return false;
+            if (state.restockPoolCount > 0) return false;
+            if (state.selectedIndexes.length > 0 || state.selectionMode !== 'none') return false;
+            if (hasAnySimpleModeResolvableAction()) return false;
+            return true;
+        }
+
         function getSimpleModeSelectionHintText() {
             if (!simpleSlotMode) return '';
             if (!hasSimpleWishSelection()) {
                 return '先选择本局许愿积木';
+            }
+            if (isSimpleModeSettlementReady()) {
+                return '本轮已可结算，点击下方“结算”查看奖励';
+            }
+            if (state.selectionMode === 'none' && state.selectedIndexes.length <= 0) {
+                const restockHint = getSimpleModeRestockHintText();
+                if (restockHint) {
+                    return restockHint;
+                }
+                if (hasAnySimpleModeTripleOpportunity()) {
+                    return '当前存在三连机会，请优先完成三连';
+                }
             }
             if (state.selectionMode === 'full-set') {
                 const remaining = Math.max(0, 9 - state.selectedIndexes.length);
@@ -448,6 +563,9 @@
                     return '当前没有可配对的同色积木';
                 }
                 if (targetCount === 2) {
+                    if (hasSimpleModeTripleOpportunity(symbolKey)) {
+                        return '当前存在三连机会，请优先完成三连';
+                    }
                     const remaining = Math.max(0, 2 - state.selectedIndexes.length);
                     return remaining > 0 ? `再选 ${remaining} 个同色可对碰` : '已满足对碰';
                 }
@@ -466,6 +584,9 @@
         function updateSimpleModeStatusPanel() {
             if (!simpleSlotMode) return;
             const revealedCount = getSimpleModeRevealedIndexes().length;
+            const canRestock = canSimpleModeRestockNow();
+            const canSettle = isSimpleModeSettlementReady();
+            const restockHint = getSimpleModeRestockHintText();
             let stageText = '翻盲盒中';
             let rewardText = getSimpleModeRewardCopy('wish');
             let targetText = hasSimpleWishSelection()
@@ -477,6 +598,16 @@
                 stageText = '等待许愿';
                 rewardText = getSimpleModeRewardCopy('wish');
                 progressText = '0 / 1';
+            } else if (canSettle) {
+                stageText = '本轮待结算';
+                rewardText = `奖励 ${Math.max(0, Math.floor(Number(state.roundReward) || 0))}`;
+                targetText = '点击下方按钮完成本轮结算';
+                progressText = `${Math.max(0, Math.floor(Number(state.openedBlindBoxesThisRound) || 0))} 连开`;
+            } else if (state.selectionMode === 'none' && restockHint) {
+                stageText = canRestock ? '可补盒' : '等待消除';
+                rewardText = canRestock ? `补盒 ${Math.max(0, Math.floor(Number(state.restockPoolCount) || 0))}` : getSimpleModeRewardCopy('pair');
+                targetText = restockHint;
+                progressText = `${Math.max(0, Math.floor(Number(state.restockPoolCount) || 0))} 待补入`;
             } else if (state.selectionMode === 'full-set') {
                 stageText = '全家福机会';
                 rewardText = getSimpleModeRewardCopy('full-set');
@@ -517,7 +648,12 @@
             if (!simpleSlotMode || !elements.restockTrayBoxes) return;
             const emptyIndexes = updateSimpleModePlacementState();
             const restockCount = Math.max(0, Math.floor(Number(state.restockPoolCount) || 0));
-            const canFill = emptyIndexes.length > 0 && restockCount > 0 && !isRestockSequenceActive;
+            const canFill = canSimpleModeRestockNow();
+            const ariaLabel = canFill
+                ? '点击补齐所有盲盒'
+                : (restockCount > 0 && hasAnySimpleModeResolvableAction()
+                    ? '需先完成当前可消组合'
+                    : '当前没有可补的空格');
             const stableRows = Math.max(1, Math.ceil(restockCount / 5));
             const fragment = document.createDocumentFragment();
             elements.restockTrayBoxes.style.setProperty('--restock-tray-rows', String(stableRows));
@@ -534,7 +670,7 @@
                 button.classList.toggle('is-restock-locked', isRestockSequenceActive);
                 button.setAttribute('aria-hidden', 'false');
                 button.setAttribute('tabindex', canFill ? '0' : '-1');
-                button.setAttribute('aria-label', canFill ? '点击补齐所有盲盒' : '当前没有可补的空格');
+                button.setAttribute('aria-label', ariaLabel);
                 fragment.appendChild(button);
             }
             elements.restockTrayBoxes.replaceChildren(fragment);
@@ -551,6 +687,7 @@
             const selectedSet = new Set(state.selectedIndexes);
             const selectableSet = new Set(getSimpleModeSelectableIndexes());
             const isFullSetMode = state.selectionMode === 'full-set';
+            const canRestock = canSimpleModeRestockNow();
             state.gridCells.forEach((cell, index) => {
                 if (!cell) return;
                 cell.classList.remove('selected', 'selectable', 'full-set', 'disabled');
@@ -558,11 +695,14 @@
                     const plusButton = cell.querySelector('.cell-plus');
                     if (plusButton) {
                         helpers.positionSimpleModeCellPlusButton(cell, plusButton);
-                        const canPlace = state.restockPoolCount > 0 && !isRestockSequenceActive;
-                        plusButton.classList.toggle('disabled', !canPlace);
-                        plusButton.classList.toggle('is-ready', canPlace);
-                        plusButton.disabled = !canPlace;
-                        plusButton.setAttribute('aria-label', canPlace ? '补齐全部盲盒' : '暂无盲盒可补');
+                        plusButton.classList.toggle('disabled', !canRestock);
+                        plusButton.classList.toggle('is-ready', canRestock);
+                        plusButton.disabled = !canRestock;
+                        plusButton.hidden = false;
+                        plusButton.style.display = '';
+                        plusButton.setAttribute('aria-hidden', 'false');
+                        plusButton.setAttribute('aria-label', canRestock ? '点击后一键补满所有可补盲盒' : '当前无法补充盲盒');
+                        plusButton.tabIndex = canRestock ? 0 : -1;
                     }
                     return;
                 }
@@ -587,6 +727,7 @@
 
         function updateSimpleModeActionButtons() {
             if (!simpleSlotMode) return;
+            const primaryAction = getSimpleModePrimaryAction();
             const canReveal = hasSimpleWishSelection()
                 && !state.isGameOver
                 && !state.isBoardEntering
@@ -598,16 +739,22 @@
                 && state.selectionMode === 'none'
                 && state.selectedIndexes.length <= 0
                 && state.unrevealedIndices.length > 0;
+            const canSettle = primaryAction === 'settle';
+            const canRefill = primaryAction === 'refill';
             if (elements.cashoutBtn) {
                 elements.cashoutBtn.disabled = !canReveal;
             }
             if (elements.randomBtn) {
-                elements.randomBtn.disabled = !canReveal;
+                elements.randomBtn.disabled = !canReveal && !canSettle && !canRefill;
+            }
+            if (typeof globalScope.updatePrimaryActionButtonState === 'function') {
+                globalScope.updatePrimaryActionButtonState();
             }
         }
 
         function refreshSimpleModeUi() {
             if (!simpleSlotMode) return;
+            updateSimpleModeStatusPanel();
             renderSimpleModeRestockTray();
             refreshSimpleModeSelectionUi();
             updateSimpleModeActionButtons();
@@ -654,13 +801,13 @@
             if (!simpleSlotMode || !elements.customerPreferenceBlockDisplay) return;
             const symbolKey = hasSimpleWishSelection() ? state.wishSymbolKey : (symbolKeys[0] || 'S1');
             elements.customerPreferenceBlockDisplay.src = helpers.getNormalSymbolImage(symbolKey);
-            elements.customerPreferenceBlockDisplay.alt = `本局许愿积木 ${symbolKey}`;
+            elements.customerPreferenceBlockDisplay.alt = `本局许愿积木 ${getSimpleModeSymbolLabel(symbolKey)}`;
         }
 
         function canPlaceSimpleModeBlindBoxAt(index) {
             const safeIndex = Math.floor(Number(index));
             if (!Number.isFinite(safeIndex) || safeIndex < 0) return false;
-            if (state.restockPoolCount <= 0) return false;
+            if (!canSimpleModeRestockNow()) return false;
             return state.boardCellStates[safeIndex] === 'empty';
         }
 
@@ -679,7 +826,7 @@
 
         async function playSimpleModeRestockSequence() {
             if (!simpleSlotMode) return 0;
-            if (state.restockPoolCount <= 0) return 0;
+            if (!canSimpleModeRestockNow()) return 0;
             if (state.isGameOver || state.isBoardEntering || state.isAnimating || state.isSettling || state.isBonusGameActive || state.bonusGamePendingStart) {
                 return 0;
             }
@@ -948,6 +1095,7 @@
             renderSimpleModeRevealedCell(index, blockData);
 
             if (hasSimpleWishSelection() && blockData.normalKey === state.wishSymbolKey) {
+                state.wishHitCountThisRound = Math.max(0, Math.floor(Number(state.wishHitCountThisRound) || 0)) + 1;
                 rewardSimpleModeBlindBoxes(config.wishRewardBlindBoxes);
                 helpers.createFloatingText(center.x, center.y - 20, '许愿 +1盲盒');
             }
@@ -984,6 +1132,9 @@
             maybeResolveSimpleModeSelection,
             handleSimpleModeSelectionClick,
             applySimpleModeSafeReward,
+            isSimpleModeSettlementReady,
+            canSimpleModeRestockNow,
+            getSimpleModePrimaryAction,
             getWishOverlayElement() {
                 return slotWishOverlay;
             },

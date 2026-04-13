@@ -134,6 +134,23 @@
             });
         }
 
+        function isSimpleModeBoardEmpty() {
+            return getSimpleModeRevealedIndexes().length <= 0;
+        }
+
+        async function maybeRewardClearBoardBonus(center) {
+            const clearBoardReward = 5;
+            if (state.clearBoardBonusGrantedThisRound) return false;
+            if (!isSimpleModeBoardEmpty()) return false;
+            if (hasAnyResolvableAction()) return false;
+
+            state.clearBoardBonusGrantedThisRound = true;
+            rewardBlindBoxes(clearBoardReward);
+            helpers.createFloatingText(center.x, center.y - 56, `清台 +${clearBoardReward}盲盒`);
+            await helpers.waitMs(120);
+            return true;
+        }
+
         async function resolveSelection(match) {
             if (state.isSettling || !match || !Array.isArray(match.indexes) || match.indexes.length <= 0) {
                 return false;
@@ -157,7 +174,7 @@
                         ? `三连 +${match.rewardCount}盲盒`
                         : `对碰 +${match.rewardCount}盲盒`);
                 helpers.createFloatingText(center.x, center.y - 28, label);
-                if (match.type === 'full-set') {
+                if (match.type === 'full-set' && typeof helpers.createConfettiFireworks === 'function') {
                     helpers.createConfettiFireworks();
                 }
                 await helpers.waitMs(match.type === 'full-set' ? 320 : 260);
@@ -170,6 +187,7 @@
                 helpers.clearRealtimeSettlementHighlight(highlightedIndexes, state.gridCells);
                 clearMatchHighlight(match.indexes);
                 await helpers.waitMs(120);
+                await maybeRewardClearBoardBonus(center);
             } finally {
                 state.isSettling = false;
                 helpers.refreshSimpleModeUi();

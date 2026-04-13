@@ -39,7 +39,10 @@ function applyModeTexts() {
             cashoutBtn.textContent = '全部开箱';
         }
         if (randomBtn) {
-            randomBtn.textContent = '盲开一箱';
+            randomBtn.textContent = '结算';
+            randomBtn.dataset.simpleAction = 'settle';
+            randomBtn.hidden = true;
+            randomBtn.style.display = 'none';
         }
         return;
     }
@@ -54,17 +57,33 @@ function applyModeTexts() {
     }
     if (randomBtn) {
         randomBtn.textContent = '盲开一箱';
+        randomBtn.removeAttribute('data-simple-action');
+        randomBtn.hidden = false;
+        randomBtn.style.display = '';
     }
 }
 
 function updatePrimaryActionButtonState() {
     if (!randomBtn) return;
-    randomBtn.classList.toggle('is-auto-running', AUTO_OPEN_STATE.active);
-    randomBtn.setAttribute('aria-pressed', AUTO_OPEN_STATE.active ? 'true' : 'false');
+    const settlementReady = SIMPLE_SLOT_MODE
+        && typeof isSimpleModeReadyToSettle === 'function'
+        && isSimpleModeReadyToSettle();
     if (SIMPLE_SLOT_MODE) {
-        randomBtn.textContent = AUTO_OPEN_STATE.active ? '连开中…' : '盲开一箱';
+        randomBtn.classList.remove('is-auto-running', 'is-settlement-ready');
+        randomBtn.dataset.simpleAction = 'settle';
+        randomBtn.setAttribute('aria-pressed', 'false');
+        randomBtn.textContent = '结算';
+        randomBtn.hidden = !settlementReady;
+        randomBtn.style.display = settlementReady ? '' : 'none';
+        randomBtn.disabled = !settlementReady;
         return;
     }
+    randomBtn.removeAttribute('data-simple-action');
+    randomBtn.hidden = false;
+    randomBtn.style.display = '';
+    randomBtn.classList.toggle('is-auto-running', AUTO_OPEN_STATE.active && !settlementReady);
+    randomBtn.classList.toggle('is-settlement-ready', settlementReady);
+    randomBtn.setAttribute('aria-pressed', AUTO_OPEN_STATE.active && !settlementReady ? 'true' : 'false');
     randomBtn.textContent = AUTO_OPEN_STATE.active ? '自动开箱…' : '随机翻开';
 }
 
@@ -91,7 +110,11 @@ function renderCurrentCustomer() {
 function updateBombDisplay() {
     if (bombCountDisplay) {
         if (SIMPLE_SLOT_MODE) {
-            bombCountDisplay.textContent = '许愿+1 / 对碰+1 / 三连+2 / 全家福+2';
+            const wishReward = Math.max(0, Math.floor(Number(CONFIG.wishRewardBlindBoxes) || 0));
+            const pairReward = Math.max(0, Math.floor(Number(CONFIG.pairRewardBlindBoxes) || 0));
+            const tripleReward = Math.max(0, Math.floor(Number(CONFIG.tripleRewardBlindBoxes) || 0));
+            const fullSetReward = Math.max(0, Math.floor(Number(CONFIG.fullSetRewardBlindBoxes) || 0));
+            bombCountDisplay.textContent = `许愿+${wishReward} / 对碰+${pairReward} / 三连+${tripleReward} / 全家福+${fullSetReward}`;
             return;
         }
         bombCountDisplay.textContent = `${CONFIG.clusterPayout.minClusterSize}+`;
@@ -212,6 +235,7 @@ function updateSlotBackButtonVisibility() {
 
     const hasBlockingOverlay = Boolean(
         (modalOverlay && !modalOverlay.classList.contains('hidden'))
+        || (simpleSettlementOverlay && !simpleSettlementOverlay.classList.contains('hidden'))
         || (wishOverlay && !wishOverlay.classList.contains('hidden'))
         || (freeSpinTriggerOverlay && !freeSpinTriggerOverlay.classList.contains('hidden'))
         || (freeSpinResultOverlay && !freeSpinResultOverlay.classList.contains('hidden'))

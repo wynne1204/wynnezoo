@@ -12,7 +12,7 @@ window.APP_CONFIG = {
         normalSymbolKeys: ['S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10'],
         wishRewardBlindBoxes: 1,
         pairRewardBlindBoxes: 1,
-        tripleRewardBlindBoxes: 2,
+        tripleRewardBlindBoxes: 3,
         fullSetRewardBlindBoxes: 5,
         maxSelectableSameSymbolCount: 3,
         triplePriorityOverPair: true,

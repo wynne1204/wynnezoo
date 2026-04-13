@@ -39,6 +39,7 @@ function resetGridState(size) {
     STATE.pendingOpens = 0;
     STATE.revealedCount = 0;
     STATE.openedBlindBoxesThisRound = 0;
+    STATE.wishHitCountThisRound = 0;
     STATE.isBoardEntering = false;
     STATE.roundReward = 0;
     STATE.bonusDiamondReward = 0;
@@ -66,6 +67,8 @@ function resetGridState(size) {
         STATE.remainingBlindBoxes = safeSize;
         STATE.restockPoolCount = 0;
         STATE.queuedBlindBoxes = 0;
+        STATE.simpleSettlementPending = false;
+        STATE.clearBoardBonusGrantedThisRound = false;
         STATE.selectedIndexes = [];
         STATE.selectionMode = 'none';
         STATE.pendingPlacementIndexes = [];
@@ -236,6 +239,8 @@ function bindSimpleModeRestockTrayHandler() {
         if (!(target instanceof Element)) return;
         const trayBox = target.closest('.restock-tray-box');
         if (!trayBox || !restockTray.contains(trayBox)) return;
+        event.preventDefault();
+        event.stopPropagation();
         void playSimpleModeRestockSequence();
     });
 }

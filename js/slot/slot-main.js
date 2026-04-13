@@ -117,6 +117,7 @@ const MATCH_SETTLEMENT = (() => {
             highlightRealtimeSettlementEvent,
             clearRealtimeSettlementHighlight,
             createFloatingText,
+            createConfettiFireworks,
             waitMs,
             syncSimpleModeStockState() {
                 if (SIMPLE_MATCH_CORE) {
@@ -203,6 +204,7 @@ function clearCompletedRoundRuntime() {
     if (modalOverlay) {
         modalOverlay.classList.add('hidden');
     }
+    hideSimpleSettlementOverlay();
     updateSlotBackButtonVisibility();
 }
 
@@ -235,6 +237,9 @@ function stopAutoOpen({ clearButtonSuppression = true } = {}) {
 }
 
 function performPrimaryOpenAction() {
+    if (SIMPLE_SLOT_MODE && isSimpleModeReadyToSettle()) {
+        return showSimpleSettlementOverlay();
+    }
     if (randomBtn?.disabled) {
         return false;
     }
@@ -289,6 +294,7 @@ function startAutoOpen() {
 
 function scheduleAutoOpenFromLongPress() {
     clearAutoOpenHoldTimer();
+    if (SIMPLE_SLOT_MODE && getSimpleModePrimaryAction() !== 'open') return;
     if (!randomBtn || randomBtn.disabled || AUTO_OPEN_STATE.active) return;
     AUTO_OPEN_STATE.holdTimerId = window.setTimeout(() => {
         AUTO_OPEN_STATE.holdTimerId = null;
@@ -378,6 +384,34 @@ function triggerGlobalEffects(type) {
 
 function hasPendingSimpleModeMatches() {
     return hasAnySimpleModeResolvableAction();
+}
+
+function isSimpleModeReadyToSettle() {
+    return Boolean(
+        SIMPLE_SLOT_MODE
+        && SIMPLE_MATCH_CORE
+        && typeof SIMPLE_MATCH_CORE.isSimpleModeSettlementReady === 'function'
+        && SIMPLE_MATCH_CORE.isSimpleModeSettlementReady()
+    );
+}
+
+function isSimpleModeReadyToRefill() {
+    return Boolean(
+        SIMPLE_SLOT_MODE
+        && SIMPLE_MATCH_CORE
+        && typeof SIMPLE_MATCH_CORE.canSimpleModeRestockNow === 'function'
+        && SIMPLE_MATCH_CORE.canSimpleModeRestockNow()
+    );
+}
+
+function getSimpleModePrimaryAction() {
+    if (!SIMPLE_SLOT_MODE) return 'open';
+    if (SIMPLE_MATCH_CORE && typeof SIMPLE_MATCH_CORE.getSimpleModePrimaryAction === 'function') {
+        return SIMPLE_MATCH_CORE.getSimpleModePrimaryAction();
+    }
+    if (isSimpleModeReadyToSettle()) return 'settle';
+    if (isSimpleModeReadyToRefill()) return 'refill';
+    return 'open';
 }
 
 function updateSimpleBlindBoxCounterUi() {
@@ -616,6 +650,75 @@ function animateFreeSpinBoardEntrance() {
     }, totalMs);
 }
 
+function hideSimpleSettlementOverlay() {
+    if (!simpleSettlementOverlay) return;
+    simpleSettlementOverlay.classList.add('hidden');
+    simpleSettlementOverlay.classList.remove('is-visible');
+    simpleSettlementOverlay.removeAttribute('data-tier');
+    updateSlotBackButtonVisibility();
+}
+
+function getSimpleSettlementPresentation(openedCount, rewardCount) {
+    if (openedCount >= 9 || rewardCount >= 8) {
+        return {
+            tier: 'epic',
+            kicker: '这一轮拆得太顺了',
+            title: '盲盒风暴收官',
+            subtitle: '你把整轮节奏推到了高光区，下一轮继续冲更大的连锁。',
+            burst: '火力全开',
+            encore: `连续开启 ${openedCount} 个盲盒，一鼓作气拆到底，下一轮继续冲奖励。`
+        };
+    }
+    if (openedCount >= 6 || rewardCount >= 4) {
+        return {
+            tier: 'great',
+            kicker: '节奏已经完全起来了',
+            title: '这一轮拆得很漂亮',
+            subtitle: '稳稳收下本轮高光，继续开下一轮很容易再接一波。',
+            burst: '状态正热',
+            encore: `连续开启 ${openedCount} 个盲盒，这一轮已经把节奏带起来了，下一轮继续冲更强的组合。`
+        };
+    }
+    return {
+        tier: 'warm',
+        kicker: '这轮已经顺利拆完',
+        title: '盲盒节奏稳稳收下',
+        subtitle: '把这次连开成绩记下来，下一轮继续找对碰和三连。',
+        burst: '继续加速',
+        encore: `连续开启 ${openedCount} 个盲盒，下一轮更有机会打出漂亮连锁。`
+    };
+}
+
+function showSimpleSettlementOverlay() {
+    if (!SIMPLE_SLOT_MODE || !simpleSettlementOverlay || !isSimpleModeReadyToSettle()) {
+        return false;
+    }
+
+    stopAutoOpen();
+
+    const openedCount = Math.max(0, Math.floor(Number(STATE.openedBlindBoxesThisRound) || 0));
+    const wishHitCount = Math.max(0, Math.floor(Number(STATE.wishHitCountThisRound) || 0));
+    const rewardCount = Math.max(0, Math.floor(Number(STATE.roundReward) || 0));
+    const presentation = getSimpleSettlementPresentation(openedCount, rewardCount);
+
+    if (simpleSettlementKicker) simpleSettlementKicker.textContent = presentation.kicker;
+    if (simpleSettlementTitle) simpleSettlementTitle.textContent = presentation.title;
+    if (simpleSettlementSubtitle) simpleSettlementSubtitle.textContent = presentation.subtitle;
+    if (simpleSettlementOpenedCount) simpleSettlementOpenedCount.textContent = String(openedCount);
+    if (simpleSettlementBurst) simpleSettlementBurst.textContent = presentation.burst;
+    if (simpleSettlementReward) simpleSettlementReward.textContent = String(rewardCount);
+    if (simpleSettlementEncore) simpleSettlementEncore.textContent = presentation.encore;
+    if (simpleSettlementWishHits) simpleSettlementWishHits.textContent = `本轮开出许愿积木 ${wishHitCount} 次`;
+
+    simpleSettlementOverlay.dataset.tier = presentation.tier;
+    simpleSettlementOverlay.classList.remove('hidden');
+    simpleSettlementOverlay.classList.remove('is-visible');
+    void simpleSettlementOverlay.offsetWidth;
+    simpleSettlementOverlay.classList.add('is-visible');
+    updateSlotBackButtonVisibility();
+    return true;
+}
+
 function scheduleNextRoundTransition(delayMs = 220) {
     if (nextRoundTimerId !== null) {
         clearTimeout(nextRoundTimerId);
@@ -624,9 +727,11 @@ function scheduleNextRoundTransition(delayMs = 220) {
 
     STATE.isGameOver = true;
     STATE.isBoardEntering = false;
+    STATE.simpleSettlementPending = false;
     if (cashoutBtn) cashoutBtn.disabled = true;
     if (randomBtn) randomBtn.disabled = true;
     modalOverlay.classList.add('hidden');
+    hideSimpleSettlementOverlay();
     applyRoundRewardsToZooEconomy();
 
     nextRoundTimerId = window.setTimeout(() => {
@@ -668,13 +773,15 @@ function scheduleNextRoundTransition(delayMs = 220) {
 
 function handleAllBoxesOpened() {
     if (SIMPLE_SLOT_MODE) {
-        if (STATE.pendingOpens > 0 || STATE.isSettling) return false;
-        if (STATE.remainingBlindBoxes > 0) return false;
-        if (STATE.unrevealedIndices.length > 0) return false;
-        if (STATE.restockPoolCount > 0) return false;
-        if (STATE.selectedIndexes.length > 0 || STATE.selectionMode !== 'none') return false;
-        if (hasAnySimpleModeResolvableAction()) return false;
-        scheduleNextRoundTransition();
+        if (!isSimpleModeReadyToSettle()) return false;
+        if (STATE.simpleSettlementPending) return false;
+        STATE.simpleSettlementPending = true;
+        stopAutoOpen();
+        clearAutoOpenHoldTimer();
+        if (cashoutBtn) cashoutBtn.disabled = true;
+        if (randomBtn) randomBtn.disabled = false;
+        updatePrimaryActionButtonState();
+        refreshSimpleModeUi();
         return true;
     }
     if (STATE.pendingOpens > 0 || STATE.unrevealedIndices.length > 0) return false;
@@ -743,6 +850,7 @@ function initGame() {
     }
     updatePrimaryActionButtonState();
     modalOverlay.classList.add('hidden');
+    hideSimpleSettlementOverlay();
     updateSlotBackButtonVisibility();
 
     // Create Grid UI
@@ -1235,6 +1343,7 @@ function leaveSlotGameView() {
     SLOT_GAME_RUNTIME.viewActive = false;
     clearAutoOpenHoldTimer();
     stopAutoOpen();
+    hideSimpleSettlementOverlay();
     if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
     }
@@ -1268,6 +1377,7 @@ function getSlotGameSnapshot() {
         restockPoolCount: Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0)),
         queuedBlindBoxes: Math.max(0, Math.floor(Number(STATE.restockPoolCount) || 0)),
         wishSymbolKey: hasSimpleWishSelection() ? STATE.wishSymbolKey : null,
+        isManualSettlementReady: isSimpleModeReadyToSettle(),
         selectionMode: STATE.selectionMode,
         selectedIndexes: Array.isArray(STATE.selectedIndexes) ? STATE.selectedIndexes.slice() : []
     };
@@ -1320,6 +1430,9 @@ if (modalRestartBtn) {
             appShell.showZooHome();
         }
     });
+}
+if (simpleSettlementNextBtn) {
+    simpleSettlementNextBtn.addEventListener('click', () => scheduleNextRoundTransition(0));
 }
 if (bonusSpinBtn) {
     bonusSpinBtn.addEventListener('click', runBonusSpin);

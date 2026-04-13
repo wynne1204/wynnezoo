@@ -317,44 +317,44 @@
                         <p id="slot-wish-subtitle" class="slot-wish-subtitle">选中它就立即+1盲盒</p>
                         <div id="slot-wish-options" class="slot-wish-options">
                             <button type="button" class="slot-wish-option" data-symbol-key="S1">
-                                <img src="./Texture/BlockImg/Block_1.webp" alt="S1">
-                                <span>S1</span>
+                                <img src="./Texture/BlockImg/Block_1.webp" alt="大象">
+                                <span>大象</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S2">
-                                <img src="./Texture/BlockImg/Block_2.webp" alt="S2">
-                                <span>S2</span>
+                                <img src="./Texture/BlockImg/Block_2.webp" alt="斑马">
+                                <span>斑马</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S3">
-                                <img src="./Texture/BlockImg/Block_3.webp" alt="S3">
-                                <span>S3</span>
+                                <img src="./Texture/BlockImg/Block_3.webp" alt="熊猫">
+                                <span>熊猫</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S4">
-                                <img src="./Texture/BlockImg/Block_4.webp" alt="S4">
-                                <span>S4</span>
+                                <img src="./Texture/BlockImg/Block_4.webp" alt="小熊猫">
+                                <span>小熊猫</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S5">
-                                <img src="./Texture/BlockImg/Block_5.webp" alt="S5">
-                                <span>S5</span>
+                                <img src="./Texture/BlockImg/Block_5.webp" alt="狮子">
+                                <span>狮子</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S6">
-                                <img src="./Texture/BlockImg/Block_6.webp" alt="S6">
-                                <span>S6</span>
+                                <img src="./Texture/BlockImg/Block_6.webp" alt="老虎">
+                                <span>老虎</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S7">
-                                <img src="./Texture/BlockImg/Block_7.webp" alt="S7">
-                                <span>S7</span>
+                                <img src="./Texture/BlockImg/Block_7.webp" alt="长颈鹿">
+                                <span>长颈鹿</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S8">
-                                <img src="./Texture/BlockImg/Block_8.webp" alt="S8">
-                                <span>S8</span>
+                                <img src="./Texture/BlockImg/Block_8.webp" alt="猴子">
+                                <span>猴子</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S9">
-                                <img src="./Texture/BlockImg/Block_9.webp" alt="S9">
-                                <span>S9</span>
+                                <img src="./Texture/BlockImg/Block_9.webp" alt="绵羊">
+                                <span>绵羊</span>
                             </button>
                             <button type="button" class="slot-wish-option" data-symbol-key="S10">
-                                <img src="./Texture/BlockImg/Block_10.webp" alt="S10">
-                                <span>S10</span>
+                                <img src="./Texture/BlockImg/Block_10.webp" alt="企鹅">
+                                <span>企鹅</span>
                             </button>
                         </div>
                     </div>
@@ -554,6 +554,45 @@
                         </div>
                         <div class="modal-footer">
                             <button id="modal-restart-btn" class="btn btn-primary full-width" type="button">&#x518D;&#x6765;&#x4E00;&#x5C40;</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="simple-settlement-overlay" class="simple-settlement-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="simple-settlement-title">
+                    <div class="simple-settlement-shell">
+                        <div class="simple-settlement-glow" aria-hidden="true"></div>
+                        <div class="simple-settlement-orbit orbit-left" aria-hidden="true"></div>
+                        <div class="simple-settlement-orbit orbit-right" aria-hidden="true"></div>
+                        <div class="simple-settlement-ribbon">本轮结算</div>
+                        <div class="simple-settlement-stage">
+                            <p id="simple-settlement-kicker" class="simple-settlement-kicker">这一轮拆得太顺了</p>
+                            <h2 id="simple-settlement-title" class="simple-settlement-title">盲盒风暴收官</h2>
+                            <p id="simple-settlement-subtitle" class="simple-settlement-subtitle">把这一轮的高光时刻收下，下一轮继续冲更大的连锁。</p>
+
+                            <div class="simple-settlement-hero">
+                                <div class="simple-settlement-medal" aria-hidden="true"></div>
+                                <div class="simple-settlement-count-wrap">
+                                    <span class="simple-settlement-count-label">连续开启</span>
+                                    <strong id="simple-settlement-opened-count" class="simple-settlement-count">9</strong>
+                                    <span class="simple-settlement-count-unit">个盲盒</span>
+                                </div>
+                                <div id="simple-settlement-burst" class="simple-settlement-burst">火力全开</div>
+                            </div>
+
+                            <div class="simple-settlement-stats">
+                                <article class="simple-settlement-stat">
+                                    <span class="simple-settlement-stat-label">本轮补进奖励</span>
+                                    <strong id="simple-settlement-reward" class="simple-settlement-stat-value">0</strong>
+                                    <span class="simple-settlement-stat-unit">盲盒</span>
+                                </article>
+                            </div>
+
+                            <p id="simple-settlement-encore" class="simple-settlement-encore">节奏已经热起来了，下一轮继续冲。</p>
+                            <p id="simple-settlement-wish-hits" class="simple-settlement-bottom-info">本轮开出许愿积木 0 次</p>
+                        </div>
+
+                        <div class="simple-settlement-footer">
+                            <button id="simple-settlement-next-btn" class="simple-settlement-next-btn" type="button">开启下一轮</button>
                         </div>
                     </div>
                 </div>
