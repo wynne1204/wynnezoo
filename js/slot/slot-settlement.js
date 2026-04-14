@@ -35,11 +35,13 @@ function highlightRealtimeSettlementEvent(event, cells) {
     const gridCells = cells || STATE.gridCells;
     if (!event || !Array.isArray(gridCells) || gridCells.length === 0) return [];
     const indexes = Array.from(new Set(event.indexes || []));
+    const isPair = Boolean(event.pair);
 
     indexes.forEach((index) => {
         const cell = gridCells[index];
         if (!cell) return;
         cell.classList.add('win-cluster');
+        cell.classList.toggle('win-pair', isPair);
         if (event.jackpot) {
             cell.classList.add('win-jackpot');
         } else {
@@ -49,16 +51,16 @@ function highlightRealtimeSettlementEvent(event, cells) {
 
         const highlightTarget = cell.querySelector('.safe-open-box-frame') || cell.querySelector('.free-spin-reward-grid');
         if (highlightTarget) {
-            highlightTarget.classList.remove('settle-enlarge-glow');
+            highlightTarget.classList.remove('settle-enlarge-glow', 'settle-enlarge-glow-pair');
             void highlightTarget.offsetWidth;
-            highlightTarget.classList.add('settle-enlarge-glow');
+            highlightTarget.classList.add(isPair ? 'settle-enlarge-glow-pair' : 'settle-enlarge-glow');
         }
 
         const badge = cell.querySelector('.sticky-wild-round-badge');
         if (badge) {
-            badge.classList.remove('settle-enlarge-glow');
+            badge.classList.remove('settle-enlarge-glow', 'settle-enlarge-glow-pair');
             void badge.offsetWidth;
-            badge.classList.add('settle-enlarge-glow');
+            badge.classList.add(isPair ? 'settle-enlarge-glow-pair' : 'settle-enlarge-glow');
         }
     });
 
@@ -72,17 +74,17 @@ function clearRealtimeSettlementHighlight(indexes, cells) {
     indexes.forEach((index) => {
         const cell = gridCells[index];
         if (!cell) return;
-        cell.classList.remove('win-cluster', 'win-jackpot');
+        cell.classList.remove('win-cluster', 'win-jackpot', 'win-pair');
         cell.style.zIndex = '';
 
         const highlightTarget = cell.querySelector('.safe-open-box-frame') || cell.querySelector('.free-spin-reward-grid');
         if (highlightTarget) {
-            highlightTarget.classList.remove('settle-enlarge-glow');
+            highlightTarget.classList.remove('settle-enlarge-glow', 'settle-enlarge-glow-pair');
         }
 
         const badge = cell.querySelector('.sticky-wild-round-badge');
         if (badge) {
-            badge.classList.remove('settle-enlarge-glow');
+            badge.classList.remove('settle-enlarge-glow', 'settle-enlarge-glow-pair');
         }
     });
 }

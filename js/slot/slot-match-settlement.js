@@ -165,7 +165,8 @@
                 const center = getMatchCenter(match.indexes);
                 const highlightedIndexes = helpers.highlightRealtimeSettlementEvent({
                     indexes: match.indexes,
-                    jackpot: match.type !== 'pair'
+                    jackpot: match.type !== 'pair',
+                    pair: match.type === 'pair'
                 }, state.gridCells);
 
                 const label = match.type === 'full-set'
