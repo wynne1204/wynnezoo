@@ -226,28 +226,35 @@ function playSimpleModeRestockFlight(sourceElement, targetCell, {
 
         const animation = animateUiElement(flyEl, [
             {
-                transform: 'translate(-50%, -50%) translate(0px, -8px) scale(1.08)',
+                transform: 'translate(-50%, -50%) translate(0px, -6px) scale(1.05)',
                 opacity: 1,
                 filter: 'none'
             },
             {
-                transform: `translate(-50%, -50%) translate(${(deltaX * 0.46).toFixed(2)}px, ${(deltaY * 0.46 - 14).toFixed(2)}px) scale(1.02)`,
+                transform: `translate(-50%, -50%) translate(${(deltaX * 0.55).toFixed(2)}px, ${(deltaY * 0.55 - 10).toFixed(2)}px) scale(1.01)`,
                 opacity: 1,
                 filter: 'none',
-                offset: 0.42
+                offset: 0.45
             },
             {
-                transform: `translate(-50%, -50%) translate(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px) scale(0.94)`,
-                opacity: 0.98,
+                transform: `translate(-50%, -50%) translate(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px) scale(0.96)`,
+                opacity: 1,
                 filter: 'none'
             }
         ], {
             duration: Math.max(120, Math.floor(Number(durationMs) || SIMPLE_RESTOCK_FLIGHT_MS)),
-            easing: 'cubic-bezier(0.18, 0.84, 0.22, 1)',
+            easing: 'cubic-bezier(0.12, 0.9, 0.2, 1)',
             fill: 'forwards'
         });
 
         const finish = () => {
+            const targetBoxImg = targetCell ? targetCell.querySelector('.grid-cell-box-img') : null;
+            if (targetBoxImg) {
+                if (typeof GRID_BOX_UNOPEN_IMAGE_SRC === 'string') {
+                    targetBoxImg.src = GRID_BOX_UNOPEN_IMAGE_SRC;
+                }
+                targetBoxImg.style.display = '';
+            }
             flyEl.remove();
             resolve();
         };
@@ -264,10 +271,24 @@ function playSimpleModeRestockFlight(sourceElement, targetCell, {
 function playSimpleModeRestockLandingFeedback(cell) {
     if (!cell) return;
     const boxImg = cell.querySelector('.grid-cell-box-img');
-    if (boxImg) {
-        restartCssClassAnimation(boxImg, 'restock-land-hit');
-        clearCssClassAnimation(boxImg, 'restock-land-hit', 320);
-    }
+    if (!boxImg) return;
+
+    // 读取 boxImg 的默认 translate 偏移，保持落地动画的位置一致
+    const style = getComputedStyle(boxImg);
+    const baseTransform = style.transform && style.transform !== 'none'
+        ? style.transform
+        : 'translate(-50%, 0px)';
+
+    // 用 Web Animations API 直接驱动，避免 CSS class 切换的 reflow 卡顿
+    animateUiElement(boxImg, [
+        { transform: baseTransform + ' scale(0.96)', offset: 0 },
+        { transform: baseTransform + ' scale(1.03)', offset: 0.55 },
+        { transform: baseTransform + ' scale(1)',    offset: 1 }
+    ], {
+        duration: 220,
+        easing: 'cubic-bezier(0.34, 1.4, 0.64, 1)',
+        fill: 'none'
+    });
 }
 
 function positionImageToGridBoxCenter(cell, img) {

@@ -315,13 +315,18 @@ function resetGridCellElement(cell, index) {
     cell.className = 'grid-cell';
     cell.dataset.index = String(index);
     applyGridCellLayoutVars(cell, index, STATE.gridCells.length || CONFIG.gridSize);
-    // 保留箱子图片元素，清除其他子元素
+    // 保留箱子图片元素，清除其他子元素（避免 textContent='' 导致闪烁）
     const existingBoxImg = cell.querySelector('.grid-cell-box-img');
-    cell.textContent = '';
+    // 先移除非 boxImg 的子元素，保留 boxImg 不被销毁
+    const children = Array.from(cell.childNodes);
+    for (let i = children.length - 1; i >= 0; i--) {
+        if (children[i] !== existingBoxImg) {
+            cell.removeChild(children[i]);
+        }
+    }
     if (existingBoxImg) {
         existingBoxImg.src = GRID_BOX_UNOPEN_IMAGE_SRC;
         existingBoxImg.style.display = '';
-        cell.appendChild(existingBoxImg);
     } else {
         const boxImg = document.createElement('img');
         boxImg.className = 'grid-cell-box-img';

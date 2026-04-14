@@ -38,8 +38,8 @@
             tripleLines.push([2, 4, 6]);
         }
         // If gridSize is not 9 (3x3), tripleLines will be empty and triple matching is disabled
-        const SIMPLE_RESTOCK_FLIGHT_MS = 240;
-        const SIMPLE_RESTOCK_STAGGER_MS = 70;
+        const SIMPLE_RESTOCK_FLIGHT_MS = 320;
+        const SIMPLE_RESTOCK_STAGGER_MS = 50;
 
         let slotWishOverlay = elements.slotWishOverlay || null;
         let slotWishOptions = elements.slotWishOptions || null;
@@ -912,9 +912,6 @@
                     setSimpleModeCellSealed(targetIndex);
                     state.restockPoolCount = Math.max(0, state.restockPoolCount - 1);
                     syncSimpleModeStockState();
-                    if (typeof helpers.updateStats === 'function') {
-                        helpers.updateStats();
-                    }
                     if (typeof helpers.playSimpleModeRestockLandingFeedback === 'function') {
                         helpers.playSimpleModeRestockLandingFeedback(targetCell);
                     }
