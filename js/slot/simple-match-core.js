@@ -991,7 +991,7 @@
                 if (match.type === 'full-set') {
                     helpers.createConfettiFireworks();
                 }
-                await helpers.waitMs(match.type === 'full-set' ? 320 : 260);
+                await helpers.waitMs(match.type === 'full-set' ? 500 : 450);
                 clearSimpleModeSelectionState();
                 match.indexes.forEach((resolvedIndex) => {
                     setSimpleModeCellEmpty(resolvedIndex);

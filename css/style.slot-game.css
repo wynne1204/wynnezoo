@@ -2210,57 +2210,106 @@
     0% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
-            calc(-50% + var(--grid-cell-overlap-y-offset, 0px))
-        ) scale(1);
+            calc(-50% + var(--grid-cell-overlap-y-offset, -10px))
+        ) scale(1.15);
         filter:
-            brightness(1.04)
-            drop-shadow(0 0 8px rgba(255, 223, 156, 0.26))
-            drop-shadow(0 8px 12px rgba(106, 53, 22, 0.12));
+            brightness(1.15)
+            drop-shadow(0 0 16px rgba(255, 216, 136, 0.8));
+        opacity: 1;
     }
-    28% {
+    20% {
+        transform: translate(
+            calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
+            calc(-50% + var(--grid-cell-overlap-y-offset, -25px))
+        ) scale(1.4) rotate(-5deg);
+        filter:
+            brightness(1.6)
+            drop-shadow(0 0 30px rgba(255, 215, 102, 1))
+            drop-shadow(0 0 15px #fff);
+        opacity: 1;
+    }
+    40% {
+        transform: translate(
+            calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
+            calc(-50% + var(--grid-cell-overlap-y-offset, -15px))
+        ) scale(1.25) rotate(4deg);
+        filter:
+            brightness(1.4)
+            drop-shadow(0 0 25px rgba(255, 215, 102, 0.9));
+        opacity: 1;
+    }
+    60% {
+        transform: translate(
+            calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
+            calc(-50% + var(--grid-cell-overlap-y-offset, -5px))
+        ) scale(1.1) rotate(-2deg);
+        filter:
+            brightness(1.2)
+            drop-shadow(0 0 15px rgba(255, 215, 102, 0.6));
+        opacity: 1;
+    }
+    80% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             calc(-50% + var(--grid-cell-overlap-y-offset, 0px))
-        ) scale(1.35);
+        ) scale(1.05) rotate(0deg);
         filter:
-            brightness(1.14)
-            drop-shadow(0 0 16px rgba(255, 215, 102, 0.92))
-            drop-shadow(0 0 7px rgba(255, 255, 255, 0.62));
-    }
-    58% {
-        transform: translate(
-            calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
-            calc(-50% + var(--grid-cell-overlap-y-offset, 0px))
-        ) scale(1.22);
-        filter:
-            brightness(1.11)
-            drop-shadow(0 0 13px rgba(255, 215, 102, 0.72))
-            drop-shadow(0 0 5px rgba(255, 255, 255, 0.4));
-    }
-    82% {
-        transform: translate(
-            calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
-            calc(-50% + var(--grid-cell-overlap-y-offset, 0px))
-        ) scale(1.06);
-        filter:
-            brightness(1.07)
-            drop-shadow(0 0 10px rgba(255, 220, 132, 0.42))
-            drop-shadow(0 0 4px rgba(255, 255, 255, 0.24));
+            brightness(1.1)
+            drop-shadow(0 0 10px rgba(255, 215, 102, 0.4));
+        opacity: 1;
     }
     100% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             calc(-50% + var(--grid-cell-overlap-y-offset, 0px))
-        ) scale(1);
+        ) scale(0);
         filter:
-            brightness(1.04)
-            drop-shadow(0 0 8px rgba(255, 223, 156, 0.22))
+            brightness(1)
             drop-shadow(0 8px 12px rgba(106, 53, 22, 0.12));
+        opacity: 0;
     }
 }
 
 .settle-enlarge-glow {
-    animation: settle-enlarge-glow-anim 620ms cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+    animation: settle-enlarge-glow-anim 450ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+}
+
+.grid-cell.win-cluster::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 250%; height: 250%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,215,102,0.8) 30%, rgba(255,150,50,0.4) 50%, transparent 70%);
+    z-index: -1;
+    pointer-events: none;
+    animation: win-cluster-flash 450ms ease-out forwards;
+    display: block !important;
+}
+
+@keyframes win-cluster-flash {
+    0% { transform: translate(-50%, -50%) scale(0.2); opacity: 1; }
+    30% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.grid-cell.win-cluster::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 150%; height: 150%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 60%);
+    z-index: 10;
+    pointer-events: none;
+    animation: win-cluster-white-flash 450ms ease-out forwards;
+    display: block !important;
+}
+
+@keyframes win-cluster-white-flash {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
 }
 
 .slot-legacy-anchor.is-hidden {
