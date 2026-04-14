@@ -958,10 +958,18 @@ function handleFreeSpinCellClick(itemId) {
     });
 }
 
-function openAllFreeSpinBoxes() {
+function openAllFreeSpinBoxes(preferredItemId = null) {
     if (!FREE_SPIN_STATE.active || FREE_SPIN_STATE.isEntering || FREE_SPIN_STATE.isSettling || FREE_SPIN_STATE.isTransitioning || isFreeSpinBlockedByBonusState()) return;
     const pendingItems = getUnrevealedFreeSpinItems();
     if (pendingItems.length === 0) return;
+    const preferredId = preferredItemId == null ? '' : String(preferredItemId);
+    if (preferredId) {
+        const preferredPos = pendingItems.findIndex((item) => item && item.id === preferredId);
+        if (preferredPos > 0) {
+            const [preferredItem] = pendingItems.splice(preferredPos, 1);
+            pendingItems.unshift(preferredItem);
+        }
+    }
     void (async () => {
         for (let index = 0; index < pendingItems.length; index++) {
             await handleFreeSpinCellClick(pendingItems[index].id);

@@ -228,18 +228,18 @@ function playSimpleModeRestockFlight(sourceElement, targetCell, {
             {
                 transform: 'translate(-50%, -50%) translate(0px, -8px) scale(1.08)',
                 opacity: 1,
-                filter: 'brightness(1.03) drop-shadow(0 10px 16px rgba(133, 75, 18, 0.28))'
+                filter: 'none'
             },
             {
                 transform: `translate(-50%, -50%) translate(${(deltaX * 0.46).toFixed(2)}px, ${(deltaY * 0.46 - 14).toFixed(2)}px) scale(1.02)`,
                 opacity: 1,
-                filter: 'brightness(1.08) drop-shadow(0 14px 20px rgba(133, 75, 18, 0.32))',
+                filter: 'none',
                 offset: 0.42
             },
             {
                 transform: `translate(-50%, -50%) translate(${deltaX.toFixed(2)}px, ${deltaY.toFixed(2)}px) scale(0.94)`,
                 opacity: 0.98,
-                filter: 'brightness(1.02) drop-shadow(0 8px 12px rgba(133, 75, 18, 0.22))'
+                filter: 'none'
             }
         ], {
             duration: Math.max(120, Math.floor(Number(durationMs) || SIMPLE_RESTOCK_FLIGHT_MS)),

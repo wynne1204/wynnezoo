@@ -208,7 +208,9 @@ function bindGridBoardClickHandler() {
             if (!freeSpinCell || !gridBoard.contains(freeSpinCell)) return;
             const itemId = String(freeSpinCell.dataset.itemId || '');
             if (!itemId) return;
-            handleFreeSpinCellClick(itemId);
+            const item = FREE_SPIN_STATE.itemMap.get(itemId);
+            if (!item || item.revealed) return;
+            openAllFreeSpinBoxes(itemId);
             return;
         }
 
@@ -226,6 +228,24 @@ function bindGridBoardClickHandler() {
         if (!cell || !gridBoard.contains(cell)) return;
         const rawIndex = Number(cell.dataset.index);
         if (!Number.isFinite(rawIndex)) return;
+
+        if (SIMPLE_SLOT_MODE) {
+            if (STATE.boardCellStates[rawIndex] === 'revealed') {
+                handleCellClick(rawIndex);
+                return;
+            }
+            if (STATE.selectionMode !== 'none' || STATE.selectedIndexes.length > 0 || STATE.boardCellStates[rawIndex] !== 'sealed') {
+                handleCellClick(rawIndex);
+                return;
+            }
+            openAllBoxes(rawIndex);
+            return;
+        }
+
+        if (!STATE.revealed[rawIndex]) {
+            openAllBoxes(rawIndex);
+            return;
+        }
         handleCellClick(rawIndex);
     });
     isGridBoardClickBound = true;

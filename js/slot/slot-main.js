@@ -1184,18 +1184,26 @@ function endGame(result) {
     }, CONFIG.modalDelayMs);
 }
 
-function openAllBoxes() {
+function openAllBoxes(preferredIndex = null) {
     if (SIMPLE_SLOT_MODE && !hasSimpleWishSelection()) {
         showSimpleWishOverlay();
         return;
     }
     if (FREE_SPIN_STATE.active) {
-        openAllFreeSpinBoxes();
+        openAllFreeSpinBoxes(preferredIndex);
         return;
     }
     if (STATE.isGameOver || STATE.isBoardEntering || STATE.isAnimating || STATE.isSettling || STATE.isBonusGameActive || STATE.bonusGamePendingStart) return;
     const pending = STATE.unrevealedIndices.slice();
     if (pending.length === 0) return;
+    const safePreferredIndex = Math.floor(Number(preferredIndex));
+    if (Number.isFinite(safePreferredIndex)) {
+        const preferredPos = pending.indexOf(safePreferredIndex);
+        if (preferredPos > 0) {
+            pending.splice(preferredPos, 1);
+            pending.unshift(safePreferredIndex);
+        }
+    }
     pending.forEach((index, order) => {
         setTimeout(() => {
             handleCellClick(index, true);

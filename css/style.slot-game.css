@@ -1384,6 +1384,11 @@
 .restock-tray.is-restock-sequence {
     pointer-events: none;
 }
+.restock-tray.is-restock-sequence .restock-tray-box,
+.restock-tray.is-restock-sequence .restock-tray-box:hover,
+.restock-tray-box.is-source-flying {
+    filter: none !important;
+}
 .restock-tray-box.is-source-flying {
     opacity: 0;
     transform: translateY(-14px) scale(0.84);
@@ -1395,7 +1400,7 @@
     z-index: 120;
     pointer-events: none;
     will-change: transform, opacity, filter;
-    filter: drop-shadow(0 12px 18px rgba(133, 75, 18, 0.26));
+    filter: none;
 }
 .restock-tray-note {
     margin-top: 0.32rem;
@@ -1567,28 +1572,24 @@
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             var(--grid-cell-overlap-y-offset, 0px)
         ) scale(1);
-        filter: brightness(1);
     }
     36% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             var(--grid-cell-overlap-y-offset, 0px)
         ) scale(0.94);
-        filter: brightness(1.14) drop-shadow(0 0 14px rgba(255, 211, 135, 0.7));
     }
     72% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             var(--grid-cell-overlap-y-offset, 0px)
         ) scale(1.07);
-        filter: brightness(1.06) drop-shadow(0 0 10px rgba(255, 226, 169, 0.48));
     }
     100% {
         transform: translate(
             calc(-50% + var(--grid-cell-overlap-x-offset, 0px)),
             var(--grid-cell-overlap-y-offset, 0px)
         ) scale(1);
-        filter: brightness(1);
     }
 }
 
