@@ -493,6 +493,7 @@
             if (!simpleSlotMode) return false;
             if (state.restockPoolCount <= 0 || isRestockSequenceActive) return false;
             if (state.selectionMode !== 'none' || state.selectedIndexes.length > 0) return false;
+            if (state.pendingOpens > 0) return false;
             if (state.isGameOver || state.isBoardEntering || state.isAnimating || state.isSettling || state.isBonusGameActive || state.bonusGamePendingStart) {
                 return false;
             }

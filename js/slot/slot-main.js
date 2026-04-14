@@ -895,6 +895,7 @@ function handleCellClick(index, isAuto = false) {
     if (!cell) return;
     const openCenter = getGridCellBoxCenterInViewport(cell);
     markCellAsRevealed(index);
+    STATE.pendingOpens++;
     if (SIMPLE_SLOT_MODE) {
         STATE.remainingBlindBoxes = Math.max(0, STATE.remainingBlindBoxes - 1);
         STATE.openedBlindBoxesThisRound += 1;
@@ -902,7 +903,6 @@ function handleCellClick(index, isAuto = false) {
         STATE.boardResolvedFlags[index] = 0;
         refreshSimpleModeUi();
     }
-    STATE.pendingOpens++;
     if (cashoutBtn) cashoutBtn.disabled = true;
     if (randomBtn) randomBtn.disabled = true;
 

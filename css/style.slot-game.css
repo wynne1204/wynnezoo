@@ -1219,9 +1219,9 @@
 
 .restock-tray {
     --restock-tray-base-transform: translate(-50%, var(--restock-tray-offset-y, 55px));
-    --restock-tray-box-size: 6.9rem;
-    --restock-tray-step-x: 4.12rem;
-    --restock-tray-step-y: 5.2rem;
+    --restock-tray-box-size: 110px;
+    --restock-tray-step-x: 66px;
+    --restock-tray-step-y: 83px;
     position: absolute;
     left: 50%;
     top: calc(100% + var(--restock-tray-top, -22%));
@@ -1931,7 +1931,7 @@
    Panel-relative: left 18.80%, top 77.85%, w 63.59%, h 21.94% */
 #random-btn {
     left: 18.80%;
-    top: calc(77.85% - 90px);
+    top: calc(77.85% - 110px);
     width: 63.59%;
     height: 21.94%;
     background-image: url('../Texture/UI/NewSlot/btn_open.png');
