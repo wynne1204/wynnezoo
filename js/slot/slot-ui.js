@@ -207,14 +207,76 @@ function getSimpleModeOpenedBlindBoxesCount() {
     return Math.max(0, Math.floor(Number(STATE.openedBlindBoxesThisRound) || 0));
 }
 
+let lastOpenedBlindBoxesCount = 0;
+
+function playJuicyComboAnimation(count) {
+    if (!multiOpenCountDisplay) return;
+    
+    const banner = document.getElementById('multi-open-banner');
+    if (!banner) return;
+
+    // 更新数字
+    multiOpenCountDisplay.textContent = String(count);
+
+    if (count === 0) {
+        banner.classList.remove('combo-anim-pop', 'combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
+        return;
+    }
+
+    // 移除旧的动画类以便重新触发
+    banner.classList.remove('combo-anim-pop');
+    void banner.offsetWidth; // 触发重绘
+    banner.classList.add('combo-anim-pop');
+
+    // 移除旧的阶段类
+    banner.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
+
+    // 根据连击数决定阶段
+    let shakeClass = '';
+    if (count >= 20) {
+        banner.classList.add('combo-tier-4');
+        shakeClass = 'shake-heavy';
+    } else if (count >= 10) {
+        banner.classList.add('combo-tier-3');
+        shakeClass = 'shake-medium';
+    } else if (count >= 5) {
+        banner.classList.add('combo-tier-2');
+        shakeClass = 'shake-light';
+    } else if (count >= 2) {
+        banner.classList.add('combo-tier-1');
+    }
+
+    // 屏幕震动 (作用于整个游戏容器)
+    if (shakeClass) {
+        const gameContainer = document.querySelector('.game-container');
+        if (gameContainer) {
+            gameContainer.classList.remove('shake-light', 'shake-medium', 'shake-heavy');
+            void gameContainer.offsetWidth;
+            gameContainer.classList.add(shakeClass);
+            
+            // 动画结束后移除震动类
+            setTimeout(() => {
+                gameContainer.classList.remove(shakeClass);
+            }, 400);
+        }
+    }
+}
+
 function updateStats() {
     if (SIMPLE_SLOT_MODE) {
         updateStackProgressBar();
         const restockDisplayCount = getSimpleModeRestockDisplayCount();
         const openedBlindBoxesCount = getSimpleModeOpenedBlindBoxesCount();
+        
         if (multiOpenCountDisplay) {
-            multiOpenCountDisplay.textContent = `${openedBlindBoxesCount}个`;
+            if (openedBlindBoxesCount !== lastOpenedBlindBoxesCount) {
+                playJuicyComboAnimation(openedBlindBoxesCount);
+                lastOpenedBlindBoxesCount = openedBlindBoxesCount;
+            } else {
+                multiOpenCountDisplay.textContent = String(openedBlindBoxesCount);
+            }
         }
+        
         if (currentRewardDisplay) {
             currentRewardDisplay.textContent = String(restockDisplayCount);
         }
